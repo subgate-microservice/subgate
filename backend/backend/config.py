@@ -1,24 +1,21 @@
-DB_NAME = "subscription_db"
-DB_USER = "barma"
-DB_PASSWORD = "145190hfp"
-DB_HOST = "localhost"
-DB_PORT = 27017
+import os
 
-HOST = "0.0.0.0"
-PORT = 3000
+from dotenv import load_dotenv
 
-ENCRYPTOR_PASS = "HelloWorld"
+load_dotenv()
 
-FIEF_BASE_URL = "http://localhost:8000"
-FIEF_CLIENT_ID = "qsscgXfp53_0LkJoBgzSDRt1TtpkzOWGuWFErBf_dtA"
-FIEF_CLIENT_SECRET = "UaEu1Km60IiUODGnxKun-d9RjvKW2KMU3See7f-j3YE"
-FIEF_ADMIN_APIKEY = "5RrVaAIhtuvkal1L2C4xzTVbmrejHCGYD6ErZFjjBGA"
-FIEF_REDIRECT_URLS = {
-    "http://localhost:5173/auth/callback",
-    "http://localhost:5000/auth/callback",
-    "http://localhost/auth/callback",
-}
-FIEF_EVENTS = {"user.deleted"}
-FIEF_WEBHOOK_BASE_URL = "http://localhost:3000/fief-router"
+# Настройки базы данных
+DB_NAME = os.getenv("DB_NAME")
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = int(os.getenv("DB_PORT"))
 
-POSTGRES_URL = f"postgresql+asyncpg://postgres:145190hfp@localhost:5432/subtrack"
+# Настройки сервера
+HOST = os.getenv("HOST")
+PORT = int(os.getenv("PORT"))
+
+# Ключ для шифрования
+ENCRYPTOR_PASS = os.getenv("ENCRYPTOR_PASS")
+
+POSTGRES_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
