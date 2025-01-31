@@ -119,6 +119,14 @@ class TestCreateManySubscriptionForSubscriberId:
             level=10,
             auth_id=self.auth_user.id,
         )
+        self.inferior_plan = Plan(
+                title="Free",
+                price=100,
+                currency="USD",
+                billing_cycle=Cycle.from_code(CycleCode.Monthly),
+                level=1,
+                auth_id=self.auth_user.id,
+            )
 
     async def create_first_subscription(self):
         async with container.unit_of_work_factory().create_uow() as uow:
@@ -165,15 +173,9 @@ class TestCreateManySubscriptionForSubscriberId:
 
     async def create_forth_subscription_with_inferior_plan(self):
         async with container.unit_of_work_factory().create_uow() as uow:
-            inferior_plan = Plan(
-                title="Free",
-                price=100,
-                currency="USD",
-                billing_cycle=Cycle.from_code(CycleCode.Monthly),
-                level=1,
-                auth_id=self.auth_user.id,
+            subscription = Subscription(
+                subscriber_id=self.subscriber_id, plan=self.inferior_plan, auth_id=self.auth_user.id
             )
-            subscription = Subscription(subscriber_id=self.subscriber_id, plan=inferior_plan, auth_id=self.auth_user.id)
             await SubscriptionService(container.eventbus(), uow).create_one(subscription)
             await uow.commit()
 
@@ -186,8 +188,27 @@ class TestCreateManySubscriptionForSubscriberId:
                 else:
                     assert sub.status == SubscriptionStatus.Paused
 
+    async def test_create_fifth_subscription_with_inferior_plan(self):
+        async with container.unit_of_work_factory().create_uow() as uow:
+            subscription = Subscription(
+                subscriber_id=self.subscriber_id, plan=self.inferior_plan, auth_id=self.auth_user.id
+            )
+            await SubscriptionService(container.eventbus(), uow).create_one(subscription)
+            await uow.commit()
+
+        async with container.unit_of_work_factory().create_uow() as uow:
+            subs = await uow.subscription_repo().get_selected(SubscriptionSby())
+            assert len(subs) == 5
+            for sub in subs:
+                if sub.plan.level == 20:
+                    assert sub.status == SubscriptionStatus.Active
+                else:
+                    assert sub.status == SubscriptionStatus.Paused
+
     @pytest.mark.asyncio
     async def test_foo(self):
         await self.create_first_subscription()
         await self.create_second_subscription_with_the_same_plan()
         await self.create_third_subscription_with_superior_plan()
+        await self.create_forth_subscription_with_inferior_plan()
+        await self.test_create_fifth_subscription_with_inferior_plan()

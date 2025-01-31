@@ -121,33 +121,6 @@ async def test_manage_subscriptions_resume_paused_subs(expired_subs_with_active_
         assert len(active_real) == len(expired_subs_with_active_status)
 
 
-#
-# @pytest.mark.asyncio
-# async def test_rollback_when_events_were_failed(expired_subs_with_active_status, paused_subs):
-#     class MockManager(SubscriptionManager):
-#         async def _send_events(self):
-#             raise Exception("Any exception in send_events() occurred")
-#
-#     bus = container.eventbus()
-#     uow_factory = container.unit_of_work
-#     manager = MockManager(uow_factory, bus)
-#     await manager.manage_expired_subscriptions()
-#
-#     uow = container.unit_of_work_factory().create_uow()
-#     expired_real = await uow.subscription_repo().get_selected(SubscriptionSby(statuses={SubscriptionStatus.Expired}))
-#     assert len(expired_real) == 0
-#
-#     paused_real = await uow.subscription_repo().get_selected(SubscriptionSby(statuses={SubscriptionStatus.Paused}))
-#     assert len(paused_real) == len(paused_subs)
-#     for real, expected in zip(paused_real, paused_subs):
-#         assert real.id == expected.id
-#
-#     active_real = await uow.subscription_repo().get_selected(SubscriptionSby(statuses={SubscriptionStatus.Active}))
-#     assert len(active_real) == len(expired_subs_with_active_status)
-#     for real, expected in zip(active_real, expired_subs_with_active_status):
-#         assert real.id == expected.id
-
-
 @pytest.mark.asyncio
 async def test_autorenew_subscription(plan):
     # Before

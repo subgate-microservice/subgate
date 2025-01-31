@@ -4,8 +4,8 @@ from pydantic import AwareDatetime
 
 from backend.shared.context import Context
 from backend.shared.eventbus import Eventbus, Event
-from backend.shared.unit_of_work.uow import UnitOfWork
 from backend.shared.events import EventCode
+from backend.shared.unit_of_work.uow import UnitOfWork
 from backend.subscription.domain.plan import Usage, Plan
 from backend.subscription.domain.subscription import Subscription, SubscriptionStatus, SubId
 from backend.subscription.domain.subscription_repo import SubscriptionSby
@@ -94,47 +94,20 @@ class SubscriptionService(BaseService):
         self._partial_service = SubscriptionPartialUpdateService(bus, uow)
 
     async def create_one(self, item: Subscription):
-        created_sub = item
-        if created_sub.status != SubscriptionStatus.Active:
-            raise ValueError(f"You are trying create subscription with {created_sub.status} status")
         subscriber_active_sub = await self._uow.subscription_repo().get_subscriber_active_one(
-            subscriber_id=created_sub.subscriber_id, auth_id=created_sub.auth_id,
+            subscriber_id=item.subscriber_id, auth_id=item.auth_id,
         )
 
         if subscriber_active_sub:
-            # Если создаваемая подписка старше активной
-            if created_sub.plan.level > subscriber_active_sub.plan.level:
-                # Ставим на паузу активную подписку
+            # Если создаваемая подписка старше активной, то ставим на паузу активную подписку
+            if item.plan.level > subscriber_active_sub.plan.level:
                 await self._partial_service.pause_sub(subscriber_active_sub)
+            # Если создаваемая подписка идентична или младше активной, то ставим создаваемую подписку на паузу
+            else:
+                item = item.pause()
 
-                # Создаем новую подписку
-                await self._uow.subscription_repo().add_one(created_sub)
-                self._add_event(EventCode.SubscriptionCreated, created_sub)
-
-            # Если создаваемая подписка идентична активной, то ставим создаваемую подписку на паузу
-            elif created_sub.plan.level == subscriber_active_sub.plan.level:
-                created_sub = created_sub.pause()
-                await self._uow.subscription_repo().add_one(created_sub)
-                self._add_event(EventCode.SubscriptionCreated, created_sub)
-
-            # Если создаваемая подписка младше активной
-            elif created_sub.plan.level < subscriber_active_sub.plan.level:
-                sby = SubscriptionSby(subscriber_ids={created_sub.subscriber_id})
-
-                # Пытаемся найти подписки с идентичным планом
-                # Если такие есть, то мы их продлеваем
-                # Если таких нет, то мы просто создаем новую подписку и ставим ее на паузу
-                other_subs = await self._uow.subscription_repo().get_selected(sby)
-                try:
-                    target = next(x for x in other_subs if created_sub.plan.level == x.plan.level)
-                    await self._partial_service.shift_last_billing(target, created_sub.days_left)
-                except StopIteration:
-                    created_sub = created_sub.pause()
-                    await self._uow.subscription_repo().add_one(created_sub)
-                    self._add_event(EventCode.SubscriptionCreated, created_sub)
-        else:
-            await self._uow.subscription_repo().add_one(item)
-            self._add_event(EventCode.SubscriptionCreated, item)
+        await self._uow.subscription_repo().add_one(item)
+        self._add_event(EventCode.SubscriptionCreated, item)
 
     async def get_one_by_id(self, sub_id: SubId) -> Subscription:
         result = await self._uow.subscription_repo().get_one_by_id(sub_id)
