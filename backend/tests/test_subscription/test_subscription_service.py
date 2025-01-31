@@ -188,7 +188,7 @@ class TestCreateManySubscriptionForSubscriberId:
                 else:
                     assert sub.status == SubscriptionStatus.Paused
 
-    async def test_create_fifth_subscription_with_inferior_plan(self):
+    async def create_fifth_subscription_with_inferior_plan(self):
         async with container.unit_of_work_factory().create_uow() as uow:
             subscription = Subscription(
                 subscriber_id=self.subscriber_id, plan=self.inferior_plan, auth_id=self.auth_user.id
@@ -211,4 +211,4 @@ class TestCreateManySubscriptionForSubscriberId:
         await self.create_second_subscription_with_the_same_plan()
         await self.create_third_subscription_with_superior_plan()
         await self.create_forth_subscription_with_inferior_plan()
-        await self.test_create_fifth_subscription_with_inferior_plan()
+        await self.create_fifth_subscription_with_inferior_plan()

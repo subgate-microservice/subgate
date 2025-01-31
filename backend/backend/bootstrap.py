@@ -7,6 +7,7 @@ from backend import config
 from backend.auth.application.auth_closure_factory import AuthClosureFactory
 from backend.auth.domain.auth_user import AuthUser, AuthId
 from backend.auth.infra.auth_closure_factories.apikey_factory import ApikeyAuthClosureFactory
+from backend.auth.infra.auth_closure_factories.complex_factory import ComplexAuthClosureFactory
 from backend.auth.infra.auth_closure_factories.fake_factory import FakeAuthClosureFactory
 from backend.shared.eventbus import Eventbus
 from backend.shared.unit_of_work.uow import UnitOfWorkFactory
@@ -89,16 +90,11 @@ class Bootstrap:
     def auth_closure_factory(self) -> AuthClosureFactory:
         if not self._auth_closure_factory:
             apikey_auth_closure_factory = ApikeyAuthClosureFactory(self.unit_of_work_factory())
-            # fief_auth_closure_factory = FiefAuthClosureFactory(
-            #     config.FIEF_BASE_URL,
-            #     config.FIEF_CLIENT_ID,
-            #     config.FIEF_CLIENT_SECRET,
-            # )
-            # self._auth_closure_factory = ComplexAuthClosureFactory(
-            #     fief_auth_closure_factory,
-            #     apikey_auth_closure_factory
-            # )
-            self._auth_closure_factory = apikey_auth_closure_factory
+            factory = FakeAuthClosureFactory()
+            self._auth_closure_factory = ComplexAuthClosureFactory(
+                factory,
+                apikey_auth_closure_factory
+            )
         return self._auth_closure_factory
 
     def encrypt_service(self) -> GDPRCompliantEncryptor:
