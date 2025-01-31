@@ -15,9 +15,9 @@ SubId = UUID
 
 
 class SubscriptionStatus(StrEnum):
-    Active = "Active"
-    Paused = "Paused"
-    Expired = "Expired"
+    Active = "active"
+    Paused = "paused"
+    Expired = "expired"
 
 
 class Subscription(MyBase):
