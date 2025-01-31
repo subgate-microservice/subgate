@@ -33,7 +33,7 @@ async def plan(auth_user):
         title="Business",
         price=100,
         currency="USD",
-        billing_cycle=Cycle(title="Monthly", code="Monthly", cycle_in_days=31),
+        billing_cycle=Cycle.from_code(CycleCode.Monthly),
         level=10,
         auth_id=auth_user.id if auth_user else uuid4(),
     )

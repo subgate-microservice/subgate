@@ -16,7 +16,7 @@ def plan():
         title="Business",
         price=100,
         currency="USD",
-        billing_cycle=Cycle(title="Annual", code="Annual", cycle_in_days=365),
+        billing_cycle=Cycle.from_code(CycleCode.Annual),
         level=3,
         auth_id=uuid4(),
     )

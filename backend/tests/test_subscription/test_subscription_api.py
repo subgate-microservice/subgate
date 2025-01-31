@@ -18,7 +18,7 @@ async def create_plan(auth_user: AuthUser):
             title="Business",
             price=100,
             currency="USD",
-            billing_cycle=Cycle(title="Annual", code="Annual", cycle_in_days=365),
+            billing_cycle=Cycle.from_code(CycleCode.Annual),
             level=3,
             auth_id=auth_user.id,
         )

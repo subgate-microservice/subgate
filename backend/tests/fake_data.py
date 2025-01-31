@@ -6,7 +6,7 @@ from backend.auth.domain.apikey import Apikey
 from backend.auth.domain.auth_user import AuthUser
 from backend.shared.events import EventCode
 from backend.shared.utils import get_current_datetime
-from backend.subscription.domain.cycle import Cycle
+from backend.subscription.domain.cycle import Cycle, CycleCode
 from backend.subscription.domain.plan import Plan, Usage
 from backend.subscription.domain.subscription import SubscriptionStatus, Subscription
 from backend.webhook.domain.telegram import Telegram
@@ -18,7 +18,7 @@ def create_plan(auth_user: AuthUser = None, title="Business", level=10):
         title=title,
         price=100,
         currency="USD",
-        billing_cycle=Cycle(title="Monthly", code="Monthly", cycle_in_days=31),
+        billing_cycle=Cycle.from_code(CycleCode.Monthly),
         level=level,
         auth_id=auth_user.id if auth_user else uuid4(),
     )

@@ -1,19 +1,19 @@
 import datetime
 from enum import StrEnum
 
-from pydantic import AwareDatetime, Field
+from pydantic import AwareDatetime
 
 from backend.shared.base_models import MyBase
 from backend.shared.utils import get_current_datetime
 
 
 class CycleCode(StrEnum):
-    Daily = "Daily"
-    Weekly = "Weekly"
-    Monthly = "Monthly"
-    Quarterly = "Quarterly"
-    Semiannual = "Semiannual"
-    Annual = "Annual"
+    Daily = "daily"
+    Weekly = "weekly"
+    Monthly = "monthly"
+    Quarterly = "quarterly"
+    Semiannual = "semiannual"
+    Annual = "annual"
 
 
 class Cycle(MyBase):
@@ -29,7 +29,9 @@ class Cycle(MyBase):
     @classmethod
     def from_code(cls, code: CycleCode):
         if code == CycleCode.Monthly:
-            return cls(title=CycleCode.Monthly, code=CycleCode.Monthly, cycle_in_days=31)
+            return cls(title="Monthly", code=CycleCode.Monthly, cycle_in_days=31)
+        if code == CycleCode.Annual:
+            return cls(title="Annual", code=CycleCode.Annual, cycle_in_days=365)
         raise NotImplemented
 
 
