@@ -17,18 +17,18 @@ class UsageRate(MyBase):
     title: str
     code: str
     unit: str
-    available_units: float = Field(alias="availableUnits")
-    renew_cycle: Cycle = Field(alias="renewCycle")
+    available_units: float
+    renew_cycle: Cycle
 
 
 class Usage(MyBase):
     title: str
     code: str
     unit: str
-    available_units: float = Field(alias="availableUnits")
-    renew_cycle: Cycle = Field(alias="renewCycle")
-    last_renew: AwareDatetime = Field(alias="lastRenew", default_factory=get_current_datetime)
-    used_units: float = Field(alias="usedUnits")
+    available_units: float
+    renew_cycle: Cycle
+    last_renew: AwareDatetime = Field(default_factory=get_current_datetime)
+    used_units: float
 
     def renew(self) -> Self:
         return self.model_copy(update={
@@ -50,7 +50,7 @@ class Discount(MyBase):
     code: str
     description: str
     size: float = Field(ge=0, le=1)
-    valid_until: Optional[AwareDatetime] = Field(alias="validUntil")
+    valid_until: Optional[AwareDatetime]
 
 
 class Plan(MyBase):
@@ -58,16 +58,16 @@ class Plan(MyBase):
     title: str
     price: float
     currency: str
-    billing_cycle: Cycle = Field(alias="billingCycle")
+    billing_cycle: Cycle
     description: str = ""
     level: int = 1
     features: Optional[str] = None
-    usage_rates: list[UsageRate] = Field(default_factory=list, alias="usageRates")
+    usage_rates: list[UsageRate] = Field(default_factory=list, )
     fields: dict[str, Any] = Field(default_factory=dict)
-    auth_id: AuthId = Field(alias="authId", exclude=True)
+    auth_id: AuthId = Field(exclude=True)
     discounts: list[Discount] = Field(default_factory=list)
-    created_at: AwareDatetime = Field(alias="createdAt", default_factory=get_current_datetime)
-    updated_at: AwareDatetime = Field(alias="updatedAt", default_factory=get_current_datetime)
+    created_at: AwareDatetime = Field(default_factory=get_current_datetime)
+    updated_at: AwareDatetime = Field(default_factory=get_current_datetime)
 
     @model_validator(mode="after")
     def _validate_other(self) -> Self:

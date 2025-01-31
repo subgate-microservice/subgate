@@ -23,13 +23,13 @@ class SubscriptionStatus(StrEnum):
 class Subscription(MyBase):
     id: SubId = Field(default_factory=uuid4)
     plan: Plan
-    subscriber_id: str = Field(alias="subscriberId")
-    auth_id: AuthId = Field(alias="authId", exclude=True)
+    subscriber_id: str
+    auth_id: AuthId = Field(exclude=True)
     status: SubscriptionStatus = SubscriptionStatus.Active
-    created_at: AwareDatetime = Field(alias="createdAt", default_factory=get_current_datetime)
-    updated_at: AwareDatetime = Field(alias="updatedAt", default_factory=get_current_datetime)
-    last_billing: AwareDatetime = Field(alias="lastBilling", default_factory=get_current_datetime)
-    paused_from: Optional[AwareDatetime] = Field(alias="pausedFrom", default=None)
+    created_at: AwareDatetime = Field(default_factory=get_current_datetime)
+    updated_at: AwareDatetime = Field(default_factory=get_current_datetime)
+    last_billing: AwareDatetime = Field(default_factory=get_current_datetime)
+    paused_from: Optional[AwareDatetime] = Field(default=None)
     autorenew: bool = False
     usages: list[Usage] = Field(default_factory=list)
 

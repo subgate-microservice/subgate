@@ -18,16 +18,16 @@ webhook_router = APIRouter(
 
 
 class WebhookCreate(MyBase):
-    event_code: str = Field(alias="eventCode")
-    target_url: str = Field(alias="targetUrl")
-    created_at: AwareDatetime = Field(default_factory=get_current_datetime, alias="createdAt")
+    event_code: str = Field()
+    target_url: str = Field()
+    created_at: AwareDatetime = Field(default_factory=get_current_datetime, )
 
 
 class WebhookUpdate(WebhookCreate):
     id: WebhookId
-    event_code: str = Field(alias="eventCode")
-    target_url: str = Field(alias="targetUrl")
-    created_at: AwareDatetime = Field(alias="createdAt")
+    event_code: str = Field()
+    target_url: str = Field()
+    created_at: AwareDatetime = Field()
 
     def to_webhook(self, auth_id: AuthId):
         return Webhook(auth_id=auth_id, **self.model_dump())

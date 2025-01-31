@@ -23,4 +23,4 @@ class AuthUser(MyBase):
 class AuthUserCreate(MyBase):
     email: str
     password: str
-    email_verified: bool = Field(default=False, alias="emailVerified")
+    email_verified: bool = Field(default=False)

@@ -17,13 +17,13 @@ from backend.subscription.domain.subscription_repo import SubscriptionSby
 
 
 class SubscriptionCreate(MyBase):
-    subscriber_id: str = Field(alias="subscriberId")
+    subscriber_id: str
     plan: PlanUpdate
     status: SubscriptionStatus = SubscriptionStatus.Active
-    created_at: Optional[AwareDatetime] = Field(alias="createdAt", default=None)
-    updated_at: Optional[AwareDatetime] = Field(alias="updatedAt", default=None)
-    last_billing: Optional[AwareDatetime] = Field(alias="lastBilling", default=None)
-    paused_from: Optional[AwareDatetime] = Field(alias="pausedFrom", default=None)
+    created_at: Optional[AwareDatetime] = None
+    updated_at: Optional[AwareDatetime] = None
+    last_billing: Optional[AwareDatetime] = None
+    paused_from: Optional[AwareDatetime] = None
     autorenew: bool = False
     usages: list[Usage] = Field(default_factory=list)
 
@@ -48,14 +48,14 @@ class SubscriptionCreate(MyBase):
 
 class SubscriptionUpdate(MyBase):
     id: SubId
-    subscriber_id: str = Field(alias="subscriberId")
+    subscriber_id: str
     plan: PlanUpdate
     status: SubscriptionStatus
     usages: list[UsageRate]
-    last_billing: AwareDatetime = Field(alias="lastBilling")
-    paused_from: Optional[AwareDatetime] = Field(alias="pausedFrom")
-    created_at: AwareDatetime = Field(alias="createdAt")
-    updated_at: AwareDatetime = Field(alias="updatedAt", default_factory=get_current_datetime)
+    last_billing: AwareDatetime
+    paused_from: Optional[AwareDatetime]
+    created_at: AwareDatetime
+    updated_at: AwareDatetime = Field(default_factory=get_current_datetime)
     autorenew: bool = False
     usages: list[Usage] = Field(default_factory=list)
 

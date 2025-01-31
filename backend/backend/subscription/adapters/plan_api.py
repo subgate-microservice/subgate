@@ -20,11 +20,11 @@ class PlanCreate(MyBase):
     title: str
     price: float
     currency: str
-    billing_cycle: Cycle = Field(alias="billingCycle")
+    billing_cycle: Cycle
     description: str = ""
     level: int = 1
     features: Optional[str] = ""
-    usage_rates: list[UsageRate] = Field(alias="usageRates", default_factory=list)
+    usage_rates: list[UsageRate] = Field(default_factory=list)
     fields: dict[str, Any] = Field(default_factory=dict)
     discounts: list[Discount] = Field(default_factory=list)
 
@@ -34,8 +34,8 @@ class PlanCreate(MyBase):
 
 class PlanUpdate(PlanCreate):
     id: PlanId
-    created_at: AwareDatetime = Field(alias="createdAt")
-    updated_at: AwareDatetime = Field(alias="updatedAt", default_factory=get_current_datetime)
+    created_at: AwareDatetime
+    updated_at: AwareDatetime = Field(default_factory=get_current_datetime)
 
     @classmethod
     def from_plan(cls, plan: Plan):

@@ -19,7 +19,7 @@ class CycleCode(StrEnum):
 class Cycle(MyBase):
     title: str
     code: CycleCode
-    cycle_in_days: int = Field(alias="cycleInDays")
+    cycle_in_days: int
 
     def get_next_billing_date(self, from_date: AwareDatetime = None) -> AwareDatetime:
         if from_date is None:
