@@ -1,7 +1,6 @@
 from typing import Hashable, Type, Union
 
 
-# todo исправить сериализацию
 class ItemNotExist(LookupError):
     def __init__(self, item_type: Type, lookup_field_value: Hashable, lookup_field_key="id"):
         self.item_type = item_type
@@ -13,9 +12,9 @@ class ItemNotExist(LookupError):
 
     def to_json(self):
         return {
-            "itemType": self.item_type.__name__,
-            "lookupFieldKey": self.lookup_field_key,
-            "lookupFieldValue": str(self.lookup_field_value),
+            "item_type": self.item_type.__name__,
+            "lookup_field_key": self.lookup_field_key,
+            "lookup_field_value": str(self.lookup_field_value),
         }
 
 
@@ -30,9 +29,9 @@ class ItemAlreadyExist(Exception):
 
     def to_json(self):
         return {
-            "itemType": self.item_type.__name__,
-            "indexValue": str(self.index_value),
-            "indexKey": self.index_key,
+            "item_type": self.item_type.__name__,
+            "index_value": str(self.index_value),
+            "index_key": self.index_key,
         }
 
 
@@ -59,10 +58,10 @@ class ValidationError(Exception):
         return {
             "field": self.field,
             "value": self.value,
-            "valueType": self.value_type,
+            "value_type": self.value_type,
             "message": self.message,
         }
 
     @classmethod
     def from_json(cls, data):
-        return cls(field=data["field"], value=data["value"], value_type=data["valueType"], message=data["message"])
+        return cls(field=data["field"], value=data["value"], value_type=data["value_type"], message=data["message"])
