@@ -1,8 +1,9 @@
 import pytest
+import pytest_asyncio
 
 from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container
-from backend.subscription.application.subscription_service import SubscriptionService
+from backend.subscription.application.subscription_service import SubscriptionService, SubscriptionPartialUpdateService
 from backend.subscription.domain.cycle import Cycle, CycleCode
 from backend.subscription.domain.plan import Plan
 from backend.subscription.domain.subscription import SubscriptionStatus, Subscription
@@ -120,13 +121,13 @@ class TestCreateManySubscriptionForSubscriberId:
             auth_id=self.auth_user.id,
         )
         self.inferior_plan = Plan(
-                title="Free",
-                price=100,
-                currency="USD",
-                billing_cycle=Cycle.from_code(CycleCode.Monthly),
-                level=1,
-                auth_id=self.auth_user.id,
-            )
+            title="Free",
+            price=100,
+            currency="USD",
+            billing_cycle=Cycle.from_code(CycleCode.Monthly),
+            level=1,
+            auth_id=self.auth_user.id,
+        )
 
     async def create_first_subscription(self):
         async with container.unit_of_work_factory().create_uow() as uow:
@@ -212,3 +213,33 @@ class TestCreateManySubscriptionForSubscriberId:
         await self.create_third_subscription_with_superior_plan()
         await self.create_forth_subscription_with_inferior_plan()
         await self.create_fifth_subscription_with_inferior_plan()
+
+
+class TestResumePausedSubscriptionWhileActiveOneExists:
+    @pytest_asyncio.fixture(autouse=True)
+    async def setup_method(self):
+        auth_user = AuthUser()
+        subscriber_id = "AnySubID"
+        plan = Plan(
+            title="Personal",
+            price=100,
+            currency="USD",
+            billing_cycle=Cycle.from_code(CycleCode.Monthly),
+            level=10,
+            auth_id=auth_user.id,
+        )
+        self.active = Subscription(subscriber_id=subscriber_id, plan=plan, auth_id=auth_user.id,
+                                   status=SubscriptionStatus.Active)
+        self.paused = Subscription(subscriber_id=subscriber_id, plan=plan, auth_id=auth_user.id,
+                                   status=SubscriptionStatus.Active).pause()
+
+        async with container.unit_of_work_factory().create_uow() as uow:
+            await uow.subscription_repo().add_many([self.active, self.paused])
+            await uow.commit()
+
+    @pytest.mark.asyncio
+    async def test_foo(self):
+        with pytest.raises(Exception):
+            async with container.unit_of_work_factory().create_uow() as uow:
+                await SubscriptionPartialUpdateService(container.eventbus(), uow).resume_sub(self.paused)
+                await uow.commit()

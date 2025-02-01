@@ -1,5 +1,6 @@
 from typing import Iterable, Mapping, Type, Any
 from typing import Optional
+from uuid import uuid4
 
 from sqlalchemy import Column, String, Table
 from sqlalchemy.dialects.postgresql import JSONB
@@ -11,7 +12,7 @@ from backend.shared.enums import Lock
 from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, metadata, SQLMapper
 from backend.shared.unit_of_work.change_log import ChangeLog
 from backend.shared.utils import get_current_datetime
-from backend.subscription.domain.subscription import Subscription, SubId
+from backend.subscription.domain.subscription import Subscription, SubId, SubscriptionStatus
 from backend.subscription.domain.subscription_repo import SubscriptionSby, SubscriptionRepo
 
 subscription_table = Table(
@@ -31,6 +32,7 @@ subscription_table = Table(
     Column("_was_deleted", DateTime(timezone=True), default=None, nullable=True),
     Column("_expiration_date", DateTime(timezone=True), nullable=False),
     Column("_earliest_next_renew_in_usages", DateTime(timezone=True), nullable=True),
+    Column("_active_status_guard", String, unique=True, nullable=False),
 )
 
 
@@ -53,6 +55,12 @@ class SubscriptionSqlMapper(SQLMapper):
         for usage in entity.usages[1:]:
             if usage.next_renew < result["_earliest_next_renew_in_usages"]:
                 result["_earliest_next_renew_in_usages"] = usage.next_renew
+
+        result["_active_status_guard"] = (
+            str(uuid4())
+            if entity.status != SubscriptionStatus.Active
+            else entity.subscriber_id + str(entity.auth_id)
+        )
         return result
 
     def mapping_to_entity(self, data: Mapping) -> Subscription:
