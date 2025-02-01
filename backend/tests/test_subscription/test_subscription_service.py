@@ -5,6 +5,7 @@ from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container
 from backend.subscription.application.subscription_service import SubscriptionService, SubscriptionPartialUpdateService
 from backend.subscription.domain.cycle import Cycle, CycleCode
+from backend.subscription.domain.exceptions import ActiveStatusConflict
 from backend.subscription.domain.plan import Plan
 from backend.subscription.domain.subscription import SubscriptionStatus, Subscription
 from backend.subscription.domain.subscription_repo import SubscriptionSby
@@ -239,7 +240,7 @@ class TestResumePausedSubscriptionWhileActiveOneExists:
 
     @pytest.mark.asyncio
     async def test_foo(self):
-        with pytest.raises(Exception):
+        with pytest.raises(ActiveStatusConflict):
             async with container.unit_of_work_factory().create_uow() as uow:
                 await SubscriptionPartialUpdateService(container.eventbus(), uow).resume_sub(self.paused)
                 await uow.commit()

@@ -62,7 +62,7 @@ class SubscriptionSqlMapper(SQLMapper):
         result["_active_status_guard"] = (
             str(uuid4())
             if entity.status != SubscriptionStatus.Active
-            else entity.subscriber_id + str(entity.auth_id)
+            else f"{entity.subscriber_id}_{entity.auth_id}"
         )
         return result
 

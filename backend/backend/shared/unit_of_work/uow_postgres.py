@@ -1,5 +1,6 @@
 from typing import Self, Optional
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, AsyncEngine
 
 from backend.auth.domain.apikey_repo import ApikeyRepo
@@ -7,6 +8,7 @@ from backend.auth.infra.repositories.apikey_repo_sql import SqlApikeyRepo
 from backend.shared.unit_of_work.change_log import ChangeLog
 from backend.shared.unit_of_work.sql_statement_parser import SqlStatementBuilder
 from backend.shared.unit_of_work.uow import UnitOfWorkFactory, UnitOfWork
+from backend.subscription.domain.exceptions import ActiveStatusConflict
 from backend.subscription.domain.plan_repo import PlanRepo
 from backend.subscription.domain.subscription_repo import SubscriptionRepo
 from backend.subscription.infra.plan_repo_sql import SqlPlanRepo
@@ -15,6 +17,15 @@ from backend.webhook.domain.telegram import TelegramRepo
 from backend.webhook.domain.webhook_repo import WebhookRepo
 from backend.webhook.infra.telegram_repo_sql import SqlTelegramRepo
 from backend.webhook.infra.webhook_repo_sql import SqlWebhookRepo
+
+
+def convert_error(err: Exception) -> Exception:
+    if isinstance(err, IntegrityError):
+        error_string = str(err.__dict__["orig"])
+        if "Key (_active_status_guard)=" in error_string:
+            subscriber_id = error_string.split("Key (_active_status_guard)=(")[1].split("_")[0]
+            err = ActiveStatusConflict(subscriber_id)
+    return err
 
 
 class NewUow(UnitOfWork):
@@ -56,6 +67,7 @@ class NewUow(UnitOfWork):
             await self._session.rollback()
             for log in logs:
                 self._change_log.change_status(log.id, "reverted")
+            err = convert_error(err)
             raise err
 
     async def rollback(self):
@@ -70,6 +82,7 @@ class NewUow(UnitOfWork):
                 self._change_log.change_status(log.id, "revert_error")
         except Exception as err:
             await self._session.rollback()
+            err = convert_error(err)
             raise err
 
     def subscription_repo(self) -> SubscriptionRepo:
