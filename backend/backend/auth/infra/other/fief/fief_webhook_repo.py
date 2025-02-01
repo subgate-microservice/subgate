@@ -1,7 +1,7 @@
 from uuid import UUID
 
-from backend.auth.infra.other.fief_base_repo import FiefBaseRepo
-from backend.auth.infra.other.fief_schemas import FiefWebhook, FiefWebhookCreate
+from backend.auth.infra.other.fief.fief_base_repo import FiefBaseRepo
+from backend.auth.infra.other.fief.fief_schemas import FiefWebhook, FiefWebhookCreate
 
 WEBHOOK_SECRETS: dict[str, str] = {}
 

@@ -6,7 +6,7 @@ from hashlib import sha256
 from starlette import status
 
 from backend.auth.domain.auth_user import AuthUser
-from backend.auth.infra.other.fief_webhook_repo import FiefWebhookRepo
+from backend.auth.infra.other.fief.fief_webhook_repo import FiefWebhookRepo
 from fastapi import Request, HTTPException
 
 

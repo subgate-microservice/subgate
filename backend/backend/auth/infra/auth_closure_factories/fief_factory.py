@@ -7,7 +7,7 @@ from fief_client.integrations.fastapi import FiefAuth
 
 from backend.auth.application.auth_closure_factory import AuthClosureFactory, FastapiAuthClosure
 from backend.auth.domain.auth_user import AuthUser
-from backend.auth.infra.repositories.auth_user_mappers import AuthUserMapper
+from backend.auth.infra.mappers.auth_user_mappers import AuthUserMapper
 
 
 class FiefAuthClosureFactory(AuthClosureFactory):
