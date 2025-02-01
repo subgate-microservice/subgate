@@ -1,6 +1,7 @@
 from typing import Hashable, Type, Union
 
 
+# todo исправить сериализацию
 class ItemNotExist(LookupError):
     def __init__(self, item_type: Type, lookup_field_value: Hashable, lookup_field_key="id"):
         self.item_type = item_type

@@ -11,6 +11,7 @@ from backend.auth.infra.auth_closure_factories.apikey_factory import NotAuthenti
 from backend.shared.exceptions import ItemNotExist, ItemAlreadyExist, ValidationError
 from backend.subscription.adapters.plan_api import plan_router
 from backend.subscription.adapters.subscription_api import subscription_router
+from backend.subscription.domain.exceptions import ActiveStatusConflict
 from backend.webhook.adapters.webhook_api import webhook_router
 
 app = FastAPI()
@@ -63,6 +64,19 @@ async def handle_item_not_exist(_request: Request, exc: ItemNotExist):
 
 @app.exception_handler(ItemAlreadyExist)
 async def handle_item_already_exist(_request: Request, exc: ItemAlreadyExist):
+    logger.exception(exc)
+    return JSONResponse(
+        status_code=409,
+        content={
+            "exception_type": exc.__class__.__name__,
+            "message": str(exc),
+            "detail": exc.to_json(),
+        },
+    )
+
+
+@app.exception_handler(ActiveStatusConflict)
+async def handle_item_active_status_conflict(_request: Request, exc: ActiveStatusConflict):
     logger.exception(exc)
     return JSONResponse(
         status_code=409,
