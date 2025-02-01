@@ -20,5 +20,4 @@ class Apikey(MyBase):
 
     def to_light_bson(self):
         result = self.model_dump(exclude={"value", "auth_user"}, mode="json")
-        result["createdAt"] = result.pop("created_at")
         return result
