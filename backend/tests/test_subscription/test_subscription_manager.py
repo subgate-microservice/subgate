@@ -1,3 +1,4 @@
+import random
 from datetime import timedelta
 from uuid import uuid4
 
@@ -109,7 +110,8 @@ async def test_manage_subscriptions_resume_paused_subs(expired_subs_with_active_
 
     async with container.unit_of_work_factory().create_uow() as uow:
         # Проверяем, что истекшие подписки сменили статус
-        expired_real = await uow.subscription_repo().get_selected(SubscriptionSby(statuses={SubscriptionStatus.Expired}))
+        expired_real = await uow.subscription_repo().get_selected(
+            SubscriptionSby(statuses={SubscriptionStatus.Expired}))
         assert len(expired_real) == len(expired_subs_with_active_status)
 
         # Проверяем, что на каждую истекшую подписку мы возобновили (=забрали) подписку со статусом Paused
@@ -186,3 +188,45 @@ async def test_subscription_manager_renew_usages(plan):
         real = await uow.subscription_repo().get_one_by_id(sub.id)
         assert real.usages[0].used_units == 0
         assert real.usages[1].used_units == usages[1].used_units
+
+
+class TestSubscriptionManagerResumeSubscriptionWithHighestPlanLevel:
+    @pytest_asyncio.fixture(autouse=True)
+    async def setup(self):
+        self.auth_user = AuthUser()
+        self.subscriber_id = "AnySubscriberID"
+        self.subs = []
+        for i in range(1, 11):
+            plan = Plan(auth_id=self.auth_user.id, title="Business", price=100, currency="USD",
+                        billing_cycle=Cycle.from_code(CycleCode.Monthly), level=i)
+            sub = Subscription(subscriber_id=self.subscriber_id, plan=plan, auth_id=self.auth_user.id)
+            sub = sub.pause()
+            self.subs.append(sub)
+
+        self.subs[3] = Subscription(
+            subscriber_id=self.subscriber_id,
+            plan=self.subs[3].plan,
+            auth_id=self.auth_user.id,
+            created_at=get_current_datetime() - timedelta(300),
+            last_billing=get_current_datetime() - timedelta(299),
+            status=SubscriptionStatus.Active,
+        )
+
+        async with container.unit_of_work_factory().create_uow() as uow:
+            random.shuffle(self.subs)
+            await uow.subscription_repo().add_many(self.subs)
+            await uow.commit()
+
+    @pytest.mark.asyncio
+    async def test_foo(self):
+        uow_factory = container.unit_of_work_factory()
+        manager = SubscriptionManager(uow_factory, container.eventbus())
+        await manager.manage_expired_subscriptions()
+
+        async with container.unit_of_work_factory().create_uow() as uow:
+            real = await uow.subscription_repo().get_subscriber_active_one(
+                self.subscriber_id,
+                self.auth_user.id,
+            )
+            assert real.status == SubscriptionStatus.Active
+            assert real.plan.level == 10

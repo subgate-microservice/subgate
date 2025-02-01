@@ -82,7 +82,7 @@ class PlanSqlMapper(SQLMapper):
 
 class SqlPlanRepo(PlanRepo):
     def __init__(self, session: AsyncSession, change_log: ChangeLog):
-        self._base_repo = SqlBaseRepo(session, PlanSqlMapper(), plan_table, change_log)
+        self._base_repo = SqlBaseRepo(session, PlanSqlMapper(plan_table), plan_table, change_log)
 
     async def create_indexes(self):
         pass

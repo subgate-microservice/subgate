@@ -58,7 +58,7 @@ class WebhookSqlMapper(SQLMapper):
 
 class SqlWebhookRepo(WebhookRepo):
     def __init__(self, session: AsyncSession, change_log: ChangeLog):
-        self._base_repo = SqlBaseRepo(session, WebhookSqlMapper(), webhook_table, change_log)
+        self._base_repo = SqlBaseRepo(session, WebhookSqlMapper(webhook_table), webhook_table, change_log)
 
     async def create_indexes(self):
         pass

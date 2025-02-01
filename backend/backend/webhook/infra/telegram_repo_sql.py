@@ -67,7 +67,7 @@ class SqlTelegramMapper(SQLMapper):
 
 class SqlTelegramRepo(TelegramRepo):
     def __init__(self, session: AsyncSession, change_log: ChangeLog):
-        self._base_repo = SqlBaseRepo(session, SqlTelegramMapper(), telegram_table, change_log)
+        self._base_repo = SqlBaseRepo(session, SqlTelegramMapper(telegram_table), telegram_table, change_log)
 
     async def create_indexes(self):
         pass

@@ -6,9 +6,9 @@ from loguru import logger
 
 from backend.shared.context import Context
 from backend.shared.eventbus import Eventbus, Event
+from backend.shared.events import EventCode
 from backend.shared.unit_of_work.uow import UnitOfWorkFactory
 from backend.shared.utils import get_current_datetime
-from backend.shared.events import EventCode
 from backend.subscription.domain.subscription import SubscriptionStatus, Subscription
 from backend.subscription.domain.subscription_repo import SubscriptionSby
 
@@ -43,7 +43,8 @@ class SubscriptionManager(BaseManager):
                     statuses={SubscriptionStatus.Paused},
                     subscriber_ids={sub.subscriber_id},
                     order_by=[("plan.level", -1)],
-                    limit=1
+                    auth_ids={sub.auth_id},
+                    limit=1,
                 )
                 other_subscriber_subs = await uow.subscription_repo().get_selected(sby)
                 for other_sub in other_subscriber_subs:
@@ -112,7 +113,9 @@ class SubscriptionUsageManager(BaseManager):
     async def manage_usages(self):
         async with self._uow_factory.create_uow() as uow:
             targets = await uow.subscription_repo().get_selected(
-                SubscriptionSby(usage_renew_date_lt=get_current_datetime())
+                SubscriptionSby(
+                    usage_renew_date_lt=get_current_datetime()
+                )
             )
             logger.info(f"{len(targets)} subscriptions needed to renew usages")
 

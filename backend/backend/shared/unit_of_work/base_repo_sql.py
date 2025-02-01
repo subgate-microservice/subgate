@@ -1,22 +1,25 @@
 from abc import abstractmethod
 from types import MappingProxyType
-from typing import Any, Protocol, Mapping, Type
+from typing import Any, Protocol, Mapping, Type, Optional
 from typing import Iterable, Hashable
 from uuid import uuid4
 
 from loguru import logger
-from sqlalchemy import MetaData, Table
+from sqlalchemy import MetaData, Table, Column
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from backend import config
-from backend.shared.base_models import BaseSby
+from backend.shared.base_models import BaseSby, OrderBy
 from backend.shared.enums import Lock
+from backend.shared.exceptions import ItemNotExist
 from backend.shared.unit_of_work.change_log import ChangeLog, Log
 from backend.shared.utils import get_current_datetime
-from backend.shared.exceptions import ItemNotExist
 
 
 class SQLMapper:
+    def __init__(self, table: Table):
+        self.table = table
+
     @abstractmethod
     def get_entity_type(self) -> Type[Any]:
         raise NotImplemented
@@ -32,6 +35,22 @@ class SQLMapper:
     @abstractmethod
     def sby_to_filter(self, sby: BaseSby) -> Any:
         raise NotImplemented
+
+    def get_orderby(self, orders: OrderBy):
+        order_clauses = []
+
+        for column_name, direction in orders:
+            column = self.table.c.get(column_name)
+            if column is None:
+                raise ValueError(f"Column '{column_name}' not found in table '{self.table.name}'")
+            if direction == 1:
+                pass
+            elif direction == -1:
+                column = column.desc()
+            else:
+                raise ValueError()
+            order_clauses.append(column)
+        return order_clauses
 
 
 metadata = MetaData()
@@ -153,6 +172,7 @@ class SqlBaseRepo:
         elif lock == "read":
             raise NotImplemented
 
+        query = query.order_by(*self.mapper.get_orderby(sby.order_by))
         result = await self.session.execute(query)
         plans = [self.mapper.mapping_to_entity(mapping) for mapping in result.mappings()]
         return plans

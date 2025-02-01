@@ -5,9 +5,10 @@ from uuid import uuid4
 from sqlalchemy import Column, String, Table
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql.sqltypes import DateTime, UUID, Boolean
+from sqlalchemy.sql.sqltypes import DateTime, UUID, Boolean, Integer
 
 from backend.auth.domain.auth_user import AuthId
+from backend.shared.base_models import OrderBy
 from backend.shared.enums import Lock
 from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, metadata, SQLMapper
 from backend.shared.unit_of_work.change_log import ChangeLog
@@ -20,6 +21,7 @@ subscription_table = Table(
     metadata,
     Column("id", UUID, primary_key=True),
     Column("plan", JSONB, nullable=False),
+    Column("_plan_level", Integer, nullable=False, index=True),
     Column("subscriber_id", String, nullable=False),
     Column("auth_id", UUID, nullable=False),
     Column("status", String, nullable=False),
@@ -44,6 +46,7 @@ class SubscriptionSqlMapper(SQLMapper):
         result = entity.model_dump(mode="json", exclude={"plan"})
         result["plan"] = entity.plan.model_dump(mode="json")
         result["plan"]["auth_id"] = str(entity.plan.auth_id)
+        result["_plan_level"] = entity.plan.level
         result["last_billing"] = entity.last_billing
         result["paused_from"] = entity.paused_from
         result["created_at"] = entity.created_at
@@ -97,10 +100,20 @@ class SubscriptionSqlMapper(SQLMapper):
             result.append(subscription_table.c["_earliest_next_renew_in_usages"] < sby.usage_renew_date_lt)
         return result
 
+    def get_orderby(self, orders: OrderBy):
+        updated_orders = []
+        for pair in orders:
+            if pair[0] == "plan.level":
+                updated_orders.append(("_plan_level", pair[1]))
+            else:
+                updated_orders.append(pair)
+        return super().get_orderby(updated_orders)
+
 
 class SqlSubscriptionRepo(SubscriptionRepo):
     def __init__(self, session: AsyncSession, change_log: ChangeLog):
-        self._base_repo = SqlBaseRepo(session, SubscriptionSqlMapper(), subscription_table, change_log)
+        self._base_repo = SqlBaseRepo(session, SubscriptionSqlMapper(subscription_table), subscription_table,
+                                      change_log)
 
     async def create_indexes(self):
         pass
@@ -134,6 +147,7 @@ class SqlSubscriptionRepo(SubscriptionRepo):
                 subscription_table.c["_was_deleted"].is_(None),
                 # todo надо добавить тест, это интересный баг, когда разные держатели одного подписчика
                 subscription_table.c["auth_id"] == auth_id,
+                subscription_table.c["status"] == SubscriptionStatus.Active,
             )
             .limit(1)
         )
