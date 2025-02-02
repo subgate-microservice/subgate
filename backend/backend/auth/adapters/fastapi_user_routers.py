@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
-from backend.auth.infra.other.fastapi_users.manager import auth_backend
-from backend.auth.infra.other.fastapi_users.schemas import UserRead, UserCreate, UserUpdate
+from backend.auth.infra.fastapi_users.manager import auth_backend
+from backend.auth.infra.fastapi_users.schemas import UserRead, UserCreate, UserUpdate
 from backend.bootstrap import get_container
 
 container = get_container()

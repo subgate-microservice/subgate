@@ -6,11 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine, async_sessi
 from backend import config
 from backend.auth.application.auth_closure_factory import AuthClosureFactory
 from backend.auth.domain.auth_user import AuthUser, AuthId
-from backend.auth.infra.auth_closure_factories.apikey_factory import ApikeyAuthClosureFactory
-from backend.auth.infra.auth_closure_factories.complex_factory import ComplexAuthClosureFactory
-from backend.auth.infra.auth_closure_factories.fake_factory import FakeAuthClosureFactory
-from backend.auth.infra.other.fastapi_users.auth_closure_factory import FastapiUsersAuthClosureFactory
-from backend.auth.infra.other.fastapi_users.manager import create_fastapi_users
+from backend.auth.infra.apikey.apikey__auth_closure_factory import ApikeyAuthClosureFactory
+from backend.auth.infra.fastapi_users.auth_closure_factory import FastapiUsersAuthClosureFactory
+from backend.auth.infra.other.complex_factory import ComplexAuthClosureFactory
+from backend.auth.infra.other.fake_factory import FakeAuthClosureFactory
+from backend.auth.infra.fastapi_users.manager import create_fastapi_users
 from backend.shared.eventbus import Eventbus
 from backend.shared.unit_of_work.uow import UnitOfWorkFactory
 from backend.shared.unit_of_work.uow_postgres import SqlUowFactory

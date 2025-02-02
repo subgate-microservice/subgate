@@ -2,9 +2,9 @@ from typing import Iterable
 
 from loguru import logger
 
-from backend.auth.infra.other.fief.fief_client_repo import FiefClientRepo
-from backend.auth.infra.other.fief.fief_schemas import FiefWebhookCreate, FiefClientPartialUpdate
-from backend.auth.infra.other.fief.fief_webhook_repo import FiefWebhookRepo
+from backend.auth.infra.fief.fief_client_repo import FiefClientRepo
+from backend.auth.infra.fief.fief_schemas import FiefWebhookCreate, FiefClientPartialUpdate
+from backend.auth.infra.fief.fief_webhook_repo import FiefWebhookRepo
 
 
 class FiefWebhookPreparation:

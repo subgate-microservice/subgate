@@ -11,7 +11,7 @@ from fastapi_users.authentication import (
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from backend.auth.infra.other.fastapi_users.database import User
+from backend.auth.infra.fastapi_users.database import User
 
 SECRET = "SECRET"
 

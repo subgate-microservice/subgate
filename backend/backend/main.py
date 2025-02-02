@@ -7,8 +7,8 @@ from starlette.responses import JSONResponse
 
 from backend import config
 from backend.auth.adapters.apikey_router import apikey_router
-from backend.auth.infra.auth_closure_factories.apikey_factory import NotAuthenticated
 from backend.auth.adapters.fastapi_user_routers import include_fastapi_users_routers
+from backend.auth.infra.apikey.apikey__auth_closure_factory import NotAuthenticated
 from backend.shared.exceptions import ItemNotExist, ItemAlreadyExist, ValidationError
 from backend.subscription.adapters.plan_api import plan_router
 from backend.subscription.adapters.subscription_api import subscription_router

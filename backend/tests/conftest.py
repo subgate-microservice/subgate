@@ -12,7 +12,7 @@ from starlette.testclient import TestClient
 from backend import config
 from backend.auth.application.auth_closure_factory import AuthClosureFactory
 from backend.auth.domain.auth_user import AuthUser, AuthRole
-from backend.auth.infra.auth_closure_factories.fake_factory import FakeAuthClosureFactory
+from backend.auth.infra.other.fake_factory import FakeAuthClosureFactory
 from backend.bootstrap import get_container, auth_closure
 from backend.main import app
 from backend.shared.permission_service import SubscriptionClient

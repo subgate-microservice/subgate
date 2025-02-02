@@ -7,7 +7,7 @@ from fastapi.security import HTTPAuthorizationCredentials
 
 from backend.auth.application.auth_closure_factory import AuthClosureFactory, FastapiAuthClosure
 from backend.auth.domain.auth_user import AuthUser
-from backend.auth.infra.auth_closure_factories.fief_factory import FiefAuthClosureFactory
+from backend.auth.infra.fief.auth_closure_factory import FiefAuthClosureFactory
 
 
 class ComplexAuthClosureFactory(AuthClosureFactory):

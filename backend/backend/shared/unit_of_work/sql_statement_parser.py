@@ -2,7 +2,7 @@ from typing import Union, Callable, Iterable, Self
 
 from sqlalchemy import Table, Insert, Update, bindparam
 
-from backend.auth.infra.repositories.apikey_repo_sql import apikey_table
+from backend.auth.infra.apikey.apikey_repo_sql import apikey_table
 from backend.shared.unit_of_work.change_log import Log
 from backend.shared.utils import get_current_datetime
 from backend.subscription.infra.plan_repo_sql import plan_table

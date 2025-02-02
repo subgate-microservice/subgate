@@ -4,7 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, AsyncEngine
 
 from backend.auth.domain.apikey_repo import ApikeyRepo
-from backend.auth.infra.repositories.apikey_repo_sql import SqlApikeyRepo
+from backend.auth.infra.apikey.apikey_repo_sql import SqlApikeyRepo
 from backend.shared.unit_of_work.change_log import ChangeLog
 from backend.shared.unit_of_work.sql_statement_parser import SqlStatementBuilder
 from backend.shared.unit_of_work.uow import UnitOfWorkFactory, UnitOfWork

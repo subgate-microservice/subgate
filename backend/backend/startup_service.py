@@ -5,9 +5,9 @@ from loguru import logger
 from backend import config
 from backend.auth.domain.apikey import Apikey
 from backend.auth.domain.auth_user import AuthUser
-from backend.auth.infra.other.fief.fief_client_repo import FiefClientRepo
-from backend.auth.infra.other.fief.fief_startup_services import FiefWebhookPreparation, FiefClientPreparation
-from backend.auth.infra.other.fief.fief_webhook_repo import FiefWebhookRepo
+from backend.auth.infra.fief import FiefClientRepo
+from backend.auth.infra.fief import FiefWebhookPreparation, FiefClientPreparation
+from backend.auth.infra.fief import FiefWebhookRepo
 from backend.bootstrap import get_container
 from backend.shared.events import EventCode
 from backend.webhook.adapters import subscription_handlers
