@@ -8,6 +8,7 @@ from starlette.responses import JSONResponse
 from backend import config
 from backend.auth.adapters.apikey_router import apikey_router
 from backend.auth.infra.auth_closure_factories.apikey_factory import NotAuthenticated
+from backend.auth.infra.other.fastapi_users.routers import include_fastapi_users_routers
 from backend.shared.exceptions import ItemNotExist, ItemAlreadyExist, ValidationError
 from backend.subscription.adapters.plan_api import plan_router
 from backend.subscription.adapters.subscription_api import subscription_router
@@ -29,6 +30,7 @@ app.include_router(subscription_router)
 app.include_router(plan_router)
 app.include_router(webhook_router)
 app.include_router(apikey_router)
+include_fastapi_users_routers(app)
 
 
 @app.exception_handler(PermissionError)

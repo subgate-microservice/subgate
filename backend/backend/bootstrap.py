@@ -1,7 +1,7 @@
 from uuid import uuid4
 
 from async_pymongo import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine, async_sessionmaker
 
 from backend import config
 from backend.auth.application.auth_closure_factory import AuthClosureFactory
@@ -9,6 +9,8 @@ from backend.auth.domain.auth_user import AuthUser, AuthId
 from backend.auth.infra.auth_closure_factories.apikey_factory import ApikeyAuthClosureFactory
 from backend.auth.infra.auth_closure_factories.complex_factory import ComplexAuthClosureFactory
 from backend.auth.infra.auth_closure_factories.fake_factory import FakeAuthClosureFactory
+from backend.auth.infra.other.fastapi_users.auth_closure_factory import FastapiUsersAuthClosureFactory
+from backend.auth.infra.other.fastapi_users.manager import create_fastapi_users
 from backend.shared.eventbus import Eventbus
 from backend.shared.unit_of_work.uow import UnitOfWorkFactory
 from backend.shared.unit_of_work.uow_postgres import SqlUowFactory
@@ -50,6 +52,7 @@ class Bootstrap:
     def __init__(self):
         self._eventbus = None
         self._database = None
+        self._session_factory = None
         self._uow = None
         self._auth_service = None
         self._auth_closure_factory = None
@@ -57,6 +60,7 @@ class Bootstrap:
         self._encryptor = None
         self._uow_factory = None
         self._telegraph = None
+        self._fastapi_users = None
 
     def set_dependency(self, name: str, value):
         name = "_" + name
@@ -79,6 +83,16 @@ class Bootstrap:
             self._database = create_async_engine(config.POSTGRES_URL, echo=False, future=True)
         return self._database
 
+    def fastapi_users(self):
+        if not self._fastapi_users:
+            self._fastapi_users = create_fastapi_users(self.session_factory())
+        return self._fastapi_users
+
+    def session_factory(self):
+        if not self._session_factory:
+            self._session_factory = async_sessionmaker(self.database(), expire_on_commit=False)
+        return self._session_factory
+
     def unit_of_work_factory(self) -> UnitOfWorkFactory:
         if not self._uow_factory:
             if isinstance(self.database(), AsyncEngine):
@@ -89,12 +103,13 @@ class Bootstrap:
 
     def auth_closure_factory(self) -> AuthClosureFactory:
         if not self._auth_closure_factory:
-            apikey_auth_closure_factory = ApikeyAuthClosureFactory(self.unit_of_work_factory())
-            factory = FakeAuthClosureFactory()
+            token_factory = FastapiUsersAuthClosureFactory(self.fastapi_users())
+            apikey_factory = ApikeyAuthClosureFactory(self.unit_of_work_factory())
             self._auth_closure_factory = ComplexAuthClosureFactory(
-                factory,
-                apikey_auth_closure_factory
+                token_factory,
+                apikey_factory
             )
+            self._auth_closure_factory = apikey_factory
         return self._auth_closure_factory
 
     def encrypt_service(self) -> GDPRCompliantEncryptor:
