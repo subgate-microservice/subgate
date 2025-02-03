@@ -1,7 +1,6 @@
-from typing import Optional, Union
+from typing import Optional
 
-from fastapi import Request, Response
-from fastapi.security import HTTPAuthorizationCredentials
+from fastapi import Request
 
 from backend.auth.application.auth_closure_factory import AuthClosureFactory, FastapiAuthClosure
 from backend.shared.unit_of_work.uow import UnitOfWorkFactory
@@ -26,8 +25,8 @@ class ApikeyAuthClosureFactory(AuthClosureFactory):
     ) -> FastapiAuthClosure:
         async def closure(
                 request: Request,
-                response: Response,
-                token: Optional[Union[str, HTTPAuthorizationCredentials]] = None,
+                *_args,
+                **_kwargs,
         ):
             apikey_value = request.headers.get("Apikey-Value")
             if not apikey_value:

@@ -1,9 +1,11 @@
 import functools
-from typing import Optional, Union
+import inspect
+from inspect import Signature, Parameter
+from typing import Optional, cast, Callable
 
-from fastapi import Request, HTTPException
+from fastapi import Request, HTTPException, Depends
 from fastapi.openapi.models import Response
-from fastapi.security import HTTPAuthorizationCredentials
+from fastapi.security.base import SecurityBase
 
 from backend.auth.application.auth_closure_factory import AuthClosureFactory, FastapiAuthClosure
 from backend.auth.domain.auth_user import AuthUser
@@ -36,8 +38,8 @@ class ComplexAuthClosureFactory(AuthClosureFactory):
         @functools.wraps(token_auth_closure)
         async def dependency(
                 request: Request,
-                response: Response,
-                token: Optional[Union[str, HTTPAuthorizationCredentials]],
+                *args,
+                **kwargs,
         ) -> Optional[AuthUser]:
             if request.headers.get("Apikey-Value") and request.headers.get("Authorization"):
                 raise HTTPException(
@@ -47,8 +49,30 @@ class ComplexAuthClosureFactory(AuthClosureFactory):
             # Check for API key in the headers
             apikey_value = request.headers.get("Apikey-Value")
             if apikey_value:
-                return await apikey_auth_closure(request, response, token)
+                return await apikey_auth_closure(request, *args, **kwargs)
             else:
-                return await token_auth_closure(request, response, token)
+                return await token_auth_closure(request, *args, **kwargs)
 
         return dependency
+
+    @staticmethod
+    def _get_signature(scheme: SecurityBase) -> Signature:
+        parameters: list[Parameter] = [
+            Parameter(
+                name="request",
+                kind=Parameter.POSITIONAL_OR_KEYWORD,
+                annotation=Request,
+            ),
+            Parameter(
+                name="response",
+                kind=Parameter.POSITIONAL_OR_KEYWORD,
+                annotation=Response,
+            ),
+            Parameter(
+                name="token",
+                kind=Parameter.POSITIONAL_OR_KEYWORD,
+                default=Depends(cast(Callable, scheme)),
+            ),
+        ]
+
+        return Signature(parameters)
