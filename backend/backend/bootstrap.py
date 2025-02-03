@@ -109,7 +109,6 @@ class Bootstrap:
                 token_factory,
                 apikey_factory
             )
-            self._auth_closure_factory = apikey_factory
         return self._auth_closure_factory
 
     def encrypt_service(self) -> GDPRCompliantEncryptor:
