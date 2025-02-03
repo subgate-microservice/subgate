@@ -1,3 +1,5 @@
+import asyncio
+
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -10,6 +12,7 @@ from backend.auth.adapters.apikey_router import apikey_router
 from backend.auth.adapters.fastapi_user_routers import include_fastapi_users_routers
 from backend.auth.infra.apikey.apikey__auth_closure_factory import NotAuthenticated
 from backend.shared.exceptions import ItemNotExist, ItemAlreadyExist, ValidationError
+from backend.startup_service import run_preparations
 from backend.subscription.adapters.plan_api import plan_router
 from backend.subscription.adapters.subscription_api import subscription_router
 from backend.subscription.domain.exceptions import ActiveStatusConflict
@@ -125,5 +128,5 @@ async def handle_request_validation_error(_request: Request, exc: ValidationErro
 
 
 if __name__ == "__main__":
-    # asyncio.run(run_preparations())
+    asyncio.run(run_preparations())
     uvicorn.run(app, host=config.HOST, port=config.PORT)

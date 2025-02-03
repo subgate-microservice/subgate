@@ -1,51 +1,40 @@
-import asyncio
-
+from fastapi_users.exceptions import UserNotExists
+from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from loguru import logger
 
 from backend import config
 from backend.auth.domain.apikey import Apikey
 from backend.auth.domain.auth_user import AuthUser
-from backend.auth.infra.fief import FiefClientRepo
-from backend.auth.infra.fief import FiefWebhookPreparation, FiefClientPreparation
-from backend.auth.infra.fief import FiefWebhookRepo
+from backend.auth.infra.fastapi_users.database import User
+from backend.auth.infra.fastapi_users.manager import UserManager
+from backend.auth.infra.fastapi_users.schemas import UserCreate
 from backend.bootstrap import get_container
 from backend.shared.events import EventCode
+from backend.shared.unit_of_work.base_repo_sql import drop_and_create_postgres_tables
 from backend.webhook.adapters import subscription_handlers
 
 container = get_container()
 
 
-async def _fief_webhook_preparation():
-    expected_events = config.FIEF_EVENTS
-    webhook_base_url = config.FIEF_WEBHOOK_BASE_URL
-    webhook_repo = FiefWebhookRepo(
-        config.FIEF_BASE_URL,
-        config.FIEF_ADMIN_APIKEY,
-    )
-    await FiefWebhookPreparation(expected_events, webhook_base_url, webhook_repo).execute()
+async def _create_auth_user_if_not_exist(email: str, password: str) -> AuthUser:
+    session_factory = container.session_factory()
+    async with session_factory() as session:
+        user_db = SQLAlchemyUserDatabase(session, User)
+        manager = UserManager(user_db)
+        try:
+            result = await manager.get_by_email(email)
+        except UserNotExists:
+            user_create = UserCreate(email=email, password=password)
+            result = await manager.create(user_create)
+        await session.commit()
+    return result
 
 
-async def _fief_client_preparation():
-    redirects = config.FIEF_REDIRECT_URLS
-    client_repo = FiefClientRepo(config.FIEF_BASE_URL, config.FIEF_ADMIN_APIKEY)
-    await FiefClientPreparation(redirects, client_repo).execute()
-
-
-async def _run_fief_preparations():
-    auth_closure_factory = container.auth_closure_factory()
-    code = auth_closure_factory.get_code()
-    if code == "fief_factory" or code == "complex_factory_with_fief":
-        logger.info("Fief preparations...")
-        await asyncio.sleep(10)
-        await _fief_client_preparation()
-        await _fief_webhook_preparation()
-
-
-async def _create_apikey_if_not_exist():
+async def _create_apikey_if_not_exist(auth_user: AuthUser, title: str, value: str):
     apikey = Apikey(
-        title="HelloApi",
-        auth_user=AuthUser(),
-        value="BCxKH--Vls-LiXLOJ-FH-DJgjGqm7ioCrZK8Uc_1eFg",
+        title=title,
+        auth_user=auth_user,
+        value=value,
     )
     try:
         async with get_container().unit_of_work_factory().create_uow() as uow:
@@ -64,18 +53,13 @@ async def _subscribe_events_to_eventbus():
         bus.subscribe(event_code, subscription_handlers.handle_subscription_event)
 
 
-async def _create_indexes():
-    logger.info("Create indexes in database")
-    async with container.unit_of_work_factory().create_uow() as uow:
-        await uow.subscription_repo().create_indexes()
-        await uow.plan_repo().create_indexes()
-        await uow.webhook_repo().create_indexes()
-        await uow.commit()
+async def _create_database():
+    await drop_and_create_postgres_tables()
 
 
 async def run_preparations():
     logger.info("Run application preparations...")
-    await _run_fief_preparations()
-    await _create_apikey_if_not_exist()
+    await _create_database()
+    auth_user = await _create_auth_user_if_not_exist(config.USER_EMAIL, config.USER_PASSWORD)
+    await _create_apikey_if_not_exist(auth_user, config.USER_APIKEY_TITLE, config.USER_APIKEY)
     await _subscribe_events_to_eventbus()
-    # await _create_indexes()
