@@ -1,4 +1,4 @@
-from typing import Optional, Literal
+from typing import Optional
 from uuid import uuid4
 
 from fastapi import Depends, APIRouter, Query
@@ -114,21 +114,29 @@ async def get_selected(
         ids: Optional[set[SubId]] = Query(None),
         statuses: Optional[set[SubscriptionStatus]] = Query(None),
         subscriber_ids: Optional[set[str]] = Query(None),
+        expiration_date_lt: Optional[AwareDatetime] = Query(None),
+        expiration_date_lte: Optional[AwareDatetime] = Query(None),
+        expiration_date_gt: Optional[AwareDatetime] = Query(None),
+        expiration_date_gte: Optional[AwareDatetime] = Query(None),
         skip: int = Query(0, ge=0),
         limit: int = Query(100, ge=1, le=1000),
-        order_by: list[str] = Query(["created_at"]),
-        asc: Literal[1, -1] = Query(1),
+        order_by: Optional[list[str]] = Query(["created_at,1"]),
         container: Bootstrap = Depends(get_container),
         auth_user=Depends(auth_closure),
 ) -> list[Subscription]:
+    order_by = [(x.split(",")[0], int(x.split(",")[1])) for x in order_by]
     sby = SubscriptionSby(
         ids=set(ids) if ids else None,
         statuses=set(statuses) if statuses else None,
         auth_ids={auth_user.id},
         subscriber_ids=set(subscriber_ids) if subscriber_ids else None,
+        expiration_date_lt=expiration_date_lt,
+        expiration_date_lte=expiration_date_lte,
+        expiration_date_gt=expiration_date_gt,
+        expiration_date_gte=expiration_date_gte,
         skip=skip,
         limit=limit,
-        order_by=[(field, asc) for field in order_by]
+        order_by=order_by,
     )
     async with container.unit_of_work_factory().create_uow() as uow:
         bus = container.eventbus()

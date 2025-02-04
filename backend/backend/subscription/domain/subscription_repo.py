@@ -15,6 +15,9 @@ class SubscriptionSby(BaseSby):
     auth_ids: Optional[set[AuthId]] = None
     subscriber_ids: Optional[set[str]] = None
     expiration_date_lt: Optional[AwareDatetime] = None
+    expiration_date_lte: Optional[AwareDatetime] = None
+    expiration_date_gt: Optional[AwareDatetime] = None
+    expiration_date_gte: Optional[AwareDatetime] = None
     usage_renew_date_lt: Optional[AwareDatetime] = None
 
 

@@ -95,6 +95,12 @@ class SubscriptionSqlMapper(SQLMapper):
             result.append(subscription_table.c["subscriber_id"].in_(sby.subscriber_ids))
         if sby.expiration_date_lt:
             result.append(subscription_table.c["_expiration_date"] < sby.expiration_date_lt)
+        if sby.expiration_date_lte:
+            result.append(subscription_table.c["_expiration_date"] < sby.expiration_date_lte)
+        if sby.expiration_date_gt:
+            result.append(subscription_table.c["_expiration_date"] < sby.expiration_date_gt)
+        if sby.expiration_date_gte:
+            result.append(subscription_table.c["_expiration_date"] < sby.expiration_date_gte)
         if sby.usage_renew_date_lt:
             result.append(subscription_table.c["_earliest_next_renew_in_usages"] < sby.usage_renew_date_lt)
         return result
