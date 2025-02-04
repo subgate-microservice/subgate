@@ -6,7 +6,7 @@ from pydantic import Field, AwareDatetime, model_validator
 
 from backend.auth.domain.auth_user import AuthUser, AuthId
 from backend.bootstrap import get_container, Bootstrap, auth_closure
-from backend.shared.exceptions import ItemAlreadyExist, ValidationError
+from backend.shared.exceptions import ValidationError
 from backend.shared.permission_service import PermissionService
 from backend.shared.utils import get_current_datetime
 from backend.subscription.application.plan_service import PlanService
@@ -21,9 +21,9 @@ class PlanCreate(MyBase):
     price: float
     currency: str
     billing_cycle: Cycle
-    description: str = ""
-    level: int = 1
-    features: Optional[str] = ""
+    description: Optional[str] = None
+    level: int = 10
+    features: Optional[str] = None
     usage_rates: list[UsageRate] = Field(default_factory=list)
     fields: dict[str, Any] = Field(default_factory=dict)
     discounts: list[Discount] = Field(default_factory=list)
@@ -94,18 +94,18 @@ async def get_selected(
         ids: Optional[list[PlanId]] = Query(None),
         skip: int = Query(0, ge=0),
         limit: int = Query(100, ge=1, le=1000),
-        order_by: Optional[list[str]] = Query(["created_at"]),
-        asc: bool = Query(True),
+        order_by: Optional[list[str]] = Query(["created_at,1"]),
         auth_user: AuthUser = Depends(auth_closure),
         container: Bootstrap = Depends(get_container),
 
 ) -> list[Plan]:
+    order_by = [(x.split(",")[0], x.split(",")[1]) for x in order_by]
     sby = PlanSby(
         ids=set(ids) if ids else None,
         auth_ids={auth_user.id},
         skip=skip,
         limit=limit,
-        order_by=[(field, 1 if asc else -1) for field in order_by] if order_by else None,
+        order_by=order_by,
     )
     async with container.unit_of_work_factory().create_uow() as uow:
         subclient = container.subscription_client()

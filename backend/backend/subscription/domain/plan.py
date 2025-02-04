@@ -48,7 +48,7 @@ class Usage(MyBase):
 class Discount(MyBase):
     title: str
     code: str
-    description: str
+    description: Optional[str] = None
     size: float = Field(ge=0, le=1)
     valid_until: Optional[AwareDatetime]
 
@@ -59,7 +59,7 @@ class Plan(MyBase):
     price: float
     currency: str
     billing_cycle: Cycle
-    description: str = ""
+    description: Optional[str] = None
     level: int = 1
     features: Optional[str] = None
     usage_rates: list[UsageRate] = Field(default_factory=list, )

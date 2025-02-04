@@ -14,6 +14,7 @@ class CycleCode(StrEnum):
     Quarterly = "quarterly"
     Semiannual = "semiannual"
     Annual = "annual"
+    Lifetime = "lifetime"
 
 
 class Cycle(MyBase):
@@ -28,23 +29,18 @@ class Cycle(MyBase):
 
     @classmethod
     def from_code(cls, code: CycleCode):
-        if code == CycleCode.Monthly:
-            return cls(title="Monthly", code=CycleCode.Monthly, cycle_in_days=31)
-        if code == CycleCode.Annual:
+        if code == CycleCode.Daily:
+            return cls(title="Daily", code=CycleCode.Daily, cycle_in_days=1)
+        elif code == CycleCode.Weekly:
+            return cls(title="Weekly", code=CycleCode.Weekly, cycle_in_days=7)
+        elif code == CycleCode.Monthly:
+            return cls(title="Monthly", code=CycleCode.Monthly, cycle_in_days=30)
+        elif code == CycleCode.Quarterly:
+            return cls(title="Quarterly", code=CycleCode.Quarterly, cycle_in_days=30)
+        elif code == CycleCode.Semiannual:
+            return cls(title="Semiannual", code=CycleCode.Semiannual, cycle_in_days=183)
+        elif code == CycleCode.Annual:
             return cls(title="Annual", code=CycleCode.Annual, cycle_in_days=365)
-        raise NotImplemented
-
-
-def get_next_billing_date(start_date: AwareDatetime, cycle: CycleCode) -> AwareDatetime:
-    if cycle == CycleCode.Daily:
-        return start_date + datetime.timedelta(days=1)
-    if cycle == CycleCode.Weekly:
-        return start_date + datetime.timedelta(days=7)
-    if cycle == CycleCode.Monthly:
-        return start_date + datetime.timedelta(days=31)
-    if cycle == CycleCode.Quarterly:
-        return start_date + datetime.timedelta(days=92)
-    if cycle == CycleCode.Semiannual:
-        return start_date + datetime.timedelta(days=183)
-    if cycle == CycleCode.Annual:
-        return start_date + datetime.timedelta(days=365)
+        elif code == CycleCode.Lifetime:
+            return cls(title="Lifetime", code=CycleCode.Lifetime, cycle_in_days=365_000)
+        raise TypeError(code)

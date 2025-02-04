@@ -31,6 +31,7 @@ subscription_table = Table(
     Column("usages", JSONB, default=list),
     Column("created_at", DateTime(timezone=True), default=get_current_datetime),
     Column("updated_at", DateTime(timezone=True), default=get_current_datetime),
+    Column("fields", JSONB, default=dict),
     Column("_was_deleted", DateTime(timezone=True), default=None, nullable=True),
     Column("_expiration_date", DateTime(timezone=True), nullable=False),
     Column("_earliest_next_renew_in_usages", DateTime(timezone=True), nullable=True),
@@ -79,10 +80,8 @@ class SubscriptionSqlMapper(SQLMapper):
             usages=data["usages"],
             created_at=data["created_at"],
             updated_at=data["updated_at"],
+            fields=data["fields"]
         )
-
-    def entity_to_orm_model(self, entity: Subscription):
-        raise NotImplemented
 
     def sby_to_filter(self, sby: SubscriptionSby):
         result = []

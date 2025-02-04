@@ -26,6 +26,7 @@ class SubscriptionCreate(MyBase):
     paused_from: Optional[AwareDatetime] = None
     autorenew: bool = False
     usages: list[Usage] = Field(default_factory=list)
+    fields: dict = Field(default_factory=dict)
 
     def to_subscription(self, auth_id: AuthId) -> Subscription:
         created_at = self.created_at if self.created_at else get_current_datetime()
@@ -43,6 +44,7 @@ class SubscriptionCreate(MyBase):
             paused_from=self.paused_from,
             autorenew=self.autorenew,
             usages=self.usages,
+            fields=self.fields,
         )
 
 
@@ -57,7 +59,8 @@ class SubscriptionUpdate(MyBase):
     created_at: AwareDatetime
     updated_at: AwareDatetime = Field(default_factory=get_current_datetime)
     autorenew: bool = False
-    usages: list[Usage] = Field(default_factory=list)
+    usages: list[Usage]
+    fields: dict
 
     def to_subscription(self, auth_id: AuthId) -> Subscription:
         return Subscription(
@@ -72,6 +75,7 @@ class SubscriptionUpdate(MyBase):
             paused_from=self.paused_from,
             autorenew=self.autorenew,
             usages=self.usages,
+            fields=self.fields,
         )
 
     @classmethod

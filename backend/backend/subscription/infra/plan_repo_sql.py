@@ -22,7 +22,7 @@ plan_table = Table(
     Column('price', Float, nullable=False),
     Column('currency', String, nullable=False),
     Column('billing_cycle', String, nullable=False),
-    Column('description', String, default=''),
+    Column('description', String, default=None, nullable=True),
     Column('level', Integer, default=1),
     Column('features', String, nullable=True),
     Column('usage_rates', JSONB, default=list),

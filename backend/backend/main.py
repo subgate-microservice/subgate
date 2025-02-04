@@ -29,10 +29,10 @@ app.add_middleware(
     allow_headers=["*"],  # Allowed headers
 )
 
-app.include_router(subscription_router)
-app.include_router(plan_router)
-app.include_router(webhook_router)
-app.include_router(apikey_router)
+app.include_router(subscription_router, prefix="/api/v1")
+app.include_router(plan_router, prefix="/api/v1")
+app.include_router(webhook_router, prefix="/api/v1")
+app.include_router(apikey_router, prefix="/api/v1")
 include_fastapi_users_routers(app)
 
 

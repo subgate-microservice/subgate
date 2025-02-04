@@ -32,6 +32,7 @@ class Subscription(MyBase):
     paused_from: Optional[AwareDatetime] = Field(default=None)
     autorenew: bool = False
     usages: list[Usage] = Field(default_factory=list)
+    fields: dict = Field(default_factory=dict)
 
     def pause(self) -> Self:
         if self.status != SubscriptionStatus.Paused:
