@@ -121,9 +121,9 @@ class SqlBaseRepo:
             Log(
                 id=str(uuid4()),
                 collection_name=self.table.name,
-                action="safe_delete",
+                action="delete",
                 action_data={"id": item.id},
-                rollback_data={"id": item.id},
+                rollback_data=self.mapper.entity_to_mapping(item),
                 status="uncommitted",
                 created_at=get_current_datetime(),
             )

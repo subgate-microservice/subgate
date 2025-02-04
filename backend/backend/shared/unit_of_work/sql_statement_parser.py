@@ -1,6 +1,6 @@
-from typing import Union, Callable, Iterable, Self
+from typing import Union, Callable, Iterable, Self, Optional
 
-from sqlalchemy import Table, Insert, Update, bindparam
+from sqlalchemy import Table, Insert, Update, bindparam, Delete
 
 from backend.auth.infra.apikey.apikey_repo_sql import apikey_table
 from backend.shared.unit_of_work.change_log import Log
@@ -25,7 +25,7 @@ def get_table(tablename: str) -> Table:
     raise ValueError(tablename)
 
 
-Statement = tuple[Union[Insert, Update], Union[list, dict]]
+Statement = tuple[Union[Insert, Update, Delete], Optional[Union[list, dict]]]
 
 
 def build_filter_conditions(logs: list[Log], data_key: str):
@@ -47,11 +47,13 @@ class SqlStatementBuilder:
             "insert": self._handle_insert,
             "update": self._handle_update,
             "safe_delete": self._handle_safe_delete,
+            "delete": self._handle_delete,
         }
         self._rollback_handlers = {
             "insert": self._handle_insert_rollback,
             "update": self._handle_update_rollback,
             "safe_delete": self._handle_safe_delete_rollback,
+            "delete": self._handle_delete_rollback,
         }
 
     def load_logs(self, logs: Iterable[Log]) -> Self:
@@ -88,6 +90,13 @@ class SqlStatementBuilder:
             stmt = table.update().where(table.c["id"] == bindparam("_id")).values(params)
             self._statements.append((stmt, values))
 
+    def _handle_delete(self, tablename: str, logs: list[Log]):
+        if logs:
+            table = get_table(tablename)
+            filter_conditions = build_filter_conditions(logs, "action_data")
+            stmt = table.delete().where(*filter_conditions)
+            self._statements.append((stmt, None))
+
     def _handle_safe_delete(self, tablename: str, logs: list[Log]):
         if logs:
             table = get_table(tablename)
@@ -114,6 +123,9 @@ class SqlStatementBuilder:
 
             stmt = table.update().where(table.c["id"] == bindparam("_id")).values(params)
             self._statements.append((stmt, values))
+
+    def _handle_delete_rollback(self, tablename: str, logs: list[Log]):
+        raise NotImplemented
 
     def _handle_safe_delete_rollback(self, tablename: str, logs: list[Log]):
         if logs:
