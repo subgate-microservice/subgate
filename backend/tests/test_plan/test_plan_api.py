@@ -119,10 +119,10 @@ class TestUpdatePlanWithErrors:
             assert response.status_code == 422
 
             data = response.json()
-            assert data["exception_type"] == "ValidationError"
-            detail = data["detail"]
-            assert len(detail) == 1
-            error = ValidationError.from_json(detail[0])
+            assert len(data) == 1
+            data = data.pop()
+            assert data["exception_code"] == "validation_error"
+            error = ValidationError.from_json(data)
             assert error.field == "updated_at"
             assert error.value == payload["updated_at"]
             assert error.message == "updated_at earlier than created_at"
