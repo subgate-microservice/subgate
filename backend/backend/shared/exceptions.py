@@ -12,9 +12,11 @@ class ItemNotExist(LookupError):
 
     def to_json(self):
         return {
+            "exception_code": "item_not_exist",
             "item_type": self.item_type.__name__,
             "lookup_field_key": self.lookup_field_key,
             "lookup_field_value": str(self.lookup_field_value),
+
         }
 
 
@@ -29,6 +31,7 @@ class ItemAlreadyExist(Exception):
 
     def to_json(self):
         return {
+            "exception_code": "item_already_exist",
             "item_type": self.item_type.__name__,
             "index_value": str(self.index_value),
             "index_key": self.index_key,
@@ -56,6 +59,7 @@ class ValidationError(Exception):
 
     def to_json(self):
         return {
+            "exception_code": "validation_error",
             "field": self.field,
             "value": self.value,
             "value_type": self.value_type,

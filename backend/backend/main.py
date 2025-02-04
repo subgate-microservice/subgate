@@ -59,11 +59,7 @@ async def handle_item_not_exist(_request: Request, exc: ItemNotExist):
     logger.error(exc)
     return JSONResponse(
         status_code=404,
-        content={
-            "exception_type": exc.__class__.__name__,
-            "message": str(exc),
-            "detail": exc.to_json(),
-        },
+        content=exc.to_json(),
     )
 
 
@@ -72,11 +68,7 @@ async def handle_item_already_exist(_request: Request, exc: ItemAlreadyExist):
     logger.exception(exc)
     return JSONResponse(
         status_code=409,
-        content={
-            "exception_type": exc.__class__.__name__,
-            "message": str(exc),
-            "detail": exc.to_json(),
-        },
+        content=exc.to_json(),
     )
 
 
@@ -85,15 +77,11 @@ async def handle_item_active_status_conflict(_request: Request, exc: ActiveStatu
     logger.exception(exc)
     return JSONResponse(
         status_code=409,
-        content={
-            "exception_type": exc.__class__.__name__,
-            "message": str(exc),
-            "detail": exc.to_json(),
-        },
+        content=exc.to_json(),
     )
 
 
-@app.exception_handler(RequestValidationError)
+# @app.exception_handler(RequestValidationError)
 async def handle_request_validation_error(_request: Request, exc: RequestValidationError):
     logger.error(exc)
     detail = [
@@ -108,7 +96,7 @@ async def handle_request_validation_error(_request: Request, exc: RequestValidat
     return JSONResponse(
         status_code=422,
         content={
-            "exception_type": exc.__class__.__name__,
+            "exception_code": "request_validation_error",
             "message": str(exc),
             "detail": detail,
         },
@@ -119,11 +107,7 @@ async def handle_request_validation_error(_request: Request, exc: RequestValidat
 async def handle_request_validation_error(_request: Request, exc: ValidationError):
     return JSONResponse(
         status_code=422,
-        content={
-            "exception_type": exc.__class__.__name__,
-            "message": str(exc),
-            "detail": [exc.to_json()],
-        },
+        content=[exc.to_json()]
     )
 
 

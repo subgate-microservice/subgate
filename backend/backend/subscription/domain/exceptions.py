@@ -6,4 +6,7 @@ class ActiveStatusConflict(Exception):
         return f"Subscriber with ID '{self.subscriber_id}' already has active subscription"
 
     def to_json(self):
-        return {"subscriber_id": self.subscriber_id}
+        return {
+            "exception_code": "active_status_conflict",
+            "subscriber_id": self.subscriber_id,
+        }

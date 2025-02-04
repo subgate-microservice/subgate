@@ -59,7 +59,7 @@ class NewUow(UnitOfWork):
             statements = SqlStatementBuilder().load_logs(logs).parse_action_statements()
 
             for stmt, data in statements:
-                await self._session.execute(stmt, data)
+                await self._session.execute(stmt, data) if data else await self._session.execute(stmt)
             await self._session.commit()
             for log in logs:
                 self._change_log.change_status(log.id, "committed")
@@ -76,7 +76,7 @@ class NewUow(UnitOfWork):
             statements = SqlStatementBuilder().load_logs(logs).parse_rollback_statements()
 
             for stmt, data in statements:
-                await self._session.execute(stmt, data)
+                await self._session.execute(stmt, data) if data else await self._session.execute(stmt)
             await self._session.commit()
             for log in logs:
                 self._change_log.change_status(log.id, "revert_error")
