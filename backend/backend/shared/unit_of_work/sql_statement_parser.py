@@ -125,7 +125,11 @@ class SqlStatementBuilder:
             self._statements.append((stmt, values))
 
     def _handle_delete_rollback(self, tablename: str, logs: list[Log]):
-        raise NotImplemented
+        if logs:
+            table = get_table(tablename)
+            stmt = table.insert()
+            data = [x.rollback_data for x in logs]
+            self._statements.append((stmt, data))
 
     def _handle_safe_delete_rollback(self, tablename: str, logs: list[Log]):
         if logs:
