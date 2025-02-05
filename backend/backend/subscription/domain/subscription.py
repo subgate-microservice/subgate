@@ -9,7 +9,7 @@ from backend.auth.domain.auth_user import AuthId
 from backend.shared.base_models import MyBase
 from backend.shared.exceptions import ItemNotExist, ItemAlreadyExist
 from backend.shared.utils import get_current_datetime
-from backend.subscription.domain.plan import Plan, Usage
+from backend.subscription.domain.plan import Plan, Usage, UsageRate
 
 SubId = UUID
 
@@ -106,6 +106,7 @@ class Subscription(MyBase):
 
     def add_usages(self, usages: Iterable[Usage]) -> Self:
         new_usages = [*self.usages, *usages]
+        new_plan = self.plan.add_usage_rates([UsageRate.from_usage(x) for x in usages])
         hashes = set()
         for usage in new_usages:
             if usage.code in hashes:
@@ -113,6 +114,7 @@ class Subscription(MyBase):
             hashes.add(usage.code)
         return self.model_copy(update={
             "usages": new_usages,
+            "plan": new_plan,
             "updated_at": get_current_datetime(),
         })
 
@@ -125,34 +127,26 @@ class Subscription(MyBase):
         })
 
     def update_usages(self, usages: Iterable[Usage]) -> Self:
-        hashes = {usage.code: usage for usage in usages}
+        updated_usage_rates = []
+        hashes = {}
+        for updated_usage in usages:
+            hashes[updated_usage.code] = updated_usage
+            updated_usage_rates.append(UsageRate.from_usage(updated_usage))
+
         new_usages = []
-        new_usage_rates = []
         for usage in self.usages:
             updated_usage = hashes.pop(usage.code, None)
             if updated_usage:
-                linked_usage_rate = self.plan.get_usage_rate(updated_usage.code).model_copy(
-                    update={
-                        "title": updated_usage.title,
-                        "available_units": updated_usage.available_units,
-                        "unit": updated_usage.unit,
-                        "renew_cycle": updated_usage.renew_cycle,
-                    }
-                )
                 new_usages.append(updated_usage)
-                new_usage_rates.append(linked_usage_rate)
             else:
                 new_usages.append(usage)
-                new_usage_rates.append(self.plan.get_usage_rate(usage.code))
         if len(hashes):
             raise ItemNotExist(
                 lookup_field_value=next(key for key in hashes.keys()),
                 lookup_field_key="code",
                 item_type=Usage,
             )
-        new_plan = self.plan.model_copy(update={
-            "usage_rates": new_usage_rates,
-        })
+        new_plan = self.plan.update_usage_rates(updated_usage_rates)
         return self.model_copy(update={
             "plan": new_plan,
             "usages": new_usages,

@@ -1,24 +1,16 @@
 from datetime import timedelta
-from typing import Any, Optional, Self
+from typing import Any, Optional, Self, Iterable
 from uuid import UUID, uuid4
 
 from pydantic import Field, AwareDatetime, model_validator
 
 from backend.auth.domain.auth_user import AuthId
 from backend.shared.base_models import MyBase
-from backend.shared.exceptions import ItemAlreadyExist
+from backend.shared.exceptions import ItemAlreadyExist, ItemNotExist
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.cycle import Cycle
 
 PlanId = UUID
-
-
-class UsageRate(MyBase):
-    code: str
-    title: str
-    unit: str
-    available_units: float
-    renew_cycle: Cycle
 
 
 class Usage(MyBase):
@@ -43,6 +35,19 @@ class Usage(MyBase):
     @property
     def next_renew(self) -> AwareDatetime:
         return self.last_renew + timedelta(self.renew_cycle.cycle_in_days)
+
+
+class UsageRate(MyBase):
+    code: str
+    title: str
+    unit: str
+    available_units: float
+    renew_cycle: Cycle
+
+    @classmethod
+    def from_usage(cls, usage: Usage):
+        return cls(code=usage.code, title=usage.title, unit=usage.unit, available_units=usage.available_units,
+                   renew_cycle=usage.renew_cycle)
 
 
 class Discount(MyBase):
@@ -92,6 +97,41 @@ class Plan(MyBase):
                 raise ItemAlreadyExist(item_type=Discount, index_key="code", index_value=discount.code)
             hashes.add(discount.code)
         return self
+
+    def add_usage_rates(self, rates: Iterable[UsageRate]) -> Self:
+        new_usage_rates = [*self.usage_rates, *rates]
+        return self.model_copy(update={
+            "usage_rates": new_usage_rates,
+            "updated_at": get_current_datetime(),
+        })
+
+    def update_usage_rates(self, rates: Iterable[UsageRate]) -> Self:
+        hashes = {rate.code: rate for rate in rates}
+        new_rates = []
+        for rate in self.usage_rates:
+            updated_rate = hashes.pop(rate.code, None)
+            if updated_rate:
+                new_rates.append(updated_rate)
+            else:
+                new_rates.append(rate)
+        if len(hashes):
+            raise ItemNotExist(
+                lookup_field_value=next(key for key in hashes.keys()),
+                lookup_field_key="code",
+                item_type=UsageRate,
+            )
+        return self.model_copy(update={
+            "usage_rates": new_rates,
+            "updated_at": get_current_datetime(),
+        })
+
+    def remove_usage_rates(self, codes: Iterable[str]):
+        codes = set(codes)
+        new_rates = [rate for rate in self.usage_rates if rate.code not in codes]
+        return self.model_copy(update={
+            "usage_rates": new_rates,
+            "updated_at": get_current_datetime(),
+        })
 
     def get_usage_rate(self, code: str) -> UsageRate:
         for rate in self.usage_rates:

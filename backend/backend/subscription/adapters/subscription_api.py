@@ -190,10 +190,26 @@ async def delete_one_by_id(
 
 @subscription_router.delete("/")
 async def delete_selected(
-        sby: SubscriptionSby,
+        ids: Optional[set[SubId]] = Query(None),
+        statuses: Optional[set[SubscriptionStatus]] = Query(None),
+        subscriber_ids: Optional[set[str]] = Query(None),
+        expiration_date_lt: Optional[AwareDatetime] = Query(None),
+        expiration_date_lte: Optional[AwareDatetime] = Query(None),
+        expiration_date_gt: Optional[AwareDatetime] = Query(None),
+        expiration_date_gte: Optional[AwareDatetime] = Query(None),
         auth_user: AuthUser = Depends(auth_closure),
         container: Bootstrap = Depends(get_container),
 ) -> str:
+    sby = SubscriptionSby(
+        ids=set(ids) if ids else None,
+        statuses=set(statuses) if statuses else None,
+        auth_ids={auth_user.id},
+        subscriber_ids=set(subscriber_ids) if subscriber_ids else None,
+        expiration_date_lt=expiration_date_lt,
+        expiration_date_lte=expiration_date_lte,
+        expiration_date_gt=expiration_date_gt,
+        expiration_date_gte=expiration_date_gte,
+    )
     async with container.unit_of_work_factory().create_uow() as uow:
         sby.auth_ids = {auth_user.id}
         bus = container.eventbus()
