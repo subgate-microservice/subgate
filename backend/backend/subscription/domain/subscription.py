@@ -127,18 +127,34 @@ class Subscription(MyBase):
     def update_usages(self, usages: Iterable[Usage]) -> Self:
         hashes = {usage.code: usage for usage in usages}
         new_usages = []
+        new_usage_rates = []
         for usage in self.usages:
-            if hashes.get(usage.code):
-                new_usages.append(hashes.pop(usage.code))
+            updated_usage = hashes.pop(usage.code, None)
+            if updated_usage:
+                linked_usage_rate = self.plan.get_usage_rate(updated_usage.code).model_copy(
+                    update={
+                        "title": updated_usage.title,
+                        "available_units": updated_usage.available_units,
+                        "unit": updated_usage.unit,
+                        "renew_cycle": updated_usage.renew_cycle,
+                    }
+                )
+                new_usages.append(updated_usage)
+                new_usage_rates.append(linked_usage_rate)
             else:
                 new_usages.append(usage)
+                new_usage_rates.append(self.plan.get_usage_rate(usage.code))
         if len(hashes):
             raise ItemNotExist(
                 lookup_field_value=next(key for key in hashes.keys()),
                 lookup_field_key="code",
                 item_type=Usage,
             )
+        new_plan = self.plan.model_copy(update={
+            "usage_rates": new_usage_rates,
+        })
         return self.model_copy(update={
+            "plan": new_plan,
             "usages": new_usages,
             "updated_at": get_current_datetime(),
         })

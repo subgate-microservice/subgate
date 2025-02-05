@@ -14,8 +14,8 @@ PlanId = UUID
 
 
 class UsageRate(MyBase):
-    title: str
     code: str
+    title: str
     unit: str
     available_units: float
     renew_cycle: Cycle
@@ -92,3 +92,9 @@ class Plan(MyBase):
                 raise ItemAlreadyExist(item_type=Discount, index_key="code", index_value=discount.code)
             hashes.add(discount.code)
         return self
+
+    def get_usage_rate(self, code: str) -> UsageRate:
+        for rate in self.usage_rates:
+            if rate.code == code:
+                return rate
+        raise KeyError(code)
