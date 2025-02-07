@@ -1,5 +1,4 @@
 from abc import abstractmethod
-from types import MappingProxyType
 from typing import Any, Protocol, Mapping, Type
 from typing import Iterable, Hashable
 from uuid import uuid4
@@ -73,7 +72,7 @@ class SqlBaseRepo:
         data["_was_deleted"] = None
         self._change_log.append(
             Log(
-                id=str(uuid4()),
+                id=uuid4(),
                 collection_name=self.table.name,
                 action="insert",
                 action_data=data,
@@ -88,14 +87,14 @@ class SqlBaseRepo:
             await self.add_one(item)
 
     async def update_one(self, item: HasId) -> None:
-        old_item = MappingProxyType(await self._get_one_by_id(item.id))
-        item = self.mapper.entity_to_mapping(item)
+        old_item = self.mapper.entity_to_mapping(await self.get_one_by_id(item.id))
+        new_item = self.mapper.entity_to_mapping(item)
         self._change_log.append(
             Log(
-                id=str(uuid4()),
+                id=uuid4(),
                 collection_name=self.table.name,
                 action="update",
-                action_data=item,
+                action_data=new_item,
                 rollback_data=old_item,
                 status="uncommitted",
                 created_at=get_current_datetime(),
@@ -105,7 +104,7 @@ class SqlBaseRepo:
     async def delete_one(self, item: HasId) -> None:
         self._change_log.append(
             Log(
-                id=str(uuid4()),
+                id=uuid4(),
                 collection_name=self.table.name,
                 action="delete",
                 action_data={"id": item.id},

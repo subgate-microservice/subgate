@@ -70,10 +70,10 @@ class SubscriptionSqlMapper(SQLMapper):
 
     def mapping_to_entity(self, data: Mapping) -> Subscription:
         return Subscription(
-            id=data["id"],
+            id=str(data["id"]),
             plan=data["plan"],
             subscriber_id=data["subscriber_id"],
-            auth_id=data["auth_id"],
+            auth_id=str(data["auth_id"]),
             status=data["status"],
             last_billing=data["last_billing"],
             paused_from=data["paused_from"],

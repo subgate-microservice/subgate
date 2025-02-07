@@ -3,12 +3,13 @@ from typing import Iterable, Mapping, Type, Any
 
 from sqlalchemy import Column, String, Float, Integer, Table
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql.sqltypes import DateTime, UUID
+from sqlalchemy.sql.sqltypes import DateTime
 
+from backend.shared.database import metadata
 from backend.shared.enums import Lock
 from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper
-from backend.shared.database import metadata
 from backend.shared.unit_of_work.change_log import ChangeLog
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.cycle import Cycle
@@ -18,7 +19,7 @@ from backend.subscription.domain.plan_repo import PlanRepo, PlanSby
 plan_table = Table(
     'plan',
     metadata,
-    Column('id', UUID, primary_key=True, default=str(uuid.uuid4())),
+    Column('id', UUID(as_uuid=True), primary_key=True, default=str(uuid.uuid4())),
     Column('title', String, nullable=False),
     Column('price', Float, nullable=False),
     Column('currency', String, nullable=False),
@@ -28,7 +29,7 @@ plan_table = Table(
     Column('features', String, nullable=True),
     Column('usage_rates', JSONB, default=list),
     Column('fields', JSONB, default=dict),
-    Column('auth_id', UUID, nullable=False),
+    Column('auth_id', UUID(as_uuid=True), nullable=False),
     Column('discounts', JSONB, default=list),
     Column('created_at', DateTime(timezone=True), default=get_current_datetime),
     Column('updated_at', DateTime(timezone=True), default=get_current_datetime),
@@ -51,7 +52,7 @@ class PlanSqlMapper(SQLMapper):
     def mapping_to_entity(self, data: Mapping) -> Plan:
         billing_cycle = Cycle.from_code(data["billing_cycle"])
         return Plan(
-            id=data["id"],
+            id=str(data["id"]),
             title=data["title"],
             price=data["price"],
             currency=data["currency"],
@@ -61,7 +62,7 @@ class PlanSqlMapper(SQLMapper):
             features=data["features"],
             usage_rates=data["usage_rates"],
             fields=data["fields"],
-            auth_id=data["auth_id"],
+            auth_id=str(data["auth_id"]),
             discounts=data["discounts"],
             created_at=data["created_at"],
             updated_at=data["updated_at"],

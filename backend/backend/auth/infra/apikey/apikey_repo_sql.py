@@ -41,7 +41,7 @@ class ApikeySqlMapper(SQLMapper):
 
     def mapping_to_entity(self, data: Mapping) -> Apikey:
         return Apikey(
-            id=data["id"],
+            id=str(data["id"]),
             title=data["title"],
             auth_user=data["auth_user"],
             value=data["value"],

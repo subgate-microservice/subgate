@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, AsyncEngine
 
 from backend.auth.domain.apikey_repo import ApikeyRepo
 from backend.auth.infra.apikey.apikey_repo_sql import SqlApikeyRepo
-from backend.shared.unit_of_work.change_log import ChangeLog
+from backend.shared.unit_of_work.change_log import ChangeLog, SqlLogRepo
 from backend.shared.unit_of_work.sql_statement_parser import SqlStatementBuilder
 from backend.shared.unit_of_work.uow import UnitOfWorkFactory, UnitOfWork
 from backend.subscription.domain.exceptions import ActiveStatusConflict
@@ -60,9 +60,10 @@ class NewUow(UnitOfWork):
 
             for stmt, data in statements:
                 await self._session.execute(stmt, data) if data else await self._session.execute(stmt)
-            await self._session.commit()
             for log in logs:
                 self._change_log.change_status(log.id, "committed")
+            await SqlLogRepo(self._session).add_many(logs)
+            await self._session.commit()
         except Exception as err:
             await self._session.rollback()
             for log in logs:
@@ -77,9 +78,9 @@ class NewUow(UnitOfWork):
 
             for stmt, data in statements:
                 await self._session.execute(stmt, data) if data else await self._session.execute(stmt)
+
+            await SqlLogRepo(self._session).update_status([log.id for log in logs], "reverted")
             await self._session.commit()
-            for log in logs:
-                self._change_log.change_status(log.id, "revert_error")
         except Exception as err:
             await self._session.rollback()
             err = convert_error(err)

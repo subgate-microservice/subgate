@@ -27,11 +27,11 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
             request: Optional[Request] = None,
     ) -> AuthUser:
         result = await super().create(user_create, safe, request)
-        return AuthUser(id=result.id)
+        return AuthUser(id=str(result.id))
 
     async def get_by_email(self, user_email: str) -> AuthUser:
         result = await super().get_by_email(user_email)
-        return AuthUser(id=result.id)
+        return AuthUser(id=str(result.id))
 
     async def on_after_register(self, user: User, request: Optional[Request] = None):
         print(f"User {user.id} has registered.")

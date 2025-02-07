@@ -35,10 +35,10 @@ class WebhookSqlMapper(SQLMapper):
 
     def mapping_to_entity(self, data: Mapping) -> Webhook:
         return Webhook(
-            id=data["id"],
+            id=str(data["id"]),
             event_code=data["event_code"],
             target_url=data["target_url"],
-            auth_id=data["auth_id"],
+            auth_id=str(data["auth_id"]),
             created_at=data["created_at"],
             updated_at=data["updated_at"],
         )
