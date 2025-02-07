@@ -7,12 +7,14 @@ from backend.bootstrap import get_container
 from backend.shared.utils import get_current_datetime
 from backend.subscription.adapters.subscription_api import SubscriptionCreate, SubscriptionUpdate
 from backend.subscription.domain.cycle import Cycle, CycleCode
-from backend.subscription.domain.plan import Plan, Usage
+from backend.subscription.domain.plan import Plan, Usage, UsageRate
 from backend.subscription.domain.subscription import Subscription, SubscriptionStatus
 from tests.conftest import current_user, get_async_client
 
 
-async def create_plan(auth_user: AuthUser):
+async def create_plan(auth_user: AuthUser, usage_rates:list[UsageRate] = None):
+    if not usage_rates:
+        usage_rates = []
     async with get_container().unit_of_work_factory().create_uow() as uow:
         plan = Plan(
             title="Business",
@@ -21,6 +23,7 @@ async def create_plan(auth_user: AuthUser):
             billing_cycle=Cycle.from_code(CycleCode.Annual),
             level=3,
             auth_id=auth_user.id,
+            usage_rates=usage_rates,
         )
         await uow.plan_repo().add_one(plan)
         await uow.commit()
@@ -31,9 +34,10 @@ async def create_subscription(
         auth_user: AuthUser,
         usages: list[Usage] = None,
 ) -> Subscription:
-    plan = await create_plan(auth_user)
     if not usages:
         usages = []
+    rates = [UsageRate.from_usage(usage) for usage in usages]
+    plan = await create_plan(auth_user, usage_rates=rates)
     sub = Subscription(
         id=uuid4(),
         auth_id=plan.auth_id,

@@ -10,7 +10,7 @@ from backend.bootstrap import get_container
 from backend.shared.utils import get_current_datetime
 from backend.subscription.application.subscription_manager import SubscriptionManager, SubscriptionUsageManager
 from backend.subscription.domain.cycle import Cycle, CycleCode
-from backend.subscription.domain.plan import Plan, Usage
+from backend.subscription.domain.plan import Plan, Usage, UsageRate
 from backend.subscription.domain.subscription import Subscription, SubscriptionStatus
 from backend.subscription.domain.subscription_repo import SubscriptionSby
 
@@ -170,6 +170,7 @@ async def test_subscription_manager_renew_usages(plan):
             renew_cycle=Cycle.from_code(CycleCode.Monthly),
         ),
     ]
+    plan = plan.add_usage_rates([UsageRate.from_usage(x) for x in usages])
     sub = Subscription(
         plan=plan,
         subscriber_id="AnySubscriberId",
