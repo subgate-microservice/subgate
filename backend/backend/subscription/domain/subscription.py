@@ -7,7 +7,7 @@ from pydantic import Field, AwareDatetime, model_validator
 
 from backend.auth.domain.auth_user import AuthId
 from backend.shared.base_models import MyBase
-from backend.shared.exceptions import ItemNotExist, ItemAlreadyExist
+from backend.shared.exceptions import ItemNotExist, ItemAlreadyExist, ValidationError
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.plan import Plan, Usage, UsageRate
 
@@ -186,11 +186,35 @@ class Subscription(MyBase):
 
     @model_validator(mode="after")
     def _validate_usages(self) -> Self:
-        hashes = set()
+        usage_codes = set()
         for usage in self.usages:
-            if usage.code in hashes:
+            if usage.code in usage_codes:
                 raise ItemAlreadyExist(item_type=Usage, index_key="code", index_value=usage.code)
-            hashes.add(usage.code)
+            usage_codes.add(usage.code)
+
+        rate_codes = {rate.code for rate in self.plan.usage_rates}
+
+        extra_usages = usage_codes - rate_codes
+        if extra_usages:
+            for code in extra_usages:
+                error = ValidationError(
+                    field="Subscription.usages",
+                    value=code,
+                    value_type="str",
+                    message=f"Usage with code '{code}' is not present in plan usage rates. Available usage rates: {rate_codes}",
+                )
+                raise error
+
+        extra_rates = rate_codes - usage_codes
+        if extra_rates:
+            for code in extra_rates:
+                error = ValidationError(
+                    field="Subscription.plan.usage_rates",
+                    value=code,
+                    value_type="str",
+                    message=f"UsageRate with code '{code}' has no linked Usage. Available usage codes: {usage_codes}"
+                )
+                raise error
         return self
 
     @model_validator(mode="after")

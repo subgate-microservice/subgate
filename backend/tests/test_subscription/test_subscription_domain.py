@@ -3,10 +3,10 @@ from uuid import uuid4
 
 import pytest
 
-from backend.shared.exceptions import ItemAlreadyExist
+from backend.shared.exceptions import ItemAlreadyExist, ValidationError
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.cycle import CycleCode
-from backend.subscription.domain.plan import Plan, Cycle, Usage
+from backend.subscription.domain.plan import Plan, Cycle, Usage, UsageRate
 from backend.subscription.domain.subscription import Subscription, SubscriptionStatus
 
 
@@ -122,4 +122,55 @@ class TestValidation:
                 paused_from=None,
                 autorenew=False,
                 usages=usages
+            )
+
+    def test_subscription_with_extra_usages(self):
+        inner_plan = Plan(
+            title="Without usages",
+            price=100,
+            currency="USD",
+            billing_cycle=Cycle.from_code(CycleCode.Monthly),
+            auth_id=uuid4(),
+        )
+        usages = [
+            Usage(
+                title="Extra",
+                code="first",
+                unit="GB",
+                available_units=100,
+                used_units=1,
+                renew_cycle=Cycle.from_code(CycleCode.Monthly),
+            ),
+        ]
+        with pytest.raises(ValidationError):
+            _subscription = Subscription(
+                subscriber_id="AnyID",
+                plan=inner_plan,
+                usages=usages,
+                auth_id=inner_plan.auth_id,
+            )
+
+    def test_subscription_with_extra_usage_rates(self):
+        rates = [
+            UsageRate(
+                title="Extra",
+                code="first",
+                unit="GB",
+                available_units=100,
+                renew_cycle=Cycle.from_code(CycleCode.Monthly),
+            ),
+        ]
+        inner_plan = Plan(
+            title="Without usages",
+            price=100,
+            currency="USD",
+            billing_cycle=Cycle.from_code(CycleCode.Monthly),
+            auth_id=uuid4(),
+            usage_rates=rates,
+        )
+        with pytest.raises(ValidationError):
+            _subscription = Subscription(
+                subscriber_id="AnyID",
+                plan=inner_plan,
+                auth_id=inner_plan.auth_id,
             )
