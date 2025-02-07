@@ -3,7 +3,6 @@ from uuid import uuid4
 
 import pytest
 import pytest_asyncio
-from async_pymongo import AsyncClient
 from httpx import AsyncClient as HttpAsyncClient
 from loguru import logger
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -36,16 +35,6 @@ container = get_container()
 ])
 async def current_user(request) -> tuple[AuthUser, str, int]:
     yield request.param
-
-
-def fake_mongo_database():
-    client = AsyncClient(
-        host="127.0.0.1",
-        port=config.DB_PORT,
-        username=config.DB_USER,
-        password=config.DB_PASSWORD,
-    )
-    return client["my_sub_db_test"]
 
 
 def fake_postgres_database():
@@ -94,7 +83,7 @@ def get_client() -> TestClient:
 
 
 def get_async_client() -> HttpAsyncClient:
-    return HttpAsyncClient(app=app, base_url="http://testserver", follow_redirects=True)
+    return HttpAsyncClient(app=app, base_url="http://testserver/api/v1", follow_redirects=True)
 
 
 @pytest_asyncio.fixture(autouse=True)
