@@ -10,7 +10,8 @@ from sqlalchemy.sql.sqltypes import DateTime, UUID, Boolean, Integer
 from backend.auth.domain.auth_user import AuthId
 from backend.shared.base_models import OrderBy
 from backend.shared.enums import Lock
-from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, metadata, SQLMapper
+from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper
+from backend.shared.database import metadata
 from backend.shared.unit_of_work.change_log import ChangeLog
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.subscription import Subscription, SubId, SubscriptionStatus

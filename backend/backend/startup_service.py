@@ -10,7 +10,7 @@ from backend.auth.infra.fastapi_users.manager import UserManager
 from backend.auth.infra.fastapi_users.schemas import UserCreate
 from backend.bootstrap import get_container
 from backend.shared.events import EventCode
-from backend.shared.unit_of_work.base_repo_sql import drop_and_create_postgres_tables
+from backend.shared.database import drop_and_create_postgres_tables
 from backend.webhook.adapters import subscription_handlers
 
 container = get_container()

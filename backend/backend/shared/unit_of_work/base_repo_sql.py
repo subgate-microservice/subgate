@@ -1,14 +1,12 @@
 from abc import abstractmethod
 from types import MappingProxyType
-from typing import Any, Protocol, Mapping, Type, Optional
+from typing import Any, Protocol, Mapping, Type
 from typing import Iterable, Hashable
 from uuid import uuid4
 
-from loguru import logger
-from sqlalchemy import MetaData, Table, Column
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy import Table
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend import config
 from backend.shared.base_models import BaseSby, OrderBy
 from backend.shared.enums import Lock
 from backend.shared.exceptions import ItemNotExist
@@ -51,18 +49,6 @@ class SQLMapper:
                 raise ValueError()
             order_clauses.append(column)
         return order_clauses
-
-
-metadata = MetaData()
-
-
-async def drop_and_create_postgres_tables():
-    async_engine = create_async_engine(config.POSTGRES_URL, echo=False)
-    async with async_engine.begin() as conn:
-        await conn.run_sync(metadata.drop_all)
-        await conn.run_sync(metadata.create_all)
-        await conn.commit()
-    logger.info("Postgres tables were successfully created.")
 
 
 class HasId(Protocol):

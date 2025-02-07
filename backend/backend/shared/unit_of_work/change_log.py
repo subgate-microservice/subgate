@@ -1,5 +1,6 @@
+from abc import ABC, abstractmethod
 from collections import OrderedDict
-from typing import Literal, NamedTuple
+from typing import Literal, NamedTuple, Iterable
 
 from pydantic import AwareDatetime
 
@@ -63,3 +64,9 @@ class ChangeLog:
 
     def clear_all(self) -> None:
         self._logs.clear()
+
+
+class LogRepo(ABC):
+    @abstractmethod
+    def add_many(self, logs: Iterable[Log]):
+        pass

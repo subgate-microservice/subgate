@@ -9,7 +9,8 @@ from sqlalchemy.sql.sqltypes import DateTime, UUID
 from backend.auth.domain.apikey import Apikey, ApikeyId
 from backend.auth.domain.apikey_repo import ApikeySby, ApikeyRepo
 from backend.shared.enums import Lock
-from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, metadata, SQLMapper
+from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper
+from backend.shared.database import metadata
 from backend.shared.unit_of_work.change_log import ChangeLog
 from backend.shared.utils import get_current_datetime
 

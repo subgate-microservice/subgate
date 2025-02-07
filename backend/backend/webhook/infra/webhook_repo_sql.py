@@ -4,7 +4,8 @@ from sqlalchemy import Table, Column, UUID, String, DateTime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.shared.enums import Lock
-from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper, metadata
+from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper
+from backend.shared.database import metadata
 from backend.shared.unit_of_work.change_log import ChangeLog
 from backend.shared.utils import get_current_datetime
 from backend.webhook.domain.webhook import WebhookId, Webhook

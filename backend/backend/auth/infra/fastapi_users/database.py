@@ -6,7 +6,8 @@ from sqlalchemy.orm import registry
 
 from backend.auth.domain.auth_user import AuthUser
 from backend.shared.base_models import BaseSby
-from backend.shared.unit_of_work.base_repo_sql import metadata, SQLMapper
+from backend.shared.unit_of_work.base_repo_sql import SQLMapper
+from backend.shared.database import metadata
 
 auth_user_table = Table(
     "user",
