@@ -38,6 +38,9 @@ class Log(NamedTuple):
         return self._fields
 
     def to_rollback_log(self) -> Self:
+        # Избегаем двойного rollback
+        if self.action[0] == "r":
+            raise NotImplemented
         return self._replace(
             action=cast(Action, "rollback_" + self.action),
             action_data=None,
