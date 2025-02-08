@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.shared.database import metadata
 from backend.shared.enums import Lock
 from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper, AwareDateTime
-from backend.shared.unit_of_work.change_log import ChangeLog
+from backend.shared.unit_of_work.change_log import Log
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.cycle import Cycle
 from backend.subscription.domain.plan import Plan, PlanId
@@ -82,8 +82,8 @@ class PlanSqlMapper(SQLMapper):
 
 
 class SqlPlanRepo(PlanRepo):
-    def __init__(self, session: AsyncSession, change_log: ChangeLog, transaction_id: UUID):
-        self._base_repo = SqlBaseRepo(session, PlanSqlMapper(plan_table), plan_table, change_log, transaction_id)
+    def __init__(self, session: AsyncSession, transaction_id: UUID):
+        self._base_repo = SqlBaseRepo(session, PlanSqlMapper(plan_table), plan_table, transaction_id)
 
     async def create_indexes(self):
         pass
@@ -110,3 +110,6 @@ class SqlPlanRepo(PlanRepo):
     async def delete_many(self, items: Iterable[Plan]) -> None:
         for item in items:
             await self.delete_one(item)
+
+    def parse_logs(self) -> list[Log]:
+        return self._base_repo.parse_logs()

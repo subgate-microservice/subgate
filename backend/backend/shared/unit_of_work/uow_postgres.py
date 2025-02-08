@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, AsyncEngine
 
 from backend.auth.domain.apikey_repo import ApikeyRepo
 from backend.auth.infra.apikey.apikey_repo_sql import SqlApikeyRepo
-from backend.shared.unit_of_work.change_log import ChangeLog, SqlLogRepo
+from backend.shared.unit_of_work.change_log import SqlLogRepo
 from backend.shared.unit_of_work.sql_statement_parser import SqlStatementBuilder
 from backend.shared.unit_of_work.uow import UnitOfWorkFactory, UnitOfWork
 from backend.subscription.domain.exceptions import ActiveStatusConflict
@@ -33,7 +33,6 @@ class NewUow(UnitOfWork):
     def __init__(self, session_factory: async_sessionmaker[AsyncSession]):
         self._transaction_id = None
         self._session_factory = session_factory
-        self._change_log: Optional[ChangeLog] = None
         self._session: Optional[AsyncSession] = None
         self._repos = {}
         self._log_repo = None
@@ -42,13 +41,12 @@ class NewUow(UnitOfWork):
         self._transaction_id = uuid4()
         self._session = self._session_factory()
         self._log_repo = SqlLogRepo(self._session)
-        self._change_log = ChangeLog()
         self._repos = {
-            "plan_repo": SqlPlanRepo(self._session, self._change_log, self._transaction_id),
-            "webhook_repo": SqlWebhookRepo(self._session, self._change_log, self._transaction_id),
-            "subscription_repo": SqlSubscriptionRepo(self._session, self._change_log, self._transaction_id),
-            "telegram_repo": SqlTelegramRepo(self._session, self._change_log, self._transaction_id),
-            "apikey_repo": SqlApikeyRepo(self._session, self._change_log, self._transaction_id),
+            "plan_repo": SqlPlanRepo(self._session, self._transaction_id),
+            "webhook_repo": SqlWebhookRepo(self._session, self._transaction_id),
+            "subscription_repo": SqlSubscriptionRepo(self._session, self._transaction_id),
+            "telegram_repo": SqlTelegramRepo(self._session, self._transaction_id),
+            "apikey_repo": SqlApikeyRepo(self._session, self._transaction_id),
         }
         return self
 
@@ -56,12 +54,13 @@ class NewUow(UnitOfWork):
         self._repos = {}
         await self._session.close()
         self._session = None
-        self._change_log = None
         self._transaction_id = None
 
     async def commit(self):
         try:
-            logs = self._change_log.get_all_logs()
+            logs = []
+            for repo in self._repos.values():
+                logs.extend(repo.parse_logs())
             statements = SqlStatementBuilder().load_logs(logs).parse_action_statements()
 
             # Выполняем запросы к базе

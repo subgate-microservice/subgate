@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.shared.base_models import BaseSby, OrderBy
 from backend.shared.enums import Lock
 from backend.shared.exceptions import ItemNotExist
-from backend.shared.unit_of_work.change_log import ChangeLog, Log
+from backend.shared.unit_of_work.change_log import Log
 from backend.shared.utils import get_current_datetime
 
 
@@ -61,19 +61,18 @@ class SqlBaseRepo:
             session: AsyncSession,
             mapper: SQLMapper,
             table: Table,
-            change_log: ChangeLog,
             transaction_id: UUID,
     ):
         self.session = session
         self.mapper = mapper
         self.table = table
-        self._change_log = change_log
         self._transaction_id = transaction_id
+        self._logs = []
 
     async def add_one(self, item: HasId) -> None:
         data = self.mapper.entity_to_mapping(item)
         data["_was_deleted"] = None
-        self._change_log.append_log(
+        self._logs.append(
             Log(
                 action_id=uuid4(),
                 collection_name=self.table.name,
@@ -92,7 +91,7 @@ class SqlBaseRepo:
     async def update_one(self, item: HasId) -> None:
         old_item = self.mapper.entity_to_mapping(await self.get_one_by_id(item.id))
         new_item = self.mapper.entity_to_mapping(item)
-        self._change_log.append_log(
+        self._logs.append(
             Log(
                 action_id=uuid4(),
                 collection_name=self.table.name,
@@ -105,7 +104,7 @@ class SqlBaseRepo:
         )
 
     async def delete_one(self, item: HasId) -> None:
-        self._change_log.append_log(
+        self._logs.append(
             Log(
                 action_id=uuid4(),
                 collection_name=self.table.name,
@@ -164,6 +163,11 @@ class SqlBaseRepo:
         result = await self.session.execute(query)
         plans = [self.mapper.mapping_to_entity(mapping) for mapping in result.mappings()]
         return plans
+
+    def parse_logs(self):
+        result = self._logs
+        self._logs = []
+        return result
 
 
 class AwareDateTime(TypeDecorator):

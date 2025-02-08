@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.shared.database import metadata
 from backend.shared.enums import Lock
 from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper
-from backend.shared.unit_of_work.change_log import ChangeLog
 from backend.shared.utils import get_current_datetime
 from backend.webhook.domain.webhook import WebhookId, Webhook
 from backend.webhook.domain.webhook_repo import WebhookSby, WebhookRepo
@@ -58,8 +57,8 @@ class WebhookSqlMapper(SQLMapper):
 
 
 class SqlWebhookRepo(WebhookRepo):
-    def __init__(self, session: AsyncSession, change_log: ChangeLog, transaction_id: UUID):
-        self._base_repo = SqlBaseRepo(session, WebhookSqlMapper(webhook_table), webhook_table, change_log,
+    def __init__(self, session: AsyncSession, transaction_id: UUID):
+        self._base_repo = SqlBaseRepo(session, WebhookSqlMapper(webhook_table), webhook_table,
                                       transaction_id)
 
     async def create_indexes(self):
@@ -85,3 +84,6 @@ class SqlWebhookRepo(WebhookRepo):
 
     async def delete_many(self, items: Iterable[Webhook]) -> None:
         await self._base_repo.delete_many(items)
+
+    def parse_logs(self):
+        return self._base_repo.parse_logs()

@@ -1,11 +1,9 @@
-import datetime
-from typing import Literal, NamedTuple, Iterable, Any, Self, Optional, cast, Mapping, Type
+from typing import Literal, NamedTuple, Iterable, Any, Self, Optional, cast, Mapping
 
 from pydantic import AwareDatetime, TypeAdapter
 from sqlalchemy import Table, Column, UUID, String, DateTime, BigInteger
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.shared.base_models import BaseSby
 from backend.shared.database import metadata
 from backend.shared.utils import get_current_datetime
 
@@ -18,11 +16,6 @@ Action = Literal[
     "rollback_update",
     "rollback_delete",
     "rollback_safe_delete",
-]
-Status = Literal[
-    "pending",
-    "done",
-    "failed",
 ]
 
 adapter = TypeAdapter(dict)
@@ -113,14 +106,3 @@ class SqlLogRepo:
         mappings = (await self._session.execute(stmt)).mappings()
         logs = [self._mapper.mapping_to_entity(mapping) for mapping in mappings]
         return logs
-
-
-class ChangeLog:
-    def __init__(self):
-        self._logs: list[Log] = []
-
-    def append_log(self, log: Log) -> None:
-        self._logs.append(log)
-
-    def get_all_logs(self) -> list[Log]:
-        return self._logs

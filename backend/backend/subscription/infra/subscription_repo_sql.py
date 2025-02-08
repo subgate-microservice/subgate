@@ -9,10 +9,10 @@ from sqlalchemy.sql.sqltypes import DateTime, UUID, Boolean, Integer
 
 from backend.auth.domain.auth_user import AuthId
 from backend.shared.base_models import OrderBy
+from backend.shared.database import metadata
 from backend.shared.enums import Lock
 from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper
-from backend.shared.database import metadata
-from backend.shared.unit_of_work.change_log import ChangeLog
+from backend.shared.unit_of_work.change_log import Log
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.subscription import Subscription, SubId, SubscriptionStatus
 from backend.subscription.domain.subscription_repo import SubscriptionSby, SubscriptionRepo
@@ -117,9 +117,9 @@ class SubscriptionSqlMapper(SQLMapper):
 
 
 class SqlSubscriptionRepo(SubscriptionRepo):
-    def __init__(self, session: AsyncSession, change_log: ChangeLog, transaction_id: UUID):
+    def __init__(self, session: AsyncSession, transaction_id: UUID):
         self._base_repo = SqlBaseRepo(session, SubscriptionSqlMapper(subscription_table), subscription_table,
-                                      change_log, transaction_id)
+                                      transaction_id)
 
     async def create_indexes(self):
         pass
@@ -166,3 +166,6 @@ class SqlSubscriptionRepo(SubscriptionRepo):
 
     async def delete_many(self, items: Iterable[Subscription]) -> None:
         await self._base_repo.delete_many(items)
+
+    def parse_logs(self) -> list[Log]:
+        return self._base_repo.parse_logs()

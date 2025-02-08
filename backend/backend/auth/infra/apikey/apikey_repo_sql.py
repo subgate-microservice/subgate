@@ -8,10 +8,10 @@ from sqlalchemy.sql.sqltypes import DateTime, UUID
 
 from backend.auth.domain.apikey import Apikey, ApikeyId
 from backend.auth.domain.apikey_repo import ApikeySby, ApikeyRepo
+from backend.shared.database import metadata
 from backend.shared.enums import Lock
 from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper
-from backend.shared.database import metadata
-from backend.shared.unit_of_work.change_log import ChangeLog
+from backend.shared.unit_of_work.change_log import Log
 from backend.shared.utils import get_current_datetime
 
 apikey_table = Table(
@@ -60,11 +60,8 @@ class ApikeySqlMapper(SQLMapper):
 
 
 class SqlApikeyRepo(ApikeyRepo):
-    def __init__(self, session: AsyncSession, change_log: ChangeLog, transaction_id: UUID):
-        self._base_repo = SqlBaseRepo(session, ApikeySqlMapper(apikey_table), apikey_table, change_log, transaction_id)
-
-    async def create_indexes(self):
-        pass
+    def __init__(self, session: AsyncSession, transaction_id: UUID):
+        self._base_repo = SqlBaseRepo(session, ApikeySqlMapper(apikey_table), apikey_table, transaction_id)
 
     async def add_one(self, item: Apikey) -> None:
         await self._base_repo.add_one(item)
@@ -106,3 +103,6 @@ class SqlApikeyRepo(ApikeyRepo):
     async def delete_many(self, items: Iterable[Apikey]) -> None:
         for item in items:
             await self.delete_one(item)
+
+    def parse_logs(self) -> list[Log]:
+        return self._base_repo.parse_logs()
