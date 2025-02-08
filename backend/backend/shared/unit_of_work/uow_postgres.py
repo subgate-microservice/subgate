@@ -80,11 +80,11 @@ class NewUow(UnitOfWork):
         try:
             logs = await self._log_repo.get_logs_by_transaction_id(self._transaction_id)
             statements = SqlStatementBuilder().load_logs(logs).parse_rollback_statements()
-            logs = [x.to_rollback_log() for x in logs]
 
             for stmt, data in statements:
                 await self._session.execute(stmt, data) if data else await self._session.execute(stmt)
 
+            logs = [x.to_rollback_log() for x in logs]
             await self._log_repo.add_many_logs(logs)
 
             await self._session.commit()
