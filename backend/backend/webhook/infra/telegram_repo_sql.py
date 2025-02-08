@@ -4,11 +4,11 @@ from typing import Iterable, Mapping, Type, Any
 from sqlalchemy import Column, String, Table
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql.sqltypes import UUID, Integer, DateTime
+from sqlalchemy.sql.sqltypes import UUID, Integer
 
 from backend.shared.database import metadata
 from backend.shared.enums import Lock
-from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper
+from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper, AwareDateTime
 from backend.shared.utils import get_current_datetime
 from backend.webhook.domain.telegram import Telegram, TelegramRepo
 
@@ -22,11 +22,11 @@ telegram_table = Table(
     Column("retries", Integer, nullable=False),
     Column("max_retries", Integer, nullable=False),
     Column("error_info", JSONB, nullable=True),
-    Column("sent_at", DateTime(timezone=True), nullable=False),
-    Column("next_retry_at", DateTime(timezone=True), nullable=True),
-    Column("created_at", DateTime(timezone=True), nullable=False),
-    Column("updated_at", DateTime(timezone=True), nullable=False),
-    Column("_was_deleted", DateTime(timezone=True), nullable=True),
+    Column("sent_at", AwareDateTime(timezone=True), nullable=False),
+    Column("next_retry_at", AwareDateTime(timezone=True), nullable=True),
+    Column("created_at", AwareDateTime(timezone=True), nullable=False),
+    Column("updated_at", AwareDateTime(timezone=True), nullable=False),
+    Column("_was_deleted", AwareDateTime(timezone=True), nullable=True),
 
 )
 

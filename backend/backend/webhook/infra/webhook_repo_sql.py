@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.shared.database import metadata
 from backend.shared.enums import Lock
-from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper
+from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper, AwareDateTime
 from backend.shared.utils import get_current_datetime
 from backend.webhook.domain.webhook import WebhookId, Webhook
 from backend.webhook.domain.webhook_repo import WebhookSby, WebhookRepo
@@ -17,9 +17,9 @@ webhook_table = Table(
     Column('event_code', String, nullable=False),
     Column('target_url', String, nullable=False),
     Column('auth_id', UUID, nullable=False),
-    Column('created_at', DateTime(timezone=True), default=get_current_datetime),
-    Column('updated_at', DateTime(timezone=True), default=get_current_datetime),
-    Column('_was_deleted', DateTime(timezone=True), default=None, nullable=True),
+    Column('created_at', AwareDateTime(timezone=True), default=get_current_datetime),
+    Column('updated_at', AwareDateTime(timezone=True), default=get_current_datetime),
+    Column('_was_deleted', AwareDateTime(timezone=True), default=None, nullable=True),
 )
 
 

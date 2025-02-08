@@ -4,13 +4,13 @@ from typing import Iterable, Mapping, Type, Any
 from sqlalchemy import Column, String, Table
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql.sqltypes import DateTime, UUID
+from sqlalchemy.sql.sqltypes import UUID
 
 from backend.auth.domain.apikey import Apikey, ApikeyId
 from backend.auth.domain.apikey_repo import ApikeySby, ApikeyRepo
 from backend.shared.database import metadata
 from backend.shared.enums import Lock
-from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper
+from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper, AwareDateTime
 from backend.shared.unit_of_work.change_log import Log
 from backend.shared.utils import get_current_datetime
 
@@ -22,9 +22,9 @@ apikey_table = Table(
     Column('auth_user', JSONB, nullable=False),
     Column('auth_id', UUID, nullable=False),
     Column('value', String, nullable=False),
-    Column('created_at', DateTime(timezone=True), default=get_current_datetime),
-    Column('updated_at', DateTime(timezone=True), default=get_current_datetime),
-    Column('_was_deleted', DateTime(timezone=True), default=None, nullable=True),
+    Column('created_at', AwareDateTime(timezone=True), default=get_current_datetime),
+    Column('updated_at', AwareDateTime(timezone=True), default=get_current_datetime),
+    Column('_was_deleted', AwareDateTime(timezone=True), default=None, nullable=True),
 )
 
 

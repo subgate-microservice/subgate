@@ -5,13 +5,13 @@ from uuid import uuid4
 from sqlalchemy import Column, String, Table
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql.sqltypes import DateTime, UUID, Boolean, Integer
+from sqlalchemy.sql.sqltypes import UUID, Boolean, Integer
 
 from backend.auth.domain.auth_user import AuthId
 from backend.shared.base_models import OrderBy
 from backend.shared.database import metadata
 from backend.shared.enums import Lock
-from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper
+from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper, AwareDateTime
 from backend.shared.unit_of_work.change_log import Log
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.subscription import Subscription, SubId, SubscriptionStatus
@@ -26,16 +26,16 @@ subscription_table = Table(
     Column("subscriber_id", String, nullable=False),
     Column("auth_id", UUID, nullable=False),
     Column("status", String, nullable=False),
-    Column("last_billing", DateTime(timezone=True), nullable=False),
-    Column("paused_from", DateTime(timezone=True), nullable=True),
+    Column("last_billing", AwareDateTime(timezone=True), nullable=False),
+    Column("paused_from", AwareDateTime(timezone=True), nullable=True),
     Column("autorenew", Boolean, nullable=False),
     Column("usages", JSONB, default=list),
-    Column("created_at", DateTime(timezone=True), default=get_current_datetime),
-    Column("updated_at", DateTime(timezone=True), default=get_current_datetime),
+    Column("created_at", AwareDateTime(timezone=True), default=get_current_datetime),
+    Column("updated_at", AwareDateTime(timezone=True), default=get_current_datetime),
     Column("fields", JSONB, default=dict),
-    Column("_was_deleted", DateTime(timezone=True), default=None, nullable=True),
-    Column("_expiration_date", DateTime(timezone=True), nullable=False),
-    Column("_earliest_next_renew_in_usages", DateTime(timezone=True), nullable=True),
+    Column("_was_deleted", AwareDateTime(timezone=True), default=None, nullable=True),
+    Column("_expiration_date", AwareDateTime(timezone=True), nullable=False),
+    Column("_earliest_next_renew_in_usages", AwareDateTime(timezone=True), nullable=True),
     Column("_active_status_guard", String, unique=True, nullable=False),
 )
 

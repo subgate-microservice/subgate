@@ -18,7 +18,7 @@ Action = Literal[
     "rollback_safe_delete",
 ]
 
-adapter = TypeAdapter(dict)
+adapter = TypeAdapter(Optional[dict])
 
 
 class Log(NamedTuple):
