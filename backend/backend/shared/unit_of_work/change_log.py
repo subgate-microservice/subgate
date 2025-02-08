@@ -37,7 +37,7 @@ class Log(NamedTuple):
     def fields(self):
         return self._fields
 
-    def to_rollback(self) -> Self:
+    def to_rollback_log(self) -> Self:
         return self._replace(
             action=cast(Action, "rollback_" + self.action),
             action_data=None,
