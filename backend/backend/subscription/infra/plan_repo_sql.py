@@ -5,11 +5,10 @@ from sqlalchemy import Column, String, Float, Integer, Table
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql.sqltypes import DateTime
 
 from backend.shared.database import metadata
 from backend.shared.enums import Lock
-from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper
+from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper, AwareDateTime
 from backend.shared.unit_of_work.change_log import ChangeLog
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.cycle import Cycle
@@ -31,9 +30,9 @@ plan_table = Table(
     Column('fields', JSONB, default=dict),
     Column('auth_id', UUID(as_uuid=True), nullable=False),
     Column('discounts', JSONB, default=list),
-    Column('created_at', DateTime(timezone=True), default=get_current_datetime),
-    Column('updated_at', DateTime(timezone=True), default=get_current_datetime),
-    Column('_was_deleted', DateTime(timezone=True), default=None, nullable=True),
+    Column('created_at', AwareDateTime(timezone=True), default=get_current_datetime),
+    Column('updated_at', AwareDateTime(timezone=True), default=get_current_datetime),
+    Column('_was_deleted', AwareDateTime(timezone=True), default=None, nullable=True),
 )
 
 
@@ -83,8 +82,8 @@ class PlanSqlMapper(SQLMapper):
 
 
 class SqlPlanRepo(PlanRepo):
-    def __init__(self, session: AsyncSession, change_log: ChangeLog):
-        self._base_repo = SqlBaseRepo(session, PlanSqlMapper(plan_table), plan_table, change_log)
+    def __init__(self, session: AsyncSession, change_log: ChangeLog, transaction_id: UUID):
+        self._base_repo = SqlBaseRepo(session, PlanSqlMapper(plan_table), plan_table, change_log, transaction_id)
 
     async def create_indexes(self):
         pass

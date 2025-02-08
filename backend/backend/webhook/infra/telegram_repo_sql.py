@@ -6,9 +6,9 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.sqltypes import UUID, Integer, DateTime
 
+from backend.shared.database import metadata
 from backend.shared.enums import Lock
 from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper
-from backend.shared.database import metadata
 from backend.shared.unit_of_work.change_log import ChangeLog
 from backend.shared.utils import get_current_datetime
 from backend.webhook.domain.telegram import Telegram, TelegramRepo
@@ -67,8 +67,9 @@ class SqlTelegramMapper(SQLMapper):
 
 
 class SqlTelegramRepo(TelegramRepo):
-    def __init__(self, session: AsyncSession, change_log: ChangeLog):
-        self._base_repo = SqlBaseRepo(session, SqlTelegramMapper(telegram_table), telegram_table, change_log)
+    def __init__(self, session: AsyncSession, change_log: ChangeLog, transaction_id: UUID):
+        self._base_repo = SqlBaseRepo(session, SqlTelegramMapper(telegram_table), telegram_table, change_log,
+                                      transaction_id)
 
     async def create_indexes(self):
         pass

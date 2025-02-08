@@ -1,4 +1,5 @@
 from typing import Self, Optional
+from uuid import uuid4
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, AsyncEngine
@@ -30,20 +31,24 @@ def convert_error(err: Exception) -> Exception:
 
 class NewUow(UnitOfWork):
     def __init__(self, session_factory: async_sessionmaker[AsyncSession]):
+        self._transaction_id = None
         self._session_factory = session_factory
         self._change_log: Optional[ChangeLog] = None
         self._session: Optional[AsyncSession] = None
         self._repos = {}
+        self._log_repo = None
 
     async def __aenter__(self) -> Self:
+        self._transaction_id = uuid4()
         self._session = self._session_factory()
+        self._log_repo = SqlLogRepo(self._session)
         self._change_log = ChangeLog()
         self._repos = {
-            "plan_repo": SqlPlanRepo(self._session, self._change_log),
-            "webhook_repo": SqlWebhookRepo(self._session, self._change_log),
-            "subscription_repo": SqlSubscriptionRepo(self._session, self._change_log),
-            "telegram_repo": SqlTelegramRepo(self._session, self._change_log),
-            "apikey_repo": SqlApikeyRepo(self._session, self._change_log),
+            "plan_repo": SqlPlanRepo(self._session, self._change_log, self._transaction_id),
+            "webhook_repo": SqlWebhookRepo(self._session, self._change_log, self._transaction_id),
+            "subscription_repo": SqlSubscriptionRepo(self._session, self._change_log, self._transaction_id),
+            "telegram_repo": SqlTelegramRepo(self._session, self._change_log, self._transaction_id),
+            "apikey_repo": SqlApikeyRepo(self._session, self._change_log, self._transaction_id),
         }
         return self
 
@@ -52,34 +57,37 @@ class NewUow(UnitOfWork):
         await self._session.close()
         self._session = None
         self._change_log = None
+        self._transaction_id = None
 
     async def commit(self):
-        logs = self._change_log.get_uncommitted()
         try:
+            logs = self._change_log.get_all_logs()
             statements = SqlStatementBuilder().load_logs(logs).parse_action_statements()
 
+            # Выполняем запросы к базе
             for stmt, data in statements:
                 await self._session.execute(stmt, data) if data else await self._session.execute(stmt)
-            for log in logs:
-                self._change_log.change_status(log.id, "committed")
-            await SqlLogRepo(self._session).add_many(logs)
+
+            # Сохраняем логи
+            await self._log_repo.add_many_logs(logs)
+
             await self._session.commit()
         except Exception as err:
             await self._session.rollback()
-            for log in logs:
-                self._change_log.change_status(log.id, "reverted")
             err = convert_error(err)
             raise err
 
     async def rollback(self):
         try:
-            logs = self._change_log.get_committed()
+            logs = await self._log_repo.get_logs_by_transaction_id(self._transaction_id)
             statements = SqlStatementBuilder().load_logs(logs).parse_rollback_statements()
+            logs = [x.to_rollback() for x in logs]
 
             for stmt, data in statements:
                 await self._session.execute(stmt, data) if data else await self._session.execute(stmt)
 
-            await SqlLogRepo(self._session).update_status([log.id for log in logs], "reverted")
+            await self._log_repo.add_many_logs(logs)
+
             await self._session.commit()
         except Exception as err:
             await self._session.rollback()

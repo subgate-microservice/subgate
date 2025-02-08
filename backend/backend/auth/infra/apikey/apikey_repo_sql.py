@@ -60,8 +60,8 @@ class ApikeySqlMapper(SQLMapper):
 
 
 class SqlApikeyRepo(ApikeyRepo):
-    def __init__(self, session: AsyncSession, change_log: ChangeLog):
-        self._base_repo = SqlBaseRepo(session, ApikeySqlMapper(apikey_table), apikey_table, change_log)
+    def __init__(self, session: AsyncSession, change_log: ChangeLog, transaction_id: UUID):
+        self._base_repo = SqlBaseRepo(session, ApikeySqlMapper(apikey_table), apikey_table, change_log, transaction_id)
 
     async def create_indexes(self):
         pass

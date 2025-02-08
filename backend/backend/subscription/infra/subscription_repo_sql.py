@@ -117,9 +117,9 @@ class SubscriptionSqlMapper(SQLMapper):
 
 
 class SqlSubscriptionRepo(SubscriptionRepo):
-    def __init__(self, session: AsyncSession, change_log: ChangeLog):
+    def __init__(self, session: AsyncSession, change_log: ChangeLog, transaction_id: UUID):
         self._base_repo = SqlBaseRepo(session, SubscriptionSqlMapper(subscription_table), subscription_table,
-                                      change_log)
+                                      change_log, transaction_id)
 
     async def create_indexes(self):
         pass

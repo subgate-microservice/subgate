@@ -1,9 +1,10 @@
+import datetime
 from abc import abstractmethod
 from typing import Any, Protocol, Mapping, Type
 from typing import Iterable, Hashable
-from uuid import uuid4
+from uuid import uuid4, UUID
 
-from sqlalchemy import Table
+from sqlalchemy import Table, TypeDecorator, DateTime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.shared.base_models import BaseSby, OrderBy
@@ -60,25 +61,27 @@ class SqlBaseRepo:
             session: AsyncSession,
             mapper: SQLMapper,
             table: Table,
-            change_log: ChangeLog
+            change_log: ChangeLog,
+            transaction_id: UUID,
     ):
         self.session = session
         self.mapper = mapper
         self.table = table
         self._change_log = change_log
+        self._transaction_id = transaction_id
 
     async def add_one(self, item: HasId) -> None:
         data = self.mapper.entity_to_mapping(item)
         data["_was_deleted"] = None
-        self._change_log.append(
+        self._change_log.append_log(
             Log(
-                id=uuid4(),
+                action_id=uuid4(),
                 collection_name=self.table.name,
                 action="insert",
                 action_data=data,
                 rollback_data=None,
-                status="uncommitted",
                 created_at=get_current_datetime(),
+                transaction_id=self._transaction_id,
             )
         )
 
@@ -89,28 +92,28 @@ class SqlBaseRepo:
     async def update_one(self, item: HasId) -> None:
         old_item = self.mapper.entity_to_mapping(await self.get_one_by_id(item.id))
         new_item = self.mapper.entity_to_mapping(item)
-        self._change_log.append(
+        self._change_log.append_log(
             Log(
-                id=uuid4(),
+                action_id=uuid4(),
                 collection_name=self.table.name,
                 action="update",
                 action_data=new_item,
                 rollback_data=old_item,
-                status="uncommitted",
                 created_at=get_current_datetime(),
+                transaction_id=self._transaction_id,
             )
         )
 
     async def delete_one(self, item: HasId) -> None:
-        self._change_log.append(
+        self._change_log.append_log(
             Log(
-                id=uuid4(),
+                action_id=uuid4(),
                 collection_name=self.table.name,
                 action="delete",
                 action_data={"id": item.id},
                 rollback_data=self.mapper.entity_to_mapping(item),
-                status="uncommitted",
                 created_at=get_current_datetime(),
+                transaction_id=self._transaction_id,
             )
         )
 
@@ -161,3 +164,18 @@ class SqlBaseRepo:
         result = await self.session.execute(query)
         plans = [self.mapper.mapping_to_entity(mapping) for mapping in result.mappings()]
         return plans
+
+
+class AwareDateTime(TypeDecorator):
+    """Преобразует ISO 8601 строки в datetime.datetime при вставке в БД"""
+    impl = DateTime(timezone=True)
+
+    def process_bind_param(self, value, dialect):
+        """Преобразует входящее значение перед записью в БД"""
+        if isinstance(value, str):
+            return datetime.datetime.fromisoformat(value)
+        return value  # Оставляем datetime как есть
+
+    def process_result_value(self, value, dialect):
+        """Возвращает datetime в Python"""
+        return value  # SQLAlchemy уже возвращает datetime, ничего менять не нужно
