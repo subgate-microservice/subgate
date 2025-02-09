@@ -43,7 +43,7 @@ class Log(NamedTuple):
             raise NotImplemented
         return self._replace(
             action=cast(Action, "rollback_" + self.action),
-            action_data=None,
+            action_data=self.rollback_data,
             rollback_data=None,
             created_at=get_current_datetime(),
         )
