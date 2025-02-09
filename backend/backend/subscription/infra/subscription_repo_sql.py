@@ -33,7 +33,6 @@ subscription_table = Table(
     Column("created_at", AwareDateTime(timezone=True), default=get_current_datetime),
     Column("updated_at", AwareDateTime(timezone=True), default=get_current_datetime),
     Column("fields", JSONB, default=dict),
-    Column("_was_deleted", AwareDateTime(timezone=True), default=None, nullable=True),
     Column("_expiration_date", AwareDateTime(timezone=True), nullable=False),
     Column("_earliest_next_renew_in_usages", AwareDateTime(timezone=True), nullable=True),
     Column("_active_status_guard", String, unique=True, nullable=False),
@@ -150,7 +149,6 @@ class SqlSubscriptionRepo(SubscriptionRepo):
             .select()
             .where(
                 subscription_table.c["subscriber_id"] == subscriber_id,
-                subscription_table.c["_was_deleted"].is_(None),
                 # todo надо добавить тест, это интересный баг, когда разные держатели одного подписчика
                 subscription_table.c["auth_id"] == auth_id,
                 subscription_table.c["status"] == SubscriptionStatus.Active,

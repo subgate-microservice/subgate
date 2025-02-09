@@ -71,7 +71,6 @@ class SqlBaseRepo:
 
     async def add_one(self, item: HasId) -> None:
         data = self.mapper.entity_to_mapping(item)
-        data["_was_deleted"] = None
         self._logs.append(
             Log(
                 action_id=uuid4(),
@@ -124,7 +123,7 @@ class SqlBaseRepo:
         query = (
             self.table
             .select()
-            .where(self.table.c["id"] == item_id, self.table.c["_was_deleted"].is_(None))
+            .where(self.table.c["id"] == item_id)
             .limit(1)
         )
         if lock == "write":
@@ -135,7 +134,7 @@ class SqlBaseRepo:
         result = await self.session.execute(query)
 
         record = result.mappings().one_or_none()
-        if not record or record.get("_was_deleted"):
+        if not record:
             raise ItemNotExist(item_type=self.mapper.get_entity_type(), lookup_field_value=item_id)
 
         return record
@@ -149,7 +148,7 @@ class SqlBaseRepo:
         query = (
             self.table
             .select()
-            .where(*filter_by, self.table.c["_was_deleted"].is_(None))
+            .where(*filter_by)
             .offset(sby.skip)
             .limit(sby.limit)
         )

@@ -98,18 +98,14 @@ class SqlStatementBuilder:
             self._statements.append((stmt, None))
 
     def _handle_safe_delete(self, tablename: str, logs: list[Log]):
-        if logs:
-            table = get_table(tablename)
-            filter_conditions = build_filter_conditions(logs, "action_data")
-            stmt = table.update().where(*filter_conditions)
-            self._statements.append((stmt, {"_was_deleted": get_current_datetime()}))
+        raise NotImplemented
 
     def _handle_insert_rollback(self, tablename: str, logs: list[Log]):
         if logs:
             table = get_table(tablename)
             ids = [log.action_data["id"] for log in logs]
-            stmt = table.update().where(table.c["id"].in_(ids))
-            self._statements.append((stmt, {"_was_deleted": get_current_datetime()}))
+            stmt = table.delete().where(table.c["id"].in_(ids))
+            self._statements.append((stmt, None))
 
     def _handle_update_rollback(self, tablename: str, logs: list[Log]):
         if logs:
@@ -132,11 +128,7 @@ class SqlStatementBuilder:
             self._statements.append((stmt, data))
 
     def _handle_safe_delete_rollback(self, tablename: str, logs: list[Log]):
-        if logs:
-            table = get_table(tablename)
-            filter_conditions = build_filter_conditions(logs, "rollback_data")
-            stmt = table.update().where(*filter_conditions)
-            self._statements.append((stmt, {"_was_deleted": None}))
+        raise NotImplemented
 
     def _process_logs(self, handler_resolver: Callable[[str], Callable[[str, list[Log]], None]]):
         self._group_logs()

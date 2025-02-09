@@ -24,7 +24,6 @@ apikey_table = Table(
     Column('value', String, nullable=False),
     Column('created_at', AwareDateTime(timezone=True), default=get_current_datetime),
     Column('updated_at', AwareDateTime(timezone=True), default=get_current_datetime),
-    Column('_was_deleted', AwareDateTime(timezone=True), default=None, nullable=True),
 )
 
 
@@ -79,7 +78,6 @@ class SqlApikeyRepo(ApikeyRepo):
             .select()
             .where(
                 apikey_table.c["value"] == apikey_value,
-                apikey_table.c["_was_deleted"].is_(None),
             )
             .limit(1)
         )

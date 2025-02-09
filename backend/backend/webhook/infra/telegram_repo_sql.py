@@ -26,8 +26,6 @@ telegram_table = Table(
     Column("next_retry_at", AwareDateTime(timezone=True), nullable=True),
     Column("created_at", AwareDateTime(timezone=True), nullable=False),
     Column("updated_at", AwareDateTime(timezone=True), nullable=False),
-    Column("_was_deleted", AwareDateTime(timezone=True), nullable=True),
-
 )
 
 
@@ -77,7 +75,6 @@ class SqlTelegramRepo(TelegramRepo):
         stmt = (
             table
             .select().with_for_update()
-            .where(table.c["_was_deleted"].is_(None))
         )
         result = await self._base_repo.session.execute(stmt)
         records = result.mappings()
@@ -88,11 +85,10 @@ class SqlTelegramRepo(TelegramRepo):
         stmt = (
             table
             .select()
-            # .with_for_update()
+            .with_for_update()
             .where(
                 table.c["next_retry_at"] < get_current_datetime(),
                 table.c["next_retry_at"].isnot(None),
-                table.c["_was_deleted"].is_(None),
             )
             .limit(limit)
             .order_by(table.c["created_at"])

@@ -32,7 +32,6 @@ plan_table = Table(
     Column('discounts', JSONB, default=list),
     Column('created_at', AwareDateTime(timezone=True), default=get_current_datetime),
     Column('updated_at', AwareDateTime(timezone=True), default=get_current_datetime),
-    Column('_was_deleted', AwareDateTime(timezone=True), default=None, nullable=True),
 )
 
 

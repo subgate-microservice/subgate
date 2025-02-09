@@ -19,7 +19,6 @@ webhook_table = Table(
     Column('auth_id', UUID, nullable=False),
     Column('created_at', AwareDateTime(timezone=True), default=get_current_datetime),
     Column('updated_at', AwareDateTime(timezone=True), default=get_current_datetime),
-    Column('_was_deleted', AwareDateTime(timezone=True), default=None, nullable=True),
 )
 
 
