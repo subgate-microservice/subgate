@@ -8,7 +8,7 @@ from backend.auth.domain.auth_user import AuthId
 from backend.shared.base_models import MyBase
 from backend.shared.exceptions import ItemAlreadyExist, ItemNotExist
 from backend.shared.utils import get_current_datetime
-from backend.subscription.domain.cycle import Cycle
+from backend.subscription.domain.cycle import CycleCode
 
 PlanId = UUID
 
@@ -18,7 +18,7 @@ class Usage(MyBase):
     code: str
     unit: str
     available_units: float
-    renew_cycle: Cycle
+    renew_cycle: CycleCode
     last_renew: AwareDatetime = Field(default_factory=get_current_datetime)
     used_units: float
 
@@ -34,7 +34,7 @@ class Usage(MyBase):
 
     @property
     def next_renew(self) -> AwareDatetime:
-        return self.last_renew + timedelta(self.renew_cycle.cycle_in_days)
+        return self.last_renew + timedelta(self.renew_cycle.get_cycle_in_days())
 
 
 class UsageRate(MyBase):
@@ -42,7 +42,7 @@ class UsageRate(MyBase):
     title: str
     unit: str
     available_units: float
-    renew_cycle: Cycle
+    renew_cycle: CycleCode
 
     @classmethod
     def from_usage(cls, usage: Usage):
@@ -63,7 +63,7 @@ class Plan(MyBase):
     title: str
     price: float
     currency: str
-    billing_cycle: Cycle
+    billing_cycle: CycleCode
     description: Optional[str] = None
     level: int = 1
     features: Optional[str] = None

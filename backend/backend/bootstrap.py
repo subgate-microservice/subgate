@@ -34,7 +34,7 @@ def create_fake_subclient():
     plan = Plan(
         title="FakePlan",
         price=100,
-        billing_cycle=Cycle.from_code(CycleCode.Annual),
+        billing_cycle=CycleCode.Annual,
         currency="USD",
         level=1,
         auth_id=uuid4(),
