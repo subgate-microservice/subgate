@@ -1,39 +1,14 @@
-from typing import Optional, Self
+from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import Field, AwareDatetime, model_validator
 
 from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container, Bootstrap, auth_closure
-from backend.shared.exceptions import ValidationError
 from backend.shared.permission_service import PermissionService
-from backend.shared.utils import get_current_datetime
-from backend.subscription.adapters.plan_schemas import PlanCreate
+from backend.subscription.adapters.plan_schemas import PlanCreate, PlanUpdate
 from backend.subscription.application.plan_service import PlanService
 from backend.subscription.domain.plan import Plan, PlanId
 from backend.subscription.domain.plan_repo import PlanSby
-
-
-class PlanUpdate(PlanCreate):
-    id: PlanId
-    created_at: AwareDatetime
-    updated_at: AwareDatetime = Field(default_factory=get_current_datetime)
-
-    @classmethod
-    def from_plan(cls, plan: Plan):
-        return cls(**plan.model_dump(exclude={"auth_id"}))
-
-    @model_validator(mode="after")
-    def _validate_other(self) -> Self:
-        if self.updated_at < self.created_at:
-            raise ValidationError(
-                field="updated_at",
-                value=self.updated_at.isoformat(),
-                value_type=self.updated_at.__class__.__name__,
-                message="updated_at earlier than created_at"
-            )
-        return self
-
 
 plan_router = APIRouter(
     prefix="/plan",
@@ -98,16 +73,15 @@ async def get_selected(
 
 @plan_router.put("/{plan_id}")
 async def update_one(
-        plan: PlanUpdate,
+        plan_update: PlanUpdate,
         auth_user: AuthUser = Depends(auth_closure),
         container: Bootstrap = Depends(get_container),
 ) -> str:
+    # todo мы здесь не проверяем auth_id - надо поправить
     async with container.unit_of_work_factory().create_uow() as uow:
-        subclient = container.subscription_client()
-        bus = container.eventbus()
-        plan = plan.to_plan(auth_user.id)
-        await PermissionService(subclient).check_auth_user_can_update(plan, auth_user)
-        await PlanService(bus, uow).update_one(plan)
+        old_version = await uow.plan_repo().get_one_by_id(plan_update.id)
+        new_version = plan_update.to_plan(auth_user.id, old_version.created_at)
+        await PlanService(container.eventbus(), uow).update_one(new_version)
         await uow.commit()
         return "Ok"
 
