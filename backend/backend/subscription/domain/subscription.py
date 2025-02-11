@@ -7,10 +7,10 @@ from pydantic import Field, AwareDatetime, model_validator
 
 from backend.auth.domain.auth_user import AuthId
 from backend.shared.base_models import MyBase
-from backend.shared.exceptions import ItemNotExist, ItemAlreadyExist, ValidationError
+from backend.shared.exceptions import ItemNotExist, ItemAlreadyExist
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.cycle import CycleCode
-from backend.subscription.domain.plan import Plan, Usage, UsageRate, PlanInfo
+from backend.subscription.domain.plan import Plan, Usage, UsageRate, PlanInfo, Discount
 
 SubId = UUID
 
@@ -40,6 +40,7 @@ class Subscription(MyBase):
     paused_from: Optional[AwareDatetime] = Field(default=None)
     autorenew: bool = False
     usages: list[Usage] = Field(default_factory=list)
+    discounts: list[Discount] = Field(default_factory=list)
     fields: dict = Field(default_factory=dict)
 
     def pause(self) -> Self:

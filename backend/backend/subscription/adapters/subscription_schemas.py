@@ -31,6 +31,7 @@ class SubscriptionCreate(MyBase):
             paused_from=self.paused_from,
             autorenew=self.autorenew,
             usages=self.usages,
+            discounts=self.discounts,
             fields=self.fields,
             auth_id=auth_id,
         )

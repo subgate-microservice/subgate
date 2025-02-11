@@ -1,5 +1,4 @@
 from typing import Optional
-from uuid import uuid4
 
 from fastapi import Depends, APIRouter, Query
 from pydantic import Field, AwareDatetime
@@ -67,7 +66,7 @@ async def create_subscription(
     # todo вернуть permission service
     async with container.unit_of_work_factory().create_uow() as uow:
         subscription = subscription_create.to_subscription(auth_user.id)
-        service = SubscriptionService( container.eventbus(), uow)
+        service = SubscriptionService(container.eventbus(), uow)
         await service.create_one(subscription)
         await service.send_events()
         await uow.commit()
@@ -116,11 +115,9 @@ async def get_subscription_by_id(
         auth_user: AuthUser = Depends(auth_closure),
         container: Bootstrap = Depends(get_container),
 ) -> Subscription:
+    # todo вернуть permission service
     async with container.unit_of_work_factory().create_uow() as uow:
-        bus = container.eventbus()
-        subclient = container.subscription_client()
-        result = await SubscriptionService(bus, uow).get_one_by_id(sub_id)
-        await PermissionService(subclient).check_auth_user_can_get(result, auth_user)
+        result = await SubscriptionService(container.eventbus(), uow).get_one_by_id(sub_id)
         return result
 
 

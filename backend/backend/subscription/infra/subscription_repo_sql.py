@@ -37,6 +37,7 @@ subscription_table = Table(
     Column("paused_from", AwareDateTime(timezone=True), nullable=True),
     Column("autorenew", Boolean, nullable=False),
     Column("usages", JSONB, default=list),
+    Column("discounts", JSONB, default=list),
     Column("created_at", AwareDateTime(timezone=True), default=get_current_datetime),
     Column("updated_at", AwareDateTime(timezone=True), default=get_current_datetime),
     Column("fields", JSONB, default=dict),
