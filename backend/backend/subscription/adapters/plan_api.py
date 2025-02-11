@@ -1,35 +1,17 @@
-from typing import Optional, Any, Self
-from uuid import uuid4
+from typing import Optional, Self
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import Field, AwareDatetime, model_validator
 
-from backend.auth.domain.auth_user import AuthUser, AuthId
+from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container, Bootstrap, auth_closure
 from backend.shared.exceptions import ValidationError
 from backend.shared.permission_service import PermissionService
 from backend.shared.utils import get_current_datetime
+from backend.subscription.adapters.plan_schemas import PlanCreate
 from backend.subscription.application.plan_service import PlanService
-from backend.subscription.domain.cycle import Cycle
-from backend.subscription.domain.plan import Plan, PlanId, UsageRate, Discount
+from backend.subscription.domain.plan import Plan, PlanId
 from backend.subscription.domain.plan_repo import PlanSby
-from backend.subscription.domain.subscription import MyBase
-
-
-class PlanCreate(MyBase):
-    title: str
-    price: float
-    currency: str
-    billing_cycle: Cycle
-    description: Optional[str] = None
-    level: int = 10
-    features: Optional[str] = None
-    usage_rates: list[UsageRate] = Field(default_factory=list)
-    fields: dict[str, Any] = Field(default_factory=dict)
-    discounts: list[Discount] = Field(default_factory=list)
-
-    def to_plan(self, auth_id: AuthId):
-        return Plan(auth_id=auth_id, **self.model_dump())
 
 
 class PlanUpdate(PlanCreate):
@@ -66,7 +48,7 @@ async def create_one(
         container: Bootstrap = Depends(get_container),
 ) -> Plan:
     async with container.unit_of_work_factory().create_uow() as uow:
-        plan = Plan(id=uuid4(), auth_id=auth_user.id, **data.model_dump())
+        plan = data.to_plan(auth_user.id)
         subclient = container.subscription_client()
         bus = container.eventbus()
         await PermissionService(subclient).check_auth_user_can_create(plan, auth_user)
