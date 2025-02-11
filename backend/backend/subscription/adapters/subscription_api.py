@@ -9,43 +9,12 @@ from backend.bootstrap import Bootstrap, get_container, auth_closure
 from backend.shared.permission_service import PermissionService
 from backend.shared.utils import get_current_datetime
 from backend.subscription.adapters.plan_api import PlanUpdate
+from backend.subscription.adapters.subscription_schemas import SubscriptionCreate
 from backend.subscription.application.subscription_service import SubscriptionService, SubscriptionPartialUpdateService
 from backend.subscription.domain.plan import UsageRate, Usage
 from backend.subscription.domain.subscription import (
     Subscription, SubId, SubscriptionStatus, MyBase, )
 from backend.subscription.domain.subscription_repo import SubscriptionSby
-
-
-class SubscriptionCreate(MyBase):
-    subscriber_id: str
-    plan: PlanUpdate
-    status: SubscriptionStatus = SubscriptionStatus.Active
-    created_at: Optional[AwareDatetime] = None
-    updated_at: Optional[AwareDatetime] = None
-    last_billing: Optional[AwareDatetime] = None
-    paused_from: Optional[AwareDatetime] = None
-    autorenew: bool = False
-    usages: list[Usage] = Field(default_factory=list)
-    fields: dict = Field(default_factory=dict)
-
-    def to_subscription(self, auth_id: AuthId) -> Subscription:
-        created_at = self.created_at if self.created_at else get_current_datetime()
-        updated_at = self.updated_at if self.updated_at else created_at
-        last_billing = self.last_billing if self.last_billing else created_at
-        return Subscription(
-            id=uuid4(),
-            auth_id=auth_id,
-            subscriber_id=self.subscriber_id,
-            plan=self.plan.to_plan(auth_id),
-            status=self.status,
-            created_at=created_at,
-            updated_at=updated_at,
-            last_billing=last_billing,
-            paused_from=self.paused_from,
-            autorenew=self.autorenew,
-            usages=self.usages,
-            fields=self.fields,
-        )
 
 
 class SubscriptionUpdate(MyBase):
@@ -91,18 +60,14 @@ subscription_router = APIRouter(
 
 @subscription_router.post("/")
 async def create_subscription(
-        data: SubscriptionCreate,
+        subscription_create: SubscriptionCreate,
         auth_user: AuthUser = Depends(auth_closure),
         container: Bootstrap = Depends(get_container),
 ) -> Subscription:
+    # todo вернуть permission service
     async with container.unit_of_work_factory().create_uow() as uow:
-        bus = container.eventbus()
-        subscription = data.to_subscription(auth_user.id)
-        subclient = container.subscription_client()
-        permission_service = PermissionService(subclient)
-        await permission_service.check_auth_user_can_create(subscription, auth_user)
-        await permission_service.check_auth_user_can_create(subscription.plan, auth_user)
-        service = SubscriptionService(bus, uow)
+        subscription = subscription_create.to_subscription(auth_user.id)
+        service = SubscriptionService( container.eventbus(), uow)
         await service.create_one(subscription)
         await service.send_events()
         await uow.commit()

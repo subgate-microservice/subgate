@@ -138,3 +138,11 @@ class Plan(MyBase):
             if rate.code == code:
                 return rate
         raise KeyError(code)
+
+
+class PlanInfo(MyBase):
+    id: PlanId = None
+    title: str
+    description: Optional[str] = None
+    level: int = 10
+    features: Optional[str] = None

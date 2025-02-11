@@ -9,9 +9,17 @@ from backend.auth.domain.auth_user import AuthId
 from backend.shared.base_models import MyBase
 from backend.shared.exceptions import ItemNotExist, ItemAlreadyExist, ValidationError
 from backend.shared.utils import get_current_datetime
-from backend.subscription.domain.plan import Plan, Usage, UsageRate
+from backend.subscription.domain.cycle import CycleCode
+from backend.subscription.domain.plan import Plan, Usage, UsageRate, PlanInfo
 
 SubId = UUID
+
+
+class BillingInfo(MyBase):
+    price: float
+    currency: str
+    billing_cycle: CycleCode
+    last_billing: AwareDatetime
 
 
 class SubscriptionStatus(StrEnum):
@@ -22,13 +30,13 @@ class SubscriptionStatus(StrEnum):
 
 class Subscription(MyBase):
     id: SubId = Field(default_factory=uuid4)
-    plan: Plan
+    plan_info: PlanInfo
+    billing_info: BillingInfo
     subscriber_id: str
     auth_id: AuthId = Field(exclude=True)
     status: SubscriptionStatus = SubscriptionStatus.Active
     created_at: AwareDatetime = Field(default_factory=get_current_datetime)
     updated_at: AwareDatetime = Field(default_factory=get_current_datetime)
-    last_billing: AwareDatetime = Field(default_factory=get_current_datetime)
     paused_from: Optional[AwareDatetime] = Field(default=None)
     autorenew: bool = False
     usages: list[Usage] = Field(default_factory=list)
@@ -171,8 +179,8 @@ class Subscription(MyBase):
     @property
     def expiration_date(self):
         saved_days = (get_current_datetime() - self.paused_from).days if self.status == SubscriptionStatus.Paused else 0
-        days_delta = saved_days + self.plan.billing_cycle.cycle_in_days
-        return self.last_billing + timedelta(days=days_delta)
+        days_delta = saved_days + self.billing_info.billing_cycle.get_cycle_in_days()
+        return self.billing_info.last_billing + timedelta(days=days_delta)
 
     @model_validator(mode="after")
     def _validate_status(self) -> Self:
@@ -191,36 +199,12 @@ class Subscription(MyBase):
             if usage.code in usage_codes:
                 raise ItemAlreadyExist(item_type=Usage, index_key="code", index_value=usage.code)
             usage_codes.add(usage.code)
-
-        rate_codes = {rate.code for rate in self.plan.usage_rates}
-
-        extra_usages = usage_codes - rate_codes
-        if extra_usages:
-            for code in extra_usages:
-                error = ValidationError(
-                    field="Subscription.usages",
-                    value=code,
-                    value_type="str",
-                    message=f"Usage with code '{code}' is not present in plan usage rates. Available usage rates: {rate_codes}",
-                )
-                raise error
-
-        extra_rates = rate_codes - usage_codes
-        if extra_rates:
-            for code in extra_rates:
-                error = ValidationError(
-                    field="Subscription.plan.usage_rates",
-                    value=code,
-                    value_type="str",
-                    message=f"UsageRate with code '{code}' has no linked Usage. Available usage codes: {usage_codes}"
-                )
-                raise error
         return self
 
     @model_validator(mode="after")
     def _validate_other(self) -> Self:
-        if self.updated_at < self.created_at:
-            raise ValueError("updated_at earlier than created_at")
-        if self.last_billing < self.created_at:
-            raise ValueError("last_billing earlier than created_at")
+        # if self.updated_at < self.created_at:
+        #     raise ValueError("updated_at earlier than created_at")
+        # if self.last_billing < self.created_at:
+        #     raise ValueError("last_billing earlier than created_at")
         return self

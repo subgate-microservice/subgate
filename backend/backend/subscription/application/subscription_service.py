@@ -100,7 +100,7 @@ class SubscriptionService(BaseService):
 
         if subscriber_active_sub:
             # Если создаваемая подписка старше активной, то ставим на паузу активную подписку
-            if item.plan.level > subscriber_active_sub.plan.level:
+            if item.plan_info.level > subscriber_active_sub.plan_info.level:
                 await self._partial_service.pause_sub(subscriber_active_sub)
             # Если создаваемая подписка идентична или младше активной, то ставим создаваемую подписку на паузу
             else:

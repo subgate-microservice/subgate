@@ -5,7 +5,7 @@ from uuid import uuid4
 from sqlalchemy import Column, String, Table
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql.sqltypes import UUID, Boolean, Integer
+from sqlalchemy.sql.sqltypes import UUID, Boolean, Integer, Float
 
 from backend.auth.domain.auth_user import AuthId
 from backend.shared.base_models import OrderBy
@@ -14,19 +14,26 @@ from backend.shared.enums import Lock
 from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper, AwareDateTime
 from backend.shared.unit_of_work.change_log import Log
 from backend.shared.utils import get_current_datetime
-from backend.subscription.domain.subscription import Subscription, SubId, SubscriptionStatus
+from backend.subscription.domain.plan import PlanInfo
+from backend.subscription.domain.subscription import Subscription, SubId, SubscriptionStatus, BillingInfo
 from backend.subscription.domain.subscription_repo import SubscriptionSby, SubscriptionRepo
 
 subscription_table = Table(
     "subscription",
     metadata,
     Column("id", UUID, primary_key=True),
-    Column("plan", JSONB, nullable=False),
-    Column("_plan_level", Integer, nullable=False, index=True),
     Column("subscriber_id", String, nullable=False),
+    Column("pi_id", UUID, nullable=False),
+    Column("pi_title", String, nullable=False),
+    Column("pi_description", String, nullable=True),
+    Column("pi_level", Integer, nullable=False),
+    Column("pi_features", String, nullable=True),
+    Column("bi_price", Float, nullable=False),
+    Column("bi_currency", String, nullable=False),
+    Column("bi_billing_cycle", String, nullable=False),
+    Column("bi_last_billing", AwareDateTime, nullable=False),
     Column("auth_id", UUID, nullable=False),
     Column("status", String, nullable=False),
-    Column("last_billing", AwareDateTime(timezone=True), nullable=False),
     Column("paused_from", AwareDateTime(timezone=True), nullable=True),
     Column("autorenew", Boolean, nullable=False),
     Column("usages", JSONB, default=list),
@@ -44,16 +51,23 @@ class SubscriptionSqlMapper(SQLMapper):
         return Subscription
 
     def entity_to_mapping(self, entity: Subscription) -> dict:
-        result = entity.model_dump(mode="json", exclude={"plan"})
-        result["plan"] = entity.plan.model_dump(mode="json")
-        result["plan"]["auth_id"] = str(entity.plan.auth_id)
-        result["_plan_level"] = entity.plan.level
-        result["last_billing"] = entity.last_billing
+        result = entity.model_dump(mode="json", exclude={"plan_info", "billing_info"})
         result["paused_from"] = entity.paused_from
         result["created_at"] = entity.created_at
         result["updated_at"] = entity.updated_at
         result["auth_id"] = entity.auth_id
         result["_expiration_date"] = entity.expiration_date
+
+        result["pi_id"] = entity.plan_info.id
+        result["pi_title"] = entity.plan_info.title
+        result["pi_description"] = entity.plan_info.description
+        result["pi_level"] = entity.plan_info.level
+        result["pi_features"] = entity.plan_info.features
+
+        result["bi_price"] = entity.billing_info.price
+        result["bi_currency"] = entity.billing_info.currency
+        result["bi_billing_cycle"] = entity.billing_info.billing_cycle
+        result["bi_last_billing"] = entity.billing_info.last_billing
 
         result["_earliest_next_renew_in_usages"] = None if not entity.usages else entity.usages[0].next_renew
         for usage in entity.usages[1:]:
@@ -68,19 +82,23 @@ class SubscriptionSqlMapper(SQLMapper):
         return result
 
     def mapping_to_entity(self, data: Mapping) -> Subscription:
+        plan_info = PlanInfo(id=data["pi_id"], title=data["pi_title"], description=data["pi_description"],
+                             level=data["pi_level"], features=data["pi_features"])
+        billing_info = BillingInfo(price=data["bi_price"], currency=data["bi_currency"],
+                                   billing_cycle=data["bi_billing_cycle"], last_billing=data["bi_last_billing"])
         return Subscription(
             id=str(data["id"]),
-            plan=data["plan"],
+            plan_info=plan_info,
+            billing_info=billing_info,
             subscriber_id=data["subscriber_id"],
             auth_id=str(data["auth_id"]),
             status=data["status"],
-            last_billing=data["last_billing"],
             paused_from=data["paused_from"],
             autorenew=data["autorenew"],
             usages=data["usages"],
             created_at=data["created_at"],
             updated_at=data["updated_at"],
-            fields=data["fields"]
+            fields=data["fields"],
         )
 
     def sby_to_filter(self, sby: SubscriptionSby):
@@ -108,8 +126,8 @@ class SubscriptionSqlMapper(SQLMapper):
     def get_orderby(self, orders: OrderBy):
         updated_orders = []
         for pair in orders:
-            if pair[0] == "plan.level":
-                updated_orders.append(("_plan_level", pair[1]))
+            if pair[0] == "plan_info.level":
+                updated_orders.append(("pi_level", pair[1]))
             else:
                 updated_orders.append(pair)
         return super().get_orderby(updated_orders)
