@@ -172,12 +172,10 @@ async def delete_selected(
         expiration_date_gt=expiration_date_gt,
         expiration_date_gte=expiration_date_gte,
     )
+    # todo permission service
     async with container.unit_of_work_factory().create_uow() as uow:
         sby.auth_ids = {auth_user.id}
-        bus = container.eventbus()
-        subclient = container.subscription_client()
-        await PermissionService(subclient).check_auth_user_can_delete_many(sby, auth_user)
-        service = SubscriptionService(bus, uow)
+        service = SubscriptionService(container.eventbus(), uow)
         await service.delete_selected(sby)
         await service.send_events()
         await uow.commit()

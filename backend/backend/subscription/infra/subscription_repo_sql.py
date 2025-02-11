@@ -97,6 +97,7 @@ class SubscriptionSqlMapper(SQLMapper):
             paused_from=data["paused_from"],
             autorenew=data["autorenew"],
             usages=data["usages"],
+            discounts=data["discounts"],
             created_at=data["created_at"],
             updated_at=data["updated_at"],
             fields=data["fields"],
