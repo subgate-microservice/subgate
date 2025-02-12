@@ -1,55 +1,18 @@
 from typing import Optional
 
 from fastapi import Depends, APIRouter, Query
-from pydantic import Field, AwareDatetime
+from pydantic import AwareDatetime
 
-from backend.auth.domain.auth_user import AuthUser, AuthId
+from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import Bootstrap, get_container, auth_closure
 from backend.shared.permission_service import PermissionService
-from backend.shared.utils import get_current_datetime
 from backend.subscription.adapters.plan_api import PlanUpdate
-from backend.subscription.adapters.subscription_schemas import SubscriptionCreate
+from backend.subscription.adapters.subscription_schemas import SubscriptionCreate, SubscriptionUpdate
 from backend.subscription.application.subscription_service import SubscriptionService, SubscriptionPartialUpdateService
-from backend.subscription.domain.plan import UsageRate, Usage
+from backend.subscription.domain.plan import Usage
 from backend.subscription.domain.subscription import (
-    Subscription, SubId, SubscriptionStatus, MyBase, )
+    Subscription, SubId, SubscriptionStatus, )
 from backend.subscription.domain.subscription_repo import SubscriptionSby
-
-
-class SubscriptionUpdate(MyBase):
-    id: SubId
-    subscriber_id: str
-    plan: PlanUpdate
-    status: SubscriptionStatus
-    usages: list[UsageRate]
-    last_billing: AwareDatetime
-    paused_from: Optional[AwareDatetime]
-    created_at: AwareDatetime
-    updated_at: AwareDatetime = Field(default_factory=get_current_datetime)
-    autorenew: bool = False
-    usages: list[Usage]
-    fields: dict
-
-    def to_subscription(self, auth_id: AuthId) -> Subscription:
-        return Subscription(
-            id=self.id,
-            auth_id=auth_id,
-            subscriber_id=self.subscriber_id,
-            plan=self.plan.to_plan(auth_id),
-            status=self.status,
-            created_at=self.created_at,
-            updated_at=self.updated_at,
-            last_billing=self.last_billing,
-            paused_from=self.paused_from,
-            autorenew=self.autorenew,
-            usages=self.usages,
-            fields=self.fields,
-        )
-
-    @classmethod
-    def from_subscription(cls, sub: Subscription):
-        return cls(**sub.model_dump(exclude={"auth_id", "plan"}), plan=PlanUpdate.from_plan(sub.plan))
-
 
 subscription_router = APIRouter(
     prefix="/subscription",
@@ -184,17 +147,16 @@ async def delete_selected(
 
 @subscription_router.put("/{sub_id}")
 async def update_subscription(
-        subscription: SubscriptionUpdate,
+        subscription_update: SubscriptionUpdate,
         auth_user: AuthUser = Depends(auth_closure),
         container: Bootstrap = Depends(get_container),
 ) -> str:
+    # todo permission service
     async with container.unit_of_work_factory().create_uow() as uow:
-        subscription = subscription.to_subscription(auth_user.id)
-        bus = container.eventbus()
-        subclient = container.subscription_client()
-        await PermissionService(subclient).check_auth_user_can_update(subscription, auth_user)
-        service = SubscriptionService(bus, uow)
-        await service.update_one(subscription)
+        old_version = await uow.subscription_repo().get_one_by_id(subscription_update.id)
+        new_version = subscription_update.to_subscription(auth_user.id, old_version.created_at)
+        service = SubscriptionService(container.eventbus(), uow)
+        await service.update_one(new_version)
         await service.send_events()
         await uow.commit()
         return "Ok"

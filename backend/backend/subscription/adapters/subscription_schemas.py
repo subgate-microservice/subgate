@@ -35,3 +35,32 @@ class SubscriptionCreate(MyBase):
             fields=self.fields,
             auth_id=auth_id,
         )
+
+
+class SubscriptionUpdate(MyBase):
+    id: SubId
+    subscriber_id: str
+    plan_info: PlanInfo
+    billing_info: BillingInfo
+    status: SubscriptionStatus
+    paused_from: Optional[AwareDatetime]
+    autorenew: bool
+    usages: list[Usage]
+    discounts: list[Discount]
+    fields: dict
+
+    def to_subscription(self, auth_id: AuthId, created_at: AwareDatetime) -> Subscription:
+        return Subscription(
+            id=self.id,
+            subscriber_id=self.subscriber_id,
+            plan_info=self.plan_info,
+            billing_info=self.billing_info,
+            status=self.status,
+            paused_from=self.paused_from,
+            autorenew=self.autorenew,
+            usages=self.usages,
+            discounts=self.discounts,
+            fields=self.fields,
+            auth_id=auth_id,
+            created_at=created_at,
+        )
