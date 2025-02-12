@@ -109,13 +109,6 @@ class SubscriptionService(BaseService):
         await self._uow.subscription_repo().add_one(item)
         self._add_event(EventCode.SubscriptionCreated, item)
 
-    async def get_one_by_id(self, sub_id: SubId) -> Subscription:
-        result = await self._uow.subscription_repo().get_one_by_id(sub_id)
-        return result
-
-    async def get_selected(self, sby: SubscriptionSby) -> list[Subscription]:
-        return await self._uow.subscription_repo().get_selected(sby)
-
     async def update_one(self, sub: Subscription) -> None:
         await self._uow.subscription_repo().update_one(sub)
         self._add_event(EventCode.SubscriptionUpdated, sub)
