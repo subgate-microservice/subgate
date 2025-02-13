@@ -10,7 +10,7 @@ from backend.shared.base_models import MyBase
 from backend.shared.exceptions import ItemNotExist, ItemAlreadyExist
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.cycle import Period
-from backend.subscription.domain.plan import Plan, UsageOld, UsageRateOld, Discount, PlanId
+from backend.subscription.domain.plan import Plan, UsageOld, UsageRateOld, DiscountOld, PlanId
 
 SubId = UUID
 
@@ -48,7 +48,7 @@ class Subscription(MyBase):
     paused_from: Optional[AwareDatetime] = Field(default=None)
     autorenew: bool = False
     usages: list[UsageOld] = Field(default_factory=list)
-    discounts: list[Discount] = Field(default_factory=list)
+    discounts: list[DiscountOld] = Field(default_factory=list)
     fields: dict = Field(default_factory=dict)
 
     def pause(self) -> Self:

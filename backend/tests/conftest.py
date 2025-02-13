@@ -51,8 +51,7 @@ def fake_auth_closure_factory() -> AuthClosureFactory:
 
 
 def fake_subscription_client() -> SubscriptionClient:
-    sub = create_subscription(subscriber_id=str(paid_user.id))
-    return FakeSubscriptionClient({sub.id: sub})
+    return FakeSubscriptionClient()
 
 
 @pytest.fixture(autouse=True, scope="session")

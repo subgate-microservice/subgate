@@ -11,6 +11,8 @@ from backend.shared.enums import Lock
 from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper, AwareDateTime
 from backend.shared.unit_of_work.change_log import Log
 from backend.shared.utils import get_current_datetime
+from backend.subscription.application.deserializers import deserialize_plan
+from backend.subscription.application.serializers import serialize_plan
 from backend.subscription.domain.plan import Plan, PlanId
 from backend.subscription.domain.plan_repo import PlanRepo, PlanSby
 
@@ -39,30 +41,10 @@ class PlanSqlMapper(SQLMapper):
         return Plan
 
     def entity_to_mapping(self, entity: Plan, uuid_as_str=False, as_json=False) -> dict:
-        result = entity.model_dump(mode="json")
-        result["auth_id"] = entity.auth_id
-        result["created_at"] = entity.created_at
-        result["updated_at"] = entity.updated_at
-        result["billing_cycle"] = entity.billing_cycle
-        return result
+        return serialize_plan(entity)
 
     def mapping_to_entity(self, data: Mapping) -> Plan:
-        return Plan(
-            id=str(data["id"]),
-            title=data["title"],
-            price=data["price"],
-            currency=data["currency"],
-            billing_cycle=data["billing_cycle"],
-            description=data["description"],
-            level=data["level"],
-            features=data["features"],
-            usage_rates=data["usage_rates"],
-            fields=data["fields"],
-            auth_id=str(data["auth_id"]),
-            discounts=data["discounts"],
-            created_at=data["created_at"],
-            updated_at=data["updated_at"],
-        )
+        return deserialize_plan(data)
 
     def sby_to_filter(self, sby: PlanSby):
         result = []

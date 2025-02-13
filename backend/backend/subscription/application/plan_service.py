@@ -2,8 +2,8 @@ import math
 
 from backend.shared.context import Context
 from backend.shared.eventbus import Eventbus, Event
-from backend.shared.unit_of_work.uow import UnitOfWork
 from backend.shared.events import EventCode
+from backend.shared.unit_of_work.uow import UnitOfWork
 from backend.subscription.domain.plan import Plan, PlanId
 from backend.subscription.domain.plan_repo import PlanSby
 
@@ -84,3 +84,18 @@ class PlanService(BaseService):
 def check_amount_is_correct(plan: Plan, amount: float) -> None:
     if not math.isclose(plan.price, amount):
         raise ValueError(f"Amount is not equal Plan.price (f{amount} != {plan.price})")
+
+
+async def create_plan(plan: Plan, uow: UnitOfWork) -> None:
+    await uow.plan_repo().add_one(plan)
+    uow.push_event(plan.to_plan_created())
+
+
+async def delete_plan(plan: Plan, uow: UnitOfWork) -> None:
+    await uow.plan_repo().delete_one(plan)
+    uow.push_event(plan.to_plan_deleted())
+
+
+async def update_plan(old_plan: Plan, new_plan: Plan, uow: UnitOfWork) -> None:
+    await uow.plan_repo().update_one(new_plan)
+    uow.push_event(old_plan.to_plan_updated(old_plan))

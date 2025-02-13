@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query
 from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container, Bootstrap, auth_closure
 from backend.shared.permission_service import PermissionService
-from backend.subscription.adapters.schemas import PlanCreate, PlanUpdate
+from backend.subscription.adapters.schemas import PlanCreate, PlanUpdate, PlanRetrieve
 from backend.subscription.application.plan_service import PlanService
 from backend.subscription.domain.plan import Plan, PlanId
 from backend.subscription.domain.plan_repo import PlanSby
@@ -21,7 +21,7 @@ async def create_one(
         data: PlanCreate,
         auth_user: AuthUser = Depends(auth_closure),
         container: Bootstrap = Depends(get_container),
-) -> Plan:
+) -> str:
     async with container.unit_of_work_factory().create_uow() as uow:
         plan = data.to_plan(auth_user.id)
         subclient = container.subscription_client()
@@ -37,7 +37,7 @@ async def get_one_by_id(
         plan_id: PlanId,
         auth_user: AuthUser = Depends(auth_closure),
         container: Bootstrap = Depends(get_container),
-) -> Plan:
+) -> PlanRetrieve:
     async with container.unit_of_work_factory().create_uow() as uow:
         subclient = container.subscription_client()
         bus = container.eventbus()
@@ -55,7 +55,7 @@ async def get_selected(
         auth_user: AuthUser = Depends(auth_closure),
         container: Bootstrap = Depends(get_container),
 
-) -> list[Plan]:
+) -> list[PlanRetrieve]:
     order_by = [(x.split(",")[0], x.split(",")[1]) for x in order_by]
     sby = PlanSby(
         ids=set(ids) if ids else None,

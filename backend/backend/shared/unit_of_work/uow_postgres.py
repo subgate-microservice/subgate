@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, AsyncEngine
 
 from backend.auth.domain.apikey_repo import ApikeyRepo
 from backend.auth.infra.apikey.apikey_repo_sql import SqlApikeyRepo
+from backend.shared.event_driven.base_event import Event
 from backend.shared.unit_of_work.change_log import SqlLogRepo
 from backend.shared.unit_of_work.sql_statement_parser import SqlStatementBuilder
 from backend.shared.unit_of_work.uow import UnitOfWorkFactory, UnitOfWork
@@ -36,6 +37,7 @@ class NewUow(UnitOfWork):
         self._session: Optional[AsyncSession] = None
         self._repos = {}
         self._log_repo = None
+        self._events = []
 
     async def __aenter__(self) -> Self:
         self._transaction_id = uuid4()
@@ -55,6 +57,14 @@ class NewUow(UnitOfWork):
         await self._session.close()
         self._session = None
         self._transaction_id = None
+
+    def push_event(self, event: Event) -> None:
+        self._events.append(event)
+
+    def parse_events(self) -> list[Event]:
+        events = self._events
+        self._events = []
+        return events
 
     async def commit(self):
         try:

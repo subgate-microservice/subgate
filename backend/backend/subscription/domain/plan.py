@@ -11,6 +11,7 @@ from backend.shared.event_driven.base_event import Event
 from backend.shared.item_maanger import ItemManager
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.cycle import Period
+from backend.subscription.domain.discount import Discount
 from backend.subscription.domain.usage import UsageRate
 
 PlanId = UUID
@@ -53,7 +54,7 @@ class UsageRateOld(MyBase):
                    renew_cycle=usage.renew_cycle)
 
 
-class Discount(MyBase):
+class DiscountOld(MyBase):
     title: str
     code: str
     description: Optional[str] = None
@@ -73,7 +74,7 @@ class PlanOld:
     usage_rates: list[UsageRateOld] = Field(default_factory=list, )
     fields: dict[str, Any] = Field(default_factory=dict)
     auth_id: AuthId = Field(exclude=True)
-    discounts: list[Discount] = Field(default_factory=list)
+    discounts: list[DiscountOld] = Field(default_factory=list)
     created_at: AwareDatetime = Field(default_factory=get_current_datetime)
     updated_at: AwareDatetime = Field(default_factory=get_current_datetime)
 
@@ -97,7 +98,14 @@ class PlanDeleted(Event):
     currency: str
     billing_cycle: Period
     auth_id: AuthId
-    created_at: AwareDatetime
+    deleted_at: AwareDatetime
+
+
+@dataclasses.dataclass(frozen=True)
+class PlanUpdated(Event):
+    id: PlanId
+    updated_at: AwareDatetime
+    updated_fields: list[str]
 
 
 class Plan:
@@ -118,54 +126,33 @@ class Plan:
             created_at: AwareDatetime,
             updated_at: AwareDatetime,
     ):
+        self.title = title
+        self.price = price
+        self.currency = currency
+        self.billing_cycle = billing_cycle
+        self.description = description
+        self.level = level
+        self.features = features
+        self.fields = fields
+        self.auth_id = auth_id
+
         self._id = id
-        self._title = title
-        self._price = price
-        self._currency = currency
-        self._billing_cycle = billing_cycle
-        self._description = description
-        self._level = level
-        self._features = features
         self._usage_rates = ItemManager(usage_rates, "code")
         self._discounts = ItemManager(discounts, "code")
-        self._fields = fields
-        self._auth_id = auth_id
         self._created_at = created_at
         self._updated_at = updated_at
 
-        self._events: set[Event] = set()
+    @property
+    def id(self):
+        return self._id
 
     @property
-    def title(self):
-        return self._title
+    def usage_rates(self):
+        return self._usage_rates
 
     @property
-    def price(self):
-        return self._price
-
-    @property
-    def currency(self):
-        return self._currency
-
-    @property
-    def billing_cycle(self):
-        return self._billing_cycle
-
-    @property
-    def description(self):
-        return self._description
-
-    @property
-    def level(self):
-        return self._level
-
-    @property
-    def fields(self):
-        return self._fields
-
-    @property
-    def auth_id(self):
-        return self._auth_id
+    def discounts(self):
+        return self._discounts
 
     @property
     def created_at(self):
@@ -174,10 +161,6 @@ class Plan:
     @property
     def updated_at(self):
         return self._updated_at
-
-    @property
-    def features(self):
-        return self._features
 
     @classmethod
     def create(
@@ -191,7 +174,7 @@ class Plan:
             level: int = 10,
             features: str = None,
             usage_rates: list[UsageRate] = None,
-            discounts: list[Discount] = None,
+            discounts: list[DiscountOld] = None,
             fields: dict = None,
             id: PlanId = None,
     ) -> Self:
@@ -202,57 +185,48 @@ class Plan:
         discounts = discounts if discounts is not None else []
         instance = cls(id, title, price, currency, billing_cycle, description, level, features, usage_rates, discounts,
                        fields, auth_id, dt, dt)
-        event = PlanCreated(id, title, price, currency, billing_cycle, auth_id, dt)
-        instance.push_event(event)
         return instance
 
-    def delete(self):
-        self._updated_at = get_current_datetime()
-        self._events.add(
-            PlanDeleted(self._id, self._title, self._price, self._currency, self._billing_cycle, self._auth_id,
-                        self._updated_at)
-        )
+    def to_plan_created(self) -> PlanCreated:
+        return PlanCreated(self.id, self.title, self.price, self.currency, self.billing_cycle, self.auth_id,
+                           self.created_at)
 
-    def get_all_usage_rates(self) -> list[UsageRate]:
-        return self._usage_rates.get_all()
+    def to_plan_deleted(self) -> PlanDeleted:
+        dt = get_current_datetime()
+        return PlanDeleted(self.id, self.title, self.price, self.currency, self.billing_cycle, self.auth_id, dt)
 
-    def get_usage_rate(self, code: str) -> UsageRate:
-        return self._usage_rates.get(code)
+    def to_plan_updated(self, new_plan: Self) -> PlanUpdated:
+        old_plan = self
+        updated_fields = []
 
-    def add_usage_rate(self, usage_rate: UsageRate) -> None:
-        self._usage_rates.add(usage_rate)
-        self._updated_at = get_current_datetime()
+        # Проверяем простые атрибуты
+        for field in (
+                "title", "price", "currency", "billing_cycle", "description", "level", "features", "fields", "auth_id"
+        ):
+            if getattr(old_plan, field) != getattr(new_plan, field):
+                updated_fields.append(field)
 
-    def update_usage_rate(self, usage_rate: UsageRate) -> None:
-        self._usage_rates.update(usage_rate)
-        self._updated_at = get_current_datetime()
+        # Проверяем usage_rates
+        old_usage = {u.code: u for u in old_plan.usage_rates}
+        new_usage = {u.code: u for u in new_plan.usage_rates}
 
-    def remove_usage_rate(self, code: str) -> None:
-        self._usage_rates.remove(code)
-        self._updated_at = get_current_datetime()
+        added_usage = set(new_usage) - set(old_usage)
+        removed_usage = set(old_usage) - set(new_usage)
+        changed_usage = {code for code in old_usage if code in new_usage and old_usage[code] != new_usage[code]}
 
-    def get_discount(self, code: str) -> Discount:
-        return self._discounts.get(code)
+        if added_usage or removed_usage or changed_usage:
+            updated_fields.append("usage_rates")
 
-    def get_all_discounts(self) -> list[Discount]:
-        return self._discounts.get_all()
+        # Проверяем discounts
+        old_discounts = {d.code: d for d in old_plan.discounts}
+        new_discounts = {d.code: d for d in new_plan.discounts}
 
-    def add_discount(self, discount: Discount) -> None:
-        self._discounts.add(discount)
-        self._updated_at = get_current_datetime()
+        added_discounts = set(new_discounts) - set(old_discounts)
+        removed_discounts = set(old_discounts) - set(new_discounts)
+        changed_discounts = {code for code in old_discounts if
+                             code in new_discounts and old_discounts[code] != new_discounts[code]}
 
-    def update_discount(self, discount: Discount) -> None:
-        self._discounts.update(discount)
-        self._updated_at = get_current_datetime()
+        if added_discounts or removed_discounts or changed_discounts:
+            updated_fields.append("discounts")
 
-    def remove_discount(self, code: str) -> None:
-        self._discounts.remove(code)
-        self._updated_at = get_current_datetime()
-
-    def parse_events(self) -> set[Event]:
-        events = self._events
-        self._events = set()
-        return events
-
-    def push_event(self, event: Event) -> None:
-        self._events.add(event)
+        return PlanUpdated(id=new_plan.id, updated_at=new_plan.updated_at, updated_fields=updated_fields)

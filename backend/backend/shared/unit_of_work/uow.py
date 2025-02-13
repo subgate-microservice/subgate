@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Self
 
 from backend.auth.domain.apikey_repo import ApikeyRepo
+from backend.shared.event_driven.base_event import Event
 from backend.subscription.domain.plan_repo import PlanRepo
 from backend.subscription.domain.subscription_repo import SubscriptionRepo
 from backend.webhook.domain.telegram import TelegramRepo
@@ -15,6 +16,14 @@ class UnitOfWork(ABC):
 
     @abstractmethod
     async def rollback(self):
+        pass
+
+    @abstractmethod
+    def push_event(self, event: Event) -> None:
+        pass
+
+    @abstractmethod
+    def parse_events(self) -> list[Event]:
         pass
 
     @abstractmethod
