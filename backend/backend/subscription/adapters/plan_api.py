@@ -6,8 +6,8 @@ from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container, Bootstrap, auth_closure
 from backend.shared.permission_service import PermissionService
 from backend.subscription.adapters.schemas import PlanCreate, PlanUpdate, PlanRetrieve
-from backend.subscription.application.plan_service import PlanService
-from backend.subscription.domain.plan import Plan, PlanId
+from backend.subscription.application.plan_service import PlanService, create_plan
+from backend.subscription.domain.plan import PlanId
 from backend.subscription.domain.plan_repo import PlanSby
 
 plan_router = APIRouter(
@@ -18,18 +18,16 @@ plan_router = APIRouter(
 
 @plan_router.post("/")
 async def create_one(
-        data: PlanCreate,
+        plan_create: PlanCreate,
         auth_user: AuthUser = Depends(auth_closure),
         container: Bootstrap = Depends(get_container),
 ) -> str:
     async with container.unit_of_work_factory().create_uow() as uow:
-        plan = data.to_plan(auth_user.id)
-        subclient = container.subscription_client()
-        bus = container.eventbus()
-        await PermissionService(subclient).check_auth_user_can_create(plan, auth_user)
-        await PlanService(bus, uow).create_one(plan)
+        plan = plan_create.to_plan(auth_user.id)
+        await create_plan(plan, uow)
+        await container.eventbus().processing_unit_of_work(uow)
         await uow.commit()
-        return plan
+    return "Ok"
 
 
 @plan_router.get("/{plan_id}")
@@ -39,11 +37,9 @@ async def get_one_by_id(
         container: Bootstrap = Depends(get_container),
 ) -> PlanRetrieve:
     async with container.unit_of_work_factory().create_uow() as uow:
-        subclient = container.subscription_client()
-        bus = container.eventbus()
-        result = await PlanService(bus, uow).get_one_by_id(plan_id)
-        await PermissionService(subclient).check_auth_user_can_get(result, auth_user)
-        return result
+        plan = await uow.plan_repo().get_one_by_id(plan_id)
+        plan_retrieve = PlanRetrieve.from_plan(plan)
+        return plan_retrieve
 
 
 @plan_router.get("/")

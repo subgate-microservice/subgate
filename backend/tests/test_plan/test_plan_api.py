@@ -11,6 +11,19 @@ from tests.fake_data import create_plan
 container = get_container()
 
 
+class TestCreate:
+    @pytest.mark.asycnio
+    async def test_create_simple_plan(self, current_user):
+        user, token, expected_status_code = current_user
+        headers = {"Authorization": f"Bearer {token}"}
+
+        async with get_async_client() as client:
+            plan = Plan.create("Simple", 100, "USD", user.id, Period.Monthly)
+            payload = PlanCreate.from_plan(plan).model_dump(mode="json")
+            response = await client.post(f"/plan/", json=payload, headers=headers)
+            assert response.status_code == expected_status_code
+
+
 class TestGet:
     @pytest_asyncio.fixture()
     async def simple_plan(self, current_user):

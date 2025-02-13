@@ -1,4 +1,4 @@
-from typing import Optional, Any
+from typing import Optional, Any, Self
 from uuid import uuid4
 
 from pydantic import Field, AwareDatetime
@@ -22,9 +22,16 @@ class PlanCreate(MyBase):
     fields: dict[str, Any] = Field(default_factory=dict)
     discounts: list[DiscountOld] = Field(default_factory=list)
 
+    @classmethod
+    def from_plan(cls, plan: Plan) -> Self:
+        return cls(id=plan.id, title=plan.title, price=plan.price, currency=plan.currency,
+                   billing_cycle=plan.billing_cycle, description=plan.description, level=plan.level,
+                   features=plan.features, usage_rates=plan.usage_rates.get_all(), fields=plan.fields,
+                   discounts=plan.discounts.get_all())
+
     def to_plan(self, auth_id: AuthId):
         data = self.model_dump()
-        return Plan(auth_id=auth_id, **data)
+        return Plan.create(auth_id=auth_id, **data)
 
 
 class PlanUpdate(MyBase):
@@ -59,3 +66,21 @@ class PlanRetrieve(MyBase):
     discounts: list[DiscountOld]
     created_at: AwareDatetime
     updated_at: AwareDatetime
+
+    @classmethod
+    def from_plan(cls, plan: Plan):
+        return PlanRetrieve(
+            id=plan.id,
+            title=plan.title,
+            price=plan.price,
+            currency=plan.currency,
+            billing_cycle=plan.billing_cycle,
+            description=plan.description,
+            level=plan.level,
+            features=plan.features,
+            usage_rates=plan.usage_rates.get_all(),
+            fields=plan.fields,
+            discounts=plan.discounts.get_all(),
+            created_at=plan.created_at,
+            updated_at=plan.updated_at,
+        )

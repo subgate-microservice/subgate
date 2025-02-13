@@ -11,6 +11,7 @@ from backend.auth.infra.fastapi_users.auth_closure_factory import FastapiUsersAu
 from backend.auth.infra.other.complex_factory import ComplexAuthClosureFactory
 from backend.auth.infra.other.fake_factory import FakeAuthClosureFactory
 from backend.auth.infra.fastapi_users.manager import create_fastapi_users
+from backend.shared.event_driven.bus import Bus
 from backend.shared.eventbus import Eventbus
 from backend.shared.unit_of_work.uow import UnitOfWorkFactory
 from backend.shared.unit_of_work.uow_postgres import SqlUowFactory
@@ -67,9 +68,9 @@ class Bootstrap:
         self.__getattribute__(name)
         self.__setattr__(name, value)
 
-    def eventbus(self) -> Eventbus:
+    def eventbus(self) -> Bus:
         if not self._eventbus:
-            self._eventbus = Eventbus()
+            self._eventbus = Bus()
         return self._eventbus
 
     def database(self):
