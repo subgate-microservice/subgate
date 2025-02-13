@@ -6,7 +6,7 @@ from pydantic import Field, AwareDatetime
 from backend.auth.domain.auth_user import AuthId
 from backend.shared.base_models import MyBase
 from backend.subscription.domain.cycle import Period
-from backend.subscription.domain.plan import UsageRate, Discount, Plan, PlanId
+from backend.subscription.domain.plan import UsageRateOld, Discount, Plan, PlanId
 
 
 class PlanCreate(MyBase):
@@ -18,7 +18,7 @@ class PlanCreate(MyBase):
     description: Optional[str] = None
     level: int = 10
     features: Optional[str] = None
-    usage_rates: list[UsageRate] = Field(default_factory=list)
+    usage_rates: list[UsageRateOld] = Field(default_factory=list)
     fields: dict[str, Any] = Field(default_factory=dict)
     discounts: list[Discount] = Field(default_factory=list)
 
@@ -36,7 +36,7 @@ class PlanUpdate(MyBase):
     description: Optional[str]
     level: int
     features: Optional[str]
-    usage_rates: list[UsageRate]
+    usage_rates: list[UsageRateOld]
     fields: dict[str, Any]
     discounts: list[Discount]
 

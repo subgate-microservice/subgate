@@ -10,7 +10,7 @@ from backend.bootstrap import get_container
 from backend.shared.utils import get_current_datetime
 from backend.subscription.application.subscription_manager import SubscriptionManager, SubscriptionUsageManager
 from backend.subscription.domain.cycle import Cycle, Period
-from backend.subscription.domain.plan import Plan, Usage, UsageRate
+from backend.subscription.domain.plan import Plan, UsageOld, UsageRateOld
 from backend.subscription.domain.subscription import Subscription, SubscriptionStatus
 from backend.subscription.domain.subscription_repo import SubscriptionSby
 
@@ -151,7 +151,7 @@ async def test_autorenew_subscription(plan):
 async def test_subscription_manager_renew_usages(plan):
     # Before
     usages = [
-        Usage(
+        UsageOld(
             title="AnyTitle",
             code="need_to_renew",
             unit="GB",
@@ -160,7 +160,7 @@ async def test_subscription_manager_renew_usages(plan):
             last_renew=get_current_datetime() - timedelta(days=31, seconds=22),
             renew_cycle=Cycle.from_code(Period.Monthly),
         ),
-        Usage(
+        UsageOld(
             title="AnyTitle",
             code="just_expired",
             unit="GB",
@@ -170,7 +170,7 @@ async def test_subscription_manager_renew_usages(plan):
             renew_cycle=Cycle.from_code(Period.Monthly),
         ),
     ]
-    plan = plan.add_usage_rates([UsageRate.from_usage(x) for x in usages])
+    plan = plan.add_usage_rates([UsageRateOld.from_usage(x) for x in usages])
     sub = Subscription(
         plan=plan,
         subscriber_id="AnySubscriberId",

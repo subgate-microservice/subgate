@@ -14,8 +14,7 @@ from backend.shared.enums import Lock
 from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper, AwareDateTime
 from backend.shared.unit_of_work.change_log import Log
 from backend.shared.utils import get_current_datetime
-from backend.subscription.domain.plan import PlanInfo
-from backend.subscription.domain.subscription import Subscription, SubId, SubscriptionStatus, BillingInfo
+from backend.subscription.domain.subscription import Subscription, SubId, SubscriptionStatus, BillingInfo, PlanInfo
 from backend.subscription.domain.subscription_repo import SubscriptionSby, SubscriptionRepo
 
 subscription_table = Table(

@@ -5,8 +5,8 @@ from pydantic import Field, AwareDatetime
 
 from backend.auth.domain.auth_user import AuthId
 from backend.shared.base_models import MyBase
-from backend.subscription.domain.plan import Usage, PlanInfo, Discount
-from backend.subscription.domain.subscription import SubId, Subscription, SubscriptionStatus, BillingInfo
+from backend.subscription.domain.plan import UsageOld, Discount
+from backend.subscription.domain.subscription import SubId, Subscription, SubscriptionStatus, BillingInfo, PlanInfo
 
 
 class SubscriptionCreate(MyBase):
@@ -17,7 +17,7 @@ class SubscriptionCreate(MyBase):
     status: SubscriptionStatus = SubscriptionStatus.Active
     paused_from: Optional[AwareDatetime] = None
     autorenew: bool = False
-    usages: list[Usage] = Field(default_factory=list)
+    usages: list[UsageOld] = Field(default_factory=list)
     discounts: list[Discount] = Field(default_factory=list)
     fields: dict = Field(default_factory=dict)
 
@@ -45,7 +45,7 @@ class SubscriptionUpdate(MyBase):
     status: SubscriptionStatus
     paused_from: Optional[AwareDatetime]
     autorenew: bool
-    usages: list[Usage]
+    usages: list[UsageOld]
     discounts: list[Discount]
     fields: dict
 

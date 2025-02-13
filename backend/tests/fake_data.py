@@ -7,13 +7,13 @@ from backend.auth.domain.auth_user import AuthUser
 from backend.shared.events import EventCode
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.cycle import Cycle, Period
-from backend.subscription.domain.plan import Plan, Usage, UsageRate
+from backend.subscription.domain.plan import Plan, UsageOld, UsageRateOld
 from backend.subscription.domain.subscription import SubscriptionStatus, Subscription
 from backend.webhook.domain.telegram import Telegram
 from backend.webhook.domain.webhook import Webhook
 
 
-def create_plan(auth_user: AuthUser = None, title="Business", level=10, usage_rates: list[UsageRate] = None):
+def create_plan(auth_user: AuthUser = None, title="Business", level=10, usage_rates: list[UsageRateOld] = None):
     if not usage_rates:
         usage_rates = []
     return Plan(
@@ -30,14 +30,14 @@ def create_plan(auth_user: AuthUser = None, title="Business", level=10, usage_ra
 def create_subscription(
         plan: Plan = None,
         subscriber_id: str = None,
-        usages: list[Usage] = None,
+        usages: list[UsageOld] = None,
         auth_user: AuthUser = None,
         last_billing: AwareDatetime = None,
 ):
     auth_user = auth_user if auth_user else AuthUser()
     usages = usages if usages else []
     my_plan = create_plan(
-        auth_user=auth_user, usage_rates=[UsageRate.from_usage(usage) for usage in usages]
+        auth_user=auth_user, usage_rates=[UsageRateOld.from_usage(usage) for usage in usages]
     ) if not plan else plan
     subscriber_id = str(uuid4()) if not subscriber_id else subscriber_id
     last_billing = last_billing if last_billing else get_current_datetime()

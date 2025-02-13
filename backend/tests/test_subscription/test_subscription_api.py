@@ -7,12 +7,12 @@ from backend.bootstrap import get_container
 from backend.shared.utils import get_current_datetime
 from backend.subscription.adapters.subscription_api import SubscriptionCreate, SubscriptionUpdate
 from backend.subscription.domain.cycle import Cycle, Period
-from backend.subscription.domain.plan import Plan, Usage, UsageRate
+from backend.subscription.domain.plan import Plan, UsageOld, UsageRateOld
 from backend.subscription.domain.subscription import Subscription, SubscriptionStatus
 from tests.conftest import current_user, get_async_client
 
 
-async def create_plan(auth_user: AuthUser, usage_rates:list[UsageRate] = None):
+async def create_plan(auth_user: AuthUser, usage_rates:list[UsageRateOld] = None):
     if not usage_rates:
         usage_rates = []
     async with get_container().unit_of_work_factory().create_uow() as uow:
@@ -32,11 +32,11 @@ async def create_plan(auth_user: AuthUser, usage_rates:list[UsageRate] = None):
 
 async def create_subscription(
         auth_user: AuthUser,
-        usages: list[Usage] = None,
+        usages: list[UsageOld] = None,
 ) -> Subscription:
     if not usages:
         usages = []
-    rates = [UsageRate.from_usage(usage) for usage in usages]
+    rates = [UsageRateOld.from_usage(usage) for usage in usages]
     plan = await create_plan(auth_user, usage_rates=rates)
     sub = Subscription(
         id=uuid4(),
@@ -125,7 +125,7 @@ async def test_get_selected(current_user):
 async def test_increase_usage(current_user):
     user, token, expected_status_code = current_user
     usages = [
-        Usage(
+        UsageOld(
             title="AnyTitle",code="first", unit="GB", available_units=100, used_units=0,
             renew_cycle=Cycle.from_code(Period.Monthly))
     ]

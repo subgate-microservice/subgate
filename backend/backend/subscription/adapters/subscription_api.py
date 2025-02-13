@@ -9,7 +9,7 @@ from backend.shared.permission_service import PermissionService
 from backend.subscription.adapters.plan_api import PlanUpdate
 from backend.subscription.adapters.subscription_schemas import SubscriptionCreate, SubscriptionUpdate
 from backend.subscription.application.subscription_service import SubscriptionService, SubscriptionPartialUpdateService
-from backend.subscription.domain.plan import Usage
+from backend.subscription.domain.plan import UsageOld
 from backend.subscription.domain.subscription import (
     Subscription, SubId, SubscriptionStatus, )
 from backend.subscription.domain.subscription_repo import SubscriptionSby
@@ -184,7 +184,7 @@ async def increase_usages(
 @subscription_router.patch("/{sub_id}/add-usages")
 async def add_usages(
         sub_id: SubId,
-        usages: list[Usage],
+        usages: list[UsageOld],
         auth_user: AuthUser = Depends(auth_closure),
         container: Bootstrap = Depends(get_container),
 ):
@@ -220,7 +220,7 @@ async def remove_usages(
 @subscription_router.patch("/{sub_id}/update-usages")
 async def update_usages(
         sub_id: SubId,
-        usages: list[Usage],
+        usages: list[UsageOld],
         auth_user: AuthUser = Depends(auth_closure),
         container: Bootstrap = Depends(get_container),
 ):

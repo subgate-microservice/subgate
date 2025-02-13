@@ -10,9 +10,17 @@ from backend.shared.base_models import MyBase
 from backend.shared.exceptions import ItemNotExist, ItemAlreadyExist
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.cycle import Period
-from backend.subscription.domain.plan import Plan, Usage, UsageRate, PlanInfo, Discount
+from backend.subscription.domain.plan import Plan, UsageOld, UsageRateOld, Discount, PlanId
 
 SubId = UUID
+
+
+class PlanInfo(MyBase):
+    id: PlanId = None
+    title: str
+    description: Optional[str] = None
+    level: int = 10
+    features: Optional[str] = None
 
 
 class BillingInfo(MyBase):
@@ -39,7 +47,7 @@ class Subscription(MyBase):
     updated_at: AwareDatetime = Field(default_factory=get_current_datetime)
     paused_from: Optional[AwareDatetime] = Field(default=None)
     autorenew: bool = False
-    usages: list[Usage] = Field(default_factory=list)
+    usages: list[UsageOld] = Field(default_factory=list)
     discounts: list[Discount] = Field(default_factory=list)
     fields: dict = Field(default_factory=dict)
 
@@ -94,7 +102,7 @@ class Subscription(MyBase):
             target_usage = next(x for x in self.usages if x.code == code)
         except StopIteration:
             raise ItemNotExist(
-                item_type=Usage,
+                item_type=UsageOld,
                 lookup_field_key="code",
                 lookup_field_value=code,
             )
@@ -113,13 +121,13 @@ class Subscription(MyBase):
             "updated_at": get_current_datetime(),
         })
 
-    def add_usages(self, usages: Iterable[Usage]) -> Self:
+    def add_usages(self, usages: Iterable[UsageOld]) -> Self:
         new_usages = [*self.usages, *usages]
-        new_plan = self.plan.add_usage_rates([UsageRate.from_usage(x) for x in usages])
+        new_plan = self.plan.add_usage_rates([UsageRateOld.from_usage(x) for x in usages])
         hashes = set()
         for usage in new_usages:
             if usage.code in hashes:
-                raise ItemAlreadyExist(item_type=Usage, index_key="code", index_value=usage.code)
+                raise ItemAlreadyExist(item_type=UsageOld, index_key="code", index_value=usage.code)
             hashes.add(usage.code)
         return self.model_copy(update={
             "usages": new_usages,
@@ -135,12 +143,12 @@ class Subscription(MyBase):
             "updated_at": get_current_datetime(),
         })
 
-    def update_usages(self, usages: Iterable[Usage]) -> Self:
+    def update_usages(self, usages: Iterable[UsageOld]) -> Self:
         updated_usage_rates = []
         hashes = {}
         for updated_usage in usages:
             hashes[updated_usage.code] = updated_usage
-            updated_usage_rates.append(UsageRate.from_usage(updated_usage))
+            updated_usage_rates.append(UsageRateOld.from_usage(updated_usage))
 
         new_usages = []
         for usage in self.usages:
@@ -153,7 +161,7 @@ class Subscription(MyBase):
             raise ItemNotExist(
                 lookup_field_value=next(key for key in hashes.keys()),
                 lookup_field_key="code",
-                item_type=Usage,
+                item_type=UsageOld,
             )
         new_plan = self.plan.update_usage_rates(updated_usage_rates)
         return self.model_copy(update={
@@ -198,7 +206,7 @@ class Subscription(MyBase):
         usage_codes = set()
         for usage in self.usages:
             if usage.code in usage_codes:
-                raise ItemAlreadyExist(item_type=Usage, index_key="code", index_value=usage.code)
+                raise ItemAlreadyExist(item_type=UsageOld, index_key="code", index_value=usage.code)
             usage_codes.add(usage.code)
         return self
 

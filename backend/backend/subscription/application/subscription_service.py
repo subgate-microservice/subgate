@@ -6,7 +6,7 @@ from backend.shared.context import Context
 from backend.shared.eventbus import Eventbus, Event
 from backend.shared.events import EventCode
 from backend.shared.unit_of_work.uow import UnitOfWork
-from backend.subscription.domain.plan import Usage, Plan
+from backend.subscription.domain.plan import UsageOld, Plan
 from backend.subscription.domain.subscription import Subscription, SubscriptionStatus, SubId
 from backend.subscription.domain.subscription_repo import SubscriptionSby
 
@@ -67,7 +67,7 @@ class SubscriptionPartialUpdateService(BaseService):
         await self._uow.subscription_repo().update_one(result)
         self._add_event(EventCode.SubscriptionUpdated, result)
 
-    async def add_usages(self, sub: Subscription, usages: Iterable[Usage]) -> None:
+    async def add_usages(self, sub: Subscription, usages: Iterable[UsageOld]) -> None:
         result = sub.add_usages(usages)
         await self._uow.subscription_repo().update_one(result)
         self._add_event(EventCode.SubscriptionUpdated, result)
@@ -77,7 +77,7 @@ class SubscriptionPartialUpdateService(BaseService):
         await self._uow.subscription_repo().update_one(result)
         self._add_event(EventCode.SubscriptionUpdated, result)
 
-    async def update_usages(self, sub: Subscription, usages: Iterable[Usage]) -> None:
+    async def update_usages(self, sub: Subscription, usages: Iterable[UsageOld]) -> None:
         result = sub.update_usages(usages)
         await self._uow.subscription_repo().update_one(result)
         self._add_event(EventCode.SubscriptionUpdated, result)

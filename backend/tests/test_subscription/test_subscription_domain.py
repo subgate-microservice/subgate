@@ -6,7 +6,7 @@ import pytest
 from backend.shared.exceptions import ItemAlreadyExist, ValidationError
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.cycle import Period
-from backend.subscription.domain.plan import Plan, Cycle, Usage, UsageRate
+from backend.subscription.domain.plan import Plan, Cycle, UsageOld, UsageRateOld
 from backend.subscription.domain.subscription import Subscription, SubscriptionStatus
 
 
@@ -94,7 +94,7 @@ class TestValidation:
 
     def test_usages_validation_with_already_exist_usages(self, plan):
         usages = [
-            Usage(
+            UsageOld(
                 title="AnyTitle",
                 code="first",
                 unit="GB",
@@ -102,7 +102,7 @@ class TestValidation:
                 used_units=1,
                 renew_cycle=Cycle.from_code(Period.Monthly),
             ),
-            Usage(
+            UsageOld(
                 title="AnyTitle",
                 code="first",
                 unit="GB",
@@ -133,7 +133,7 @@ class TestValidation:
             auth_id=uuid4(),
         )
         usages = [
-            Usage(
+            UsageOld(
                 title="Extra",
                 code="first",
                 unit="GB",
@@ -152,7 +152,7 @@ class TestValidation:
 
     def test_subscription_with_extra_usage_rates(self):
         rates = [
-            UsageRate(
+            UsageRateOld(
                 title="Extra",
                 code="first",
                 unit="GB",

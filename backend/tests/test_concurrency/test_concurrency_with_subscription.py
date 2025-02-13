@@ -5,7 +5,7 @@ import pytest
 
 from backend.bootstrap import get_container
 from backend.subscription.domain.cycle import Cycle, Period
-from backend.subscription.domain.plan import Usage
+from backend.subscription.domain.plan import UsageOld
 from tests.conftest import current_user, get_async_client
 from tests.conftest import get_client
 from tests.fake_data import create_subscription
@@ -18,7 +18,7 @@ async def test_increase_usage_with_concurrency(current_user):
     # Before
     user, token, expected_status_code = current_user
     usages = [
-        Usage(
+        UsageOld(
             title="AnyTitle",code="first", unit="GB", available_units=100, used_units=0,
             renew_cycle=Cycle.from_code(Period.Monthly))
     ]
