@@ -5,7 +5,7 @@ import pytest
 
 from backend.shared.exceptions import ItemAlreadyExist, ValidationError
 from backend.shared.utils import get_current_datetime
-from backend.subscription.domain.cycle import CycleCode
+from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.plan import Plan, Cycle, Usage, UsageRate
 from backend.subscription.domain.subscription import Subscription, SubscriptionStatus
 
@@ -16,7 +16,7 @@ def plan():
         title="Business",
         price=100,
         currency="USD",
-        billing_cycle=Cycle.from_code(CycleCode.Annual),
+        billing_cycle=Cycle.from_code(Period.Annual),
         level=3,
         auth_id=uuid4(),
     )
@@ -100,7 +100,7 @@ class TestValidation:
                 unit="GB",
                 available_units=100,
                 used_units=1,
-                renew_cycle=Cycle.from_code(CycleCode.Monthly),
+                renew_cycle=Cycle.from_code(Period.Monthly),
             ),
             Usage(
                 title="AnyTitle",
@@ -108,7 +108,7 @@ class TestValidation:
                 unit="GB",
                 available_units=100,
                 used_units=1,
-                renew_cycle=Cycle.from_code(CycleCode.Monthly),
+                renew_cycle=Cycle.from_code(Period.Monthly),
             ),
         ]
 
@@ -129,7 +129,7 @@ class TestValidation:
             title="Without usages",
             price=100,
             currency="USD",
-            billing_cycle=Cycle.from_code(CycleCode.Monthly),
+            billing_cycle=Cycle.from_code(Period.Monthly),
             auth_id=uuid4(),
         )
         usages = [
@@ -139,7 +139,7 @@ class TestValidation:
                 unit="GB",
                 available_units=100,
                 used_units=1,
-                renew_cycle=Cycle.from_code(CycleCode.Monthly),
+                renew_cycle=Cycle.from_code(Period.Monthly),
             ),
         ]
         with pytest.raises(ValidationError):
@@ -157,14 +157,14 @@ class TestValidation:
                 code="first",
                 unit="GB",
                 available_units=100,
-                renew_cycle=Cycle.from_code(CycleCode.Monthly),
+                renew_cycle=Cycle.from_code(Period.Monthly),
             ),
         ]
         inner_plan = Plan(
             title="Without usages",
             price=100,
             currency="USD",
-            billing_cycle=Cycle.from_code(CycleCode.Monthly),
+            billing_cycle=Cycle.from_code(Period.Monthly),
             auth_id=uuid4(),
             usage_rates=rates,
         )

@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 import pytest
 
 from backend.bootstrap import get_container
-from backend.subscription.domain.cycle import Cycle, CycleCode
+from backend.subscription.domain.cycle import Cycle, Period
 from backend.subscription.domain.plan import Usage
 from tests.conftest import current_user, get_async_client
 from tests.conftest import get_client
@@ -20,7 +20,7 @@ async def test_increase_usage_with_concurrency(current_user):
     usages = [
         Usage(
             title="AnyTitle",code="first", unit="GB", available_units=100, used_units=0,
-            renew_cycle=Cycle.from_code(CycleCode.Monthly))
+            renew_cycle=Cycle.from_code(Period.Monthly))
     ]
     sub = create_subscription(plan=None, usages=usages, auth_user=user)
     async with container.unit_of_work_factory().create_uow() as uow:

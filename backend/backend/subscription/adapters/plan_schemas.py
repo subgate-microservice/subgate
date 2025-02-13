@@ -5,7 +5,7 @@ from pydantic import Field, AwareDatetime
 
 from backend.auth.domain.auth_user import AuthId
 from backend.shared.base_models import MyBase
-from backend.subscription.domain.cycle import CycleCode
+from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.plan import UsageRate, Discount, Plan, PlanId
 
 
@@ -14,7 +14,7 @@ class PlanCreate(MyBase):
     title: str
     price: float
     currency: str
-    billing_cycle: CycleCode
+    billing_cycle: Period
     description: Optional[str] = None
     level: int = 10
     features: Optional[str] = None
@@ -32,7 +32,7 @@ class PlanUpdate(MyBase):
     title: str
     price: float
     currency: str
-    billing_cycle: CycleCode
+    billing_cycle: Period
     description: Optional[str]
     level: int
     features: Optional[str]

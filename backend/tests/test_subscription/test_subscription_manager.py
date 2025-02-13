@@ -9,7 +9,7 @@ from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container
 from backend.shared.utils import get_current_datetime
 from backend.subscription.application.subscription_manager import SubscriptionManager, SubscriptionUsageManager
-from backend.subscription.domain.cycle import Cycle, CycleCode
+from backend.subscription.domain.cycle import Cycle, Period
 from backend.subscription.domain.plan import Plan, Usage, UsageRate
 from backend.subscription.domain.subscription import Subscription, SubscriptionStatus
 from backend.subscription.domain.subscription_repo import SubscriptionSby
@@ -34,7 +34,7 @@ async def plan(auth_user):
         title="Business",
         price=100,
         currency="USD",
-        billing_cycle=Cycle.from_code(CycleCode.Monthly),
+        billing_cycle=Cycle.from_code(Period.Monthly),
         level=10,
         auth_id=auth_user.id if auth_user else uuid4(),
     )
@@ -158,7 +158,7 @@ async def test_subscription_manager_renew_usages(plan):
             available_units=100,
             used_units=13,
             last_renew=get_current_datetime() - timedelta(days=31, seconds=22),
-            renew_cycle=Cycle.from_code(CycleCode.Monthly),
+            renew_cycle=Cycle.from_code(Period.Monthly),
         ),
         Usage(
             title="AnyTitle",
@@ -167,7 +167,7 @@ async def test_subscription_manager_renew_usages(plan):
             available_units=300,
             used_units=200,
             last_renew=get_current_datetime(),
-            renew_cycle=Cycle.from_code(CycleCode.Monthly),
+            renew_cycle=Cycle.from_code(Period.Monthly),
         ),
     ]
     plan = plan.add_usage_rates([UsageRate.from_usage(x) for x in usages])
@@ -199,7 +199,7 @@ class TestSubscriptionManagerResumeSubscriptionWithHighestPlanLevel:
         self.subs = []
         for i in range(1, 11):
             plan = Plan(auth_id=self.auth_user.id, title="Business", price=100, currency="USD",
-                        billing_cycle=Cycle.from_code(CycleCode.Monthly), level=i)
+                        billing_cycle=Cycle.from_code(Period.Monthly), level=i)
             sub = Subscription(subscriber_id=self.subscriber_id, plan=plan, auth_id=self.auth_user.id)
             sub = sub.pause()
             self.subs.append(sub)

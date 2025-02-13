@@ -6,7 +6,7 @@ import pytest
 from backend.bootstrap import get_container
 from backend.shared.exceptions import ValidationError
 from backend.subscription.adapters.plan_api import PlanCreate, PlanUpdate
-from backend.subscription.domain.cycle import Cycle, CycleCode
+from backend.subscription.domain.cycle import Cycle, Period
 from tests.conftest import current_user, get_async_client
 from tests.fake_data import create_plan
 
@@ -20,7 +20,7 @@ async def test_create_one(current_user):
         title="Business",
         price=111,
         currency="USD",
-        billing_cycle=Cycle.from_code(CycleCode.Monthly),
+        billing_cycle=Cycle.from_code(Period.Monthly),
     )
     async with get_async_client() as client:
         data = plan_create.model_dump(mode="json")

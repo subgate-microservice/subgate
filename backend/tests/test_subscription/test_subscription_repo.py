@@ -7,7 +7,7 @@ import pytest_asyncio
 from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container
 from backend.shared.utils import get_current_datetime
-from backend.subscription.domain.cycle import Cycle, CycleCode
+from backend.subscription.domain.cycle import Cycle, Period
 from backend.subscription.domain.plan import Plan
 from backend.subscription.domain.subscription import Subscription, SubscriptionStatus
 from backend.subscription.domain.subscription_repo import SubscriptionSby
@@ -27,7 +27,7 @@ async def plan(auth_user):
         title="Business",
         price=100,
         currency="USD",
-        billing_cycle=Cycle.from_code(CycleCode.Monthly),
+        billing_cycle=Cycle.from_code(Period.Monthly),
         level=10,
         auth_id=auth_user.id if auth_user else uuid4(),
     )

@@ -14,7 +14,7 @@ from backend.auth.infra.fastapi_users.manager import create_fastapi_users
 from backend.shared.eventbus import Eventbus
 from backend.shared.unit_of_work.uow import UnitOfWorkFactory
 from backend.shared.unit_of_work.uow_postgres import SqlUowFactory
-from backend.subscription.domain.cycle import Cycle, CycleCode
+from backend.subscription.domain.cycle import Cycle, Period
 from backend.subscription.domain.plan import Plan
 from backend.subscription.domain.subscription import Subscription
 from backend.subscription.infra.subscription_client import SubscriptionClient, FakeSubscriptionClient
@@ -34,7 +34,7 @@ def create_fake_subclient():
     plan = Plan(
         title="FakePlan",
         price=100,
-        billing_cycle=CycleCode.Annual,
+        billing_cycle=Period.Annual,
         currency="USD",
         level=1,
         auth_id=uuid4(),

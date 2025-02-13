@@ -17,7 +17,7 @@ _cycle_days = {
 }
 
 
-class CycleCode(StrEnum):
+class Period(StrEnum):
     Daily = "daily"
     Weekly = "weekly"
     Monthly = "monthly"
@@ -37,7 +37,7 @@ class CycleCode(StrEnum):
 
 class Cycle(MyBase):
     title: str
-    code: CycleCode
+    code: Period
     cycle_in_days: int
 
     def get_next_billing_date(self, from_date: AwareDatetime = None) -> AwareDatetime:
@@ -46,19 +46,19 @@ class Cycle(MyBase):
         return from_date + datetime.timedelta(self.cycle_in_days)
 
     @classmethod
-    def from_code(cls, code: CycleCode):
-        if code == CycleCode.Daily:
-            return cls(title="Daily", code=CycleCode.Daily, cycle_in_days=1)
-        elif code == CycleCode.Weekly:
-            return cls(title="Weekly", code=CycleCode.Weekly, cycle_in_days=7)
-        elif code == CycleCode.Monthly:
-            return cls(title="Monthly", code=CycleCode.Monthly, cycle_in_days=30)
-        elif code == CycleCode.Quarterly:
-            return cls(title="Quarterly", code=CycleCode.Quarterly, cycle_in_days=30)
-        elif code == CycleCode.Semiannual:
-            return cls(title="Semiannual", code=CycleCode.Semiannual, cycle_in_days=183)
-        elif code == CycleCode.Annual:
-            return cls(title="Annual", code=CycleCode.Annual, cycle_in_days=365)
-        elif code == CycleCode.Lifetime:
-            return cls(title="Lifetime", code=CycleCode.Lifetime, cycle_in_days=365_000)
+    def from_code(cls, code: Period):
+        if code == Period.Daily:
+            return cls(title="Daily", code=Period.Daily, cycle_in_days=1)
+        elif code == Period.Weekly:
+            return cls(title="Weekly", code=Period.Weekly, cycle_in_days=7)
+        elif code == Period.Monthly:
+            return cls(title="Monthly", code=Period.Monthly, cycle_in_days=30)
+        elif code == Period.Quarterly:
+            return cls(title="Quarterly", code=Period.Quarterly, cycle_in_days=30)
+        elif code == Period.Semiannual:
+            return cls(title="Semiannual", code=Period.Semiannual, cycle_in_days=183)
+        elif code == Period.Annual:
+            return cls(title="Annual", code=Period.Annual, cycle_in_days=365)
+        elif code == Period.Lifetime:
+            return cls(title="Lifetime", code=Period.Lifetime, cycle_in_days=365_000)
         raise TypeError(code)

@@ -9,7 +9,7 @@ from backend.auth.domain.auth_user import AuthId
 from backend.shared.base_models import MyBase
 from backend.shared.exceptions import ItemNotExist, ItemAlreadyExist
 from backend.shared.utils import get_current_datetime
-from backend.subscription.domain.cycle import CycleCode
+from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.plan import Plan, Usage, UsageRate, PlanInfo, Discount
 
 SubId = UUID
@@ -18,7 +18,7 @@ SubId = UUID
 class BillingInfo(MyBase):
     price: float
     currency: str
-    billing_cycle: CycleCode
+    billing_cycle: Period
     last_billing: AwareDatetime
 
 

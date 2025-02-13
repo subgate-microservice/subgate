@@ -6,7 +6,7 @@ from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container
 from backend.shared.utils import get_current_datetime
 from backend.subscription.adapters.subscription_api import SubscriptionCreate, SubscriptionUpdate
-from backend.subscription.domain.cycle import Cycle, CycleCode
+from backend.subscription.domain.cycle import Cycle, Period
 from backend.subscription.domain.plan import Plan, Usage, UsageRate
 from backend.subscription.domain.subscription import Subscription, SubscriptionStatus
 from tests.conftest import current_user, get_async_client
@@ -20,7 +20,7 @@ async def create_plan(auth_user: AuthUser, usage_rates:list[UsageRate] = None):
             title="Business",
             price=100,
             currency="USD",
-            billing_cycle=Cycle.from_code(CycleCode.Annual),
+            billing_cycle=Cycle.from_code(Period.Annual),
             level=3,
             auth_id=auth_user.id,
             usage_rates=usage_rates,
@@ -127,7 +127,7 @@ async def test_increase_usage(current_user):
     usages = [
         Usage(
             title="AnyTitle",code="first", unit="GB", available_units=100, used_units=0,
-            renew_cycle=Cycle.from_code(CycleCode.Monthly))
+            renew_cycle=Cycle.from_code(Period.Monthly))
     ]
     sub = await create_subscription(user, usages=usages)
 

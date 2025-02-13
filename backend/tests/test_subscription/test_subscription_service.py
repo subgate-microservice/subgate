@@ -4,7 +4,7 @@ import pytest_asyncio
 from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container
 from backend.subscription.application.subscription_service import SubscriptionService, SubscriptionPartialUpdateService
-from backend.subscription.domain.cycle import Cycle, CycleCode
+from backend.subscription.domain.cycle import Cycle, Period
 from backend.subscription.domain.exceptions import ActiveStatusConflict
 from backend.subscription.domain.plan import Plan
 from backend.subscription.domain.subscription import SubscriptionStatus, Subscription
@@ -117,7 +117,7 @@ class TestCreateManySubscriptionForSubscriberId:
             title="Personal",
             price=100,
             currency="USD",
-            billing_cycle=Cycle.from_code(CycleCode.Monthly),
+            billing_cycle=Cycle.from_code(Period.Monthly),
             level=10,
             auth_id=self.auth_user.id,
         )
@@ -125,7 +125,7 @@ class TestCreateManySubscriptionForSubscriberId:
             title="Free",
             price=100,
             currency="USD",
-            billing_cycle=Cycle.from_code(CycleCode.Monthly),
+            billing_cycle=Cycle.from_code(Period.Monthly),
             level=1,
             auth_id=self.auth_user.id,
         )
@@ -156,7 +156,7 @@ class TestCreateManySubscriptionForSubscriberId:
                 title="Business",
                 price=100,
                 currency="USD",
-                billing_cycle=Cycle.from_code(CycleCode.Monthly),
+                billing_cycle=Cycle.from_code(Period.Monthly),
                 level=20,
                 auth_id=self.auth_user.id,
             )
@@ -225,7 +225,7 @@ class TestResumePausedSubscriptionWhileActiveOneExists:
             title="Personal",
             price=100,
             currency="USD",
-            billing_cycle=Cycle.from_code(CycleCode.Monthly),
+            billing_cycle=Cycle.from_code(Period.Monthly),
             level=10,
             auth_id=auth_user.id,
         )
