@@ -1,4 +1,5 @@
 import dataclasses
+from copy import copy
 from datetime import timedelta
 from enum import StrEnum
 from typing import Optional, Self
@@ -185,3 +186,6 @@ class Subscription:
         saved_days = (get_current_datetime() - self.paused_from).days if self.status == SubscriptionStatus.Paused else 0
         days_delta = saved_days + self.billing_info.billing_cycle.get_cycle_in_days()
         return self.billing_info.last_billing + timedelta(days=days_delta)
+
+    def copy(self) -> Self:
+        return copy(self)

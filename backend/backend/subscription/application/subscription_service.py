@@ -136,10 +136,15 @@ async def create_subscription(item: Subscription, uow: UnitOfWork) -> None:
     if current_sub:
         # Если создаваемая подписка старше текущей, то ставим на паузу текущую подписку
         if item.plan_info.level > current_sub.plan_info.level:
-            current_sub.pause()
-            await uow.subscription_repo().update_one(current_sub)
+            new_version = current_sub.copy()
+            new_version.pause()
+            await update_subscription(current_sub, new_version, uow)
         # Если создаваемая подписка идентична или младше текущей, то ставим создаваемую подписку на паузу
         else:
             item.pause()
 
     await uow.subscription_repo().add_one(item)
+
+
+async def update_subscription(old_sub: Subscription, new_sub: Subscription, uow: UnitOfWork) -> None:
+    await uow.subscription_repo().update_one(new_sub)
