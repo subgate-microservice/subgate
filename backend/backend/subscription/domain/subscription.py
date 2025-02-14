@@ -1,16 +1,18 @@
 from datetime import timedelta
 from enum import StrEnum
-from typing import Optional, Self, Iterable
-from uuid import UUID, uuid4
+from typing import Optional
+from uuid import UUID
 
-from pydantic import Field, AwareDatetime, model_validator
+from pydantic import AwareDatetime
 
 from backend.auth.domain.auth_user import AuthId
 from backend.shared.base_models import MyBase
-from backend.shared.exceptions import ItemNotExist, ItemAlreadyExist
+from backend.shared.item_maanger import ItemManager
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.cycle import Period
-from backend.subscription.domain.plan import Plan, UsageOld, UsageRateOld, DiscountOld, PlanId
+from backend.subscription.domain.discount import Discount
+from backend.subscription.domain.plan import PlanId
+from backend.subscription.domain.usage import Usage
 
 SubId = UUID
 
@@ -36,153 +38,112 @@ class SubscriptionStatus(StrEnum):
     Expired = "expired"
 
 
-class Subscription(MyBase):
-    id: SubId = Field(default_factory=uuid4)
-    plan_info: PlanInfo
-    billing_info: BillingInfo
-    subscriber_id: str
-    auth_id: AuthId = Field(exclude=True)
-    status: SubscriptionStatus = SubscriptionStatus.Active
-    created_at: AwareDatetime = Field(default_factory=get_current_datetime)
-    updated_at: AwareDatetime = Field(default_factory=get_current_datetime)
-    paused_from: Optional[AwareDatetime] = Field(default=None)
-    autorenew: bool = False
-    usages: list[UsageOld] = Field(default_factory=list)
-    discounts: list[DiscountOld] = Field(default_factory=list)
-    fields: dict = Field(default_factory=dict)
+class Subscription:
+    def __init__(
+            self,
+            id: SubId,
+            plan_info: PlanInfo,
+            billing_info: BillingInfo,
+            subscriber_id: str,
+            auth_id: AuthId,
+            status: SubscriptionStatus,
+            paused_from: Optional[AwareDatetime],
+            created_at: AwareDatetime,
+            updated_at: AwareDatetime,
+            autorenew: bool,
+            usages: list[Usage],
+            discounts: list[Discount],
+            fields: dict,
 
-    def pause(self) -> Self:
-        if self.status != SubscriptionStatus.Paused:
-            return self.model_copy(update={
-                "paused_from": get_current_datetime(),
-                "status": SubscriptionStatus.Paused,
-                "updated_at": get_current_datetime(),
-            })
-        return self
+    ):
+        self._id = id
+        self._status = status
+        self._paused_from = paused_from
+        self._created_at = created_at
+        self._updated_at = updated_at
+        self._usages = ItemManager(usages, lambda x: x.code)
+        self._discounts = ItemManager(discounts, lambda x: x.code)
 
-    def resume(self) -> Self:
+        self.plan_info = plan_info
+        self.billing_info = billing_info
+        self.subscriber_id = subscriber_id
+        self.auth_id = auth_id
+        self.fields = fields
+        self.autorenew = autorenew
+
+    @property
+    def id(self):
+        return self._id
+
+    @property
+    def status(self):
+        return self._status
+
+    @property
+    def paused_from(self):
+        return self._paused_from
+
+    @property
+    def created_at(self):
+        return self._created_at
+
+    @property
+    def updated_at(self):
+        return self._updated_at
+
+    @property
+    def usages(self) -> ItemManager[Usage]:
+        return self._usages
+
+    @property
+    def discounts(self) -> ItemManager[Discount]:
+        return self._discounts
+
+    def pause(self) -> None:
+        if self.status == SubscriptionStatus.Paused:
+            return None
+        if self.status == SubscriptionStatus.Expired:
+            raise ValueError("Cannot paused the subscription with 'Expired' status")
+        self._status = SubscriptionStatus.Paused
+        self._paused_from = get_current_datetime()
+        self._updated_at = get_current_datetime()
+
+    def resume(self) -> None:
         if self.status == SubscriptionStatus.Active:
-            return self
-        last_billing = self.last_billing
+            return None
+        if self.status == SubscriptionStatus.Expired:
+            raise ValueError("Cannot resumed the subscription with 'Expired' status")
+
+        last_billing = self.plan_info.last_billing
         if self.status == SubscriptionStatus.Paused:
             saved_days = get_current_datetime() - self.paused_from
-            last_billing = self.last_billing + saved_days
-        return self.model_copy(update={
-            "status": SubscriptionStatus.Active,
-            "last_billing": last_billing,
-            "paused_from": None,
-            "updated_at": get_current_datetime(),
-        })
+            last_billing = self.plan_info.last_billing + saved_days
 
-    def renew(self, from_date: AwareDatetime = None) -> Self:
+        self._status = SubscriptionStatus.Active
+        self._paused_from = None
+        self.billing_info.last_billing = last_billing
+        self._updated_at = get_current_datetime()
+
+    def renew(self, from_date: AwareDatetime = None) -> None:
         if from_date is None:
             from_date = get_current_datetime()
-        return self.model_copy(update={
-            "status": SubscriptionStatus.Active,
-            "last_billing": from_date,
-            "paused_from": None,
-            "updated_at": get_current_datetime(),
-        })
 
-    def shift_last_billing(self, days: int) -> Self:
-        shifted = self.last_billing + timedelta(days=days)
-        return self.model_copy(update={
-            "last_billing": shifted,
-            "updated_at": get_current_datetime(),
-        })
+        self._status = SubscriptionStatus.Active
+        self.billing_info.last_billing = from_date
+        self._paused_from = None
+        self._updated_at = get_current_datetime()
 
-    def expire(self) -> Self:
-        return self.model_copy(update={
-            "status": SubscriptionStatus.Expired,
-            "updated_at": get_current_datetime(),
-        })
-
-    def increase_usage(self, code: str, delta: float) -> Self:
-        try:
-            target_usage = next(x for x in self.usages if x.code == code)
-        except StopIteration:
-            raise ItemNotExist(
-                item_type=UsageOld,
-                lookup_field_key="code",
-                lookup_field_value=code,
-            )
-        updated_usage = target_usage.model_copy(update={
-            "used_units": target_usage.used_units + delta,
-            "updated_at": get_current_datetime(),
-        })
-        new_usages = []
-        for usage in self.usages:
-            if usage.code == updated_usage.code:
-                new_usages.append(updated_usage)
-            else:
-                new_usages.append(usage)
-        return self.model_copy(update={
-            "usages": new_usages,
-            "updated_at": get_current_datetime(),
-        })
-
-    def add_usages(self, usages: Iterable[UsageOld]) -> Self:
-        new_usages = [*self.usages, *usages]
-        new_plan = self.plan.add_usage_rates([UsageRateOld.from_usage(x) for x in usages])
-        hashes = set()
-        for usage in new_usages:
-            if usage.code in hashes:
-                raise ItemAlreadyExist(item_type=UsageOld, index_key="code", index_value=usage.code)
-            hashes.add(usage.code)
-        return self.model_copy(update={
-            "usages": new_usages,
-            "plan": new_plan,
-            "updated_at": get_current_datetime(),
-        })
-
-    def remove_usages(self, codes: Iterable[str]) -> Self:
-        codes = set(codes)
-        new_usages = [usage for usage in self.usages if usage.code not in codes]
-        return self.model_copy(update={
-            "usages": new_usages,
-            "updated_at": get_current_datetime(),
-        })
-
-    def update_usages(self, usages: Iterable[UsageOld]) -> Self:
-        updated_usage_rates = []
-        hashes = {}
-        for updated_usage in usages:
-            hashes[updated_usage.code] = updated_usage
-            updated_usage_rates.append(UsageRateOld.from_usage(updated_usage))
-
-        new_usages = []
-        for usage in self.usages:
-            updated_usage = hashes.pop(usage.code, None)
-            if updated_usage:
-                new_usages.append(updated_usage)
-            else:
-                new_usages.append(usage)
-        if len(hashes):
-            raise ItemNotExist(
-                lookup_field_value=next(key for key in hashes.keys()),
-                lookup_field_key="code",
-                item_type=UsageOld,
-            )
-        new_plan = self.plan.update_usage_rates(updated_usage_rates)
-        return self.model_copy(update={
-            "plan": new_plan,
-            "usages": new_usages,
-            "updated_at": get_current_datetime(),
-        })
-
-    def update_plan(self, plan: Plan) -> Self:
-        return self.model_copy(update={
-            "plan": plan,
-            "updated_at": get_current_datetime(),
-        })
+    def expire(self) -> None:
+        self._status = SubscriptionStatus.Expired
+        self._updated_at = get_current_datetime()
 
     @property
     def days_left(self) -> int:
-        billing_days = self.plan.billing_cycle.cycle_in_days
+        billing_days = self.billing_info.billing_cycle.get_cycle_in_days()
         if self.status == SubscriptionStatus.Paused:
             saved_days = (get_current_datetime() - self.paused_from).days
-            return (self.last_billing + timedelta(days=saved_days + billing_days) - get_current_datetime()).days
-        days_left = (self.last_billing + timedelta(days=billing_days) - get_current_datetime()).days
+            return (self.billing_info.last_billing + timedelta(days=saved_days + billing_days) - get_current_datetime()).days
+        days_left = (self.billing_info.last_billing + timedelta(days=billing_days) - get_current_datetime()).days
         return days_left if days_left > 0 else 0
 
     @property
@@ -190,30 +151,3 @@ class Subscription(MyBase):
         saved_days = (get_current_datetime() - self.paused_from).days if self.status == SubscriptionStatus.Paused else 0
         days_delta = saved_days + self.billing_info.billing_cycle.get_cycle_in_days()
         return self.billing_info.last_billing + timedelta(days=days_delta)
-
-    @model_validator(mode="after")
-    def _validate_status(self) -> Self:
-        if self.status == SubscriptionStatus.Paused:
-            if self.paused_from is None:
-                raise ValueError("If subscription has Paused status then paused_from field should be a datetime value")
-        else:
-            if self.paused_from is not None:
-                raise ValueError("paused_from should be None or subscription status should be Paused")
-        return self
-
-    @model_validator(mode="after")
-    def _validate_usages(self) -> Self:
-        usage_codes = set()
-        for usage in self.usages:
-            if usage.code in usage_codes:
-                raise ItemAlreadyExist(item_type=UsageOld, index_key="code", index_value=usage.code)
-            usage_codes.add(usage.code)
-        return self
-
-    @model_validator(mode="after")
-    def _validate_other(self) -> Self:
-        # if self.updated_at < self.created_at:
-        #     raise ValueError("updated_at earlier than created_at")
-        # if self.last_billing < self.created_at:
-        #     raise ValueError("last_billing earlier than created_at")
-        return self
