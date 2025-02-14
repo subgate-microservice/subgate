@@ -4,7 +4,7 @@ T = TypeVar("T")
 
 
 class ItemManager(Generic[T]):
-    def __init__(self, items: Iterable, key: Callable[[Any], Hashable] = lambda x: x):
+    def __init__(self, items: Iterable[T], key: Callable[[Any], Hashable] = lambda x: x):
         self._key = key
         self._items: dict[Hashable, T] = {}
 
