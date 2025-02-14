@@ -160,12 +160,13 @@ class Plan:
             auth_id: AuthId,
             created_at: AwareDatetime,
             updated_at: AwareDatetime,
-    ):
+    ) -> Self:
         instance = cls(title, price, currency, auth_id, billing_cycle, description, level, features, usage_rates,
                        discounts,
                        fields, id)
         instance._created_at = created_at
         instance._updated_at = updated_at
+        return instance
 
 
 class PlanEventFactory:
