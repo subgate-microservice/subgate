@@ -25,12 +25,24 @@ def deserialize_uuid(uuid: Union[UUID, str]) -> UUID:
 
 def deserialize_usage_rate(data: Mapping) -> UsageRate:
     renew_cycle = Period(data["renew_cycle"])
-    return UsageRate(data["code"], data["title"], data["unit"], data["available_units"], renew_cycle)
+    return UsageRate(
+        title=data["title"],
+        code=data["code"],
+        unit=data["unit"],
+        available_units=data["available_units"],
+        renew_cycle=renew_cycle,
+    )
 
 
 def deserialize_discount(data: Mapping) -> Discount:
     valid_until = deserialize_datetime(data["valid_until"])
-    return Discount(data["code"], data["title"], data["description"], data["size"], valid_until)
+    return Discount(
+        title=data["title"],
+        code=data["code"],
+        description=data["description"],
+        size=data["size"],
+        valid_until=valid_until,
+    )
 
 
 def deserialize_plan(data: Mapping) -> Plan:

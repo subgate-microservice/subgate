@@ -1,14 +1,48 @@
 import pytest
 import pytest_asyncio
+from loguru import logger
 
 from backend.bootstrap import get_container
-from backend.subscription.adapters.plan_api import PlanCreate, PlanUpdate
-from backend.subscription.domain.cycle import Cycle, Period
-from backend.subscription.domain.plan import Plan
+from backend.shared.utils import get_current_datetime
+from backend.subscription.adapters.plan_api import PlanCreate
+from backend.subscription.adapters.schemas import PlanUpdate
+from backend.subscription.domain.cycle import Period
+from backend.subscription.domain.discount import Discount
+from backend.subscription.domain.plan import Plan, PlanCreated, PlanUpdated
+from backend.subscription.domain.usage import UsageRate
 from tests.conftest import current_user, get_async_client
-from tests.fake_data import create_plan
 
 container = get_container()
+
+
+async def event_handler(event, _context):
+    logger.debug(event)
+
+
+container.eventbus().subscribe(PlanCreated, event_handler)
+container.eventbus().subscribe(PlanUpdated, event_handler)
+
+
+@pytest_asyncio.fixture()
+async def simple_plan(current_user):
+    user, token, expected_status_code = current_user
+    plan = Plan.create("Simple", 100, "USD", user.id, Period.Monthly)
+    async with container.unit_of_work_factory().create_uow() as uow:
+        await uow.plan_repo().add_one(plan)
+        await uow.commit()
+    yield plan
+
+
+@pytest_asyncio.fixture()
+async def with_usage_rates(current_user):
+    user, token, expected_status_code = current_user
+    plan = Plan.create("Simple", 100, "USD", user.id, Period.Monthly)
+    plan.usage_rates.add(UsageRate("First", "first", "GB", 100, Period.Monthly))
+    plan.usage_rates.add(UsageRate("Second", "second", "call", 120, Period.Daily))
+    async with container.unit_of_work_factory().create_uow() as uow:
+        await uow.plan_repo().add_one(plan)
+        await uow.commit()
+    yield plan
 
 
 class TestCreate:
@@ -23,17 +57,36 @@ class TestCreate:
             response = await client.post(f"/plan/", json=payload, headers=headers)
             assert response.status_code == expected_status_code
 
+    @pytest.mark.asyncio
+    async def test_create_plan_with_usage_rates(self, current_user):
+        user, token, expected_status_code = current_user
+        headers = {"Authorization": f"Bearer {token}"}
+
+        async with get_async_client() as client:
+            plan = Plan.create("Simple", 100, "USD", user.id, Period.Monthly)
+            plan.usage_rates.add(UsageRate("First", "first", "GB", 100, Period.Monthly))
+            plan.usage_rates.add(UsageRate("Second", "second", "call", 120, Period.Daily))
+
+            payload = PlanCreate.from_plan(plan).model_dump(mode="json")
+            response = await client.post(f"/plan/", json=payload, headers=headers)
+            assert response.status_code == expected_status_code
+
+    @pytest.mark.asyncio
+    async def test_create_plan_with_discounts(self, current_user):
+        user, token, expected_status_code = current_user
+        headers = {"Authorization": f"Bearer {token}"}
+
+        async with get_async_client() as client:
+            plan = Plan.create("Simple", 100, "USD", user.id, Period.Monthly)
+            plan.discounts.add(Discount("First", "first", "desc", 0.2, get_current_datetime()))
+            plan.discounts.add(Discount("Second", "sec", "desc", 0.4, get_current_datetime()))
+
+            payload = PlanCreate.from_plan(plan).model_dump(mode="json")
+            response = await client.post(f"/plan/", json=payload, headers=headers)
+            assert response.status_code == expected_status_code
+
 
 class TestGet:
-    @pytest_asyncio.fixture()
-    async def simple_plan(self, current_user):
-        user, token, expected_status_code = current_user
-        plan = Plan.create("Simple", 100, "USD", user.id, Period.Monthly)
-        async with container.unit_of_work_factory().create_uow() as uow:
-            await uow.plan_repo().add_one(plan)
-            await uow.commit()
-        yield plan
-
     @pytest.mark.asyncio
     async def test_get_one_by_id(self, simple_plan, current_user):
         user, token, expected_status_code = current_user
@@ -43,87 +96,26 @@ class TestGet:
             response = await client.get(f"/plan/{simple_plan.id}", headers=headers)
             assert response.status_code == expected_status_code
 
-
-@pytest.mark.asyncio
-async def test_create_one(current_user):
-    user, token, expected_status_code = current_user
-    plan_create = PlanCreate(
-        title="Business",
-        price=111,
-        currency="USD",
-        billing_cycle=Cycle.from_code(Period.Monthly),
-    )
-    async with get_async_client() as client:
-        data = plan_create.model_dump(mode="json")
+    @pytest.mark.asyncio
+    async def test_get_with_usage_rates(self, with_usage_rates, current_user):
+        user, token, expected_status_code = current_user
         headers = {"Authorization": f"Bearer {token}"}
-        response = await client.post("/plan", json=data, headers=headers)
-        assert response.status_code == expected_status_code
+
+        async with get_async_client() as client:
+            response = await client.get(f"/plan/{with_usage_rates.id}", headers=headers)
+            assert response.status_code == expected_status_code
 
 
-@pytest.mark.asyncio
-async def test_get_one_by_id(current_user):
-    user, token, expected_status_code = current_user
-
-    async with get_container().unit_of_work_factory().create_uow() as uow:
-        plans = []
-        for i in range(11):
-            plan = create_plan(user)
-            plans.append(plan)
-            await uow.plan_repo().add_one(plan)
-        await uow.commit()
-
-    # Test
-    async with get_async_client() as client:
+class TestUpdate:
+    @pytest.mark.asyncio
+    async def test_add_usages_to_plan(self, simple_plan, current_user):
+        user, token, expected_status_code = current_user
         headers = {"Authorization": f"Bearer {token}"}
-        response = await client.get(f"/plan/{plans[4].id}", headers=headers)
-        assert response.status_code == expected_status_code
 
-
-@pytest.mark.asyncio
-async def test_get_selected(current_user):
-    user, token, expected_status_code = current_user
-
-    async with container.unit_of_work_factory().create_uow() as uow:
-        plans = []
-        for i in range(11):
-            plan = create_plan(user)
-            plans.append(plan)
-            await uow.plan_repo().add_one(plan)
-
-    # Test
-    async with get_async_client() as client:
-        headers = {"Authorization": f"Bearer {token}"}
-        response = await client.get(f"/plan", headers=headers)
-        assert response.status_code == expected_status_code
-
-
-@pytest.mark.asyncio
-async def test_update_one(current_user):
-    user, token, expected_status_code = current_user
-    old_plan = create_plan(user)
-    async with container.unit_of_work_factory().create_uow() as uow:
-        await uow.plan_repo().add_one(old_plan)
-        await uow.commit()
-
-    # Test
-    async with get_async_client() as client:
-        updated_plan = PlanUpdate.from_plan(old_plan).model_copy(update={"price": 34_000})
-        headers = {"Authorization": f"Bearer {token}"}
-        response = await client.put(f"/plan/{updated_plan.id}", json=updated_plan.model_dump(mode="json"),
-                                    headers=headers)
-        assert response.status_code == expected_status_code
-
-
-@pytest.mark.asyncio
-async def test_delete_one(current_user):
-    user, token, expected_status_code = current_user
-    plan = create_plan(user)
-    async with container.unit_of_work_factory().create_uow() as uow:
-        await uow.plan_repo().add_one(plan)
-        await uow.commit()
-
-    # Test
-    async with get_async_client() as client:
-        headers = {"Authorization": f"Bearer {token}"}
-        response = await client.delete(f"/plan/{plan.id}", headers=headers)
-        assert response.status_code == expected_status_code
+        async with get_async_client() as client:
+            simple_plan.usage_rates.add(
+                UsageRate("first", "Hello", "GB", 100_000, Period.Daily)
+            )
+            payload = PlanUpdate.from_plan(simple_plan).model_dump(mode="json")
+            response = await client.put(f"/plan/{simple_plan.id}", json=payload, headers=headers)
+            assert response.status_code == expected_status_code

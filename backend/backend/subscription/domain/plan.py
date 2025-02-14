@@ -137,8 +137,8 @@ class Plan:
         self.auth_id = auth_id
 
         self._id = id
-        self._usage_rates = ItemManager(usage_rates, "code")
-        self._discounts = ItemManager(discounts, "code")
+        self._usage_rates = ItemManager(usage_rates, lambda x: x.code)
+        self._discounts = ItemManager(discounts, lambda x: x.code)
         self._created_at = created_at
         self._updated_at = updated_at
 
@@ -147,11 +147,11 @@ class Plan:
         return self._id
 
     @property
-    def usage_rates(self):
+    def usage_rates(self) -> ItemManager[UsageRate]:
         return self._usage_rates
 
     @property
-    def discounts(self):
+    def discounts(self) -> ItemManager[Discount]:
         return self._discounts
 
     @property
@@ -174,7 +174,7 @@ class Plan:
             level: int = 10,
             features: str = None,
             usage_rates: list[UsageRate] = None,
-            discounts: list[DiscountOld] = None,
+            discounts: list[Discount] = None,
             fields: dict = None,
             id: PlanId = None,
     ) -> Self:

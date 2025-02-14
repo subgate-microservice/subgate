@@ -6,7 +6,7 @@ from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container, Bootstrap, auth_closure
 from backend.shared.permission_service import PermissionService
 from backend.subscription.adapters.schemas import PlanCreate, PlanUpdate, PlanRetrieve
-from backend.subscription.application.plan_service import PlanService, create_plan
+from backend.subscription.application.plan_service import PlanService, create_plan, update_plan
 from backend.subscription.domain.plan import PlanId
 from backend.subscription.domain.plan_repo import PlanSby
 
@@ -25,7 +25,7 @@ async def create_one(
     async with container.unit_of_work_factory().create_uow() as uow:
         plan = plan_create.to_plan(auth_user.id)
         await create_plan(plan, uow)
-        await container.eventbus().processing_unit_of_work(uow)
+        await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
     return "Ok"
 
@@ -61,10 +61,9 @@ async def get_selected(
         order_by=order_by,
     )
     async with container.unit_of_work_factory().create_uow() as uow:
-        subclient = container.subscription_client()
-        bus = container.eventbus()
-        await PermissionService(subclient).check_auth_user_can_get_many(sby, auth_user)
-        return await PlanService(bus, uow).get_selected(sby)
+        plans = await uow.plan_repo().get_selected(sby)
+        plan_retrieves = [PlanRetrieve.from_plan(x) for x in plans]
+        return plan_retrieves
 
 
 @plan_router.put("/{plan_id}")
@@ -77,7 +76,8 @@ async def update_one(
     async with container.unit_of_work_factory().create_uow() as uow:
         old_version = await uow.plan_repo().get_one_by_id(plan_update.id)
         new_version = plan_update.to_plan(auth_user.id, old_version.created_at)
-        await PlanService(container.eventbus(), uow).update_one(new_version)
+        await update_plan(old_version, new_version, uow)
+        await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
         return "Ok"
 

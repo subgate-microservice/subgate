@@ -1,10 +1,10 @@
-from typing import Iterable, Hashable, TypeVar, Generic
+from typing import Iterable, Hashable, TypeVar, Generic, Callable, Any
 
 T = TypeVar("T")
 
 
 class ItemManager(Generic[T]):
-    def __init__(self, items: Iterable, key=None):
+    def __init__(self, items: Iterable, key: Callable[[Any], Hashable] = lambda x: x):
         self._key = key
         self._items: dict[Hashable, T] = {}
 
@@ -12,13 +12,13 @@ class ItemManager(Generic[T]):
             self.add(item)
 
     def add(self, item: T) -> None:
-        key = item.__getattribute__(self._key) if self._key else item
+        key = self._key(item)
         if key in self._items:
             raise ValueError
         self._items[key] = item
 
     def update(self, item: T) -> None:
-        key = item.__getattribute__(self._key) if self._key else item
+        key = self._key(item)
         self.get(key)
         self._items[key] = item
 

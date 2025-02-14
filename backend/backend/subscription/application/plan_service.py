@@ -98,4 +98,5 @@ async def delete_plan(plan: Plan, uow: UnitOfWork) -> None:
 
 async def update_plan(old_plan: Plan, new_plan: Plan, uow: UnitOfWork) -> None:
     await uow.plan_repo().update_one(new_plan)
-    uow.push_event(old_plan.to_plan_updated(old_plan))
+    event = old_plan.to_plan_updated(new_plan)
+    uow.push_event(event)

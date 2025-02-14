@@ -24,7 +24,7 @@ class Bus:
         for sub in subscribers:
             await sub(event, context)
 
-    async def processing_unit_of_work(self, uow: UnitOfWork):
+    async def publish_from_unit_of_work(self, uow: UnitOfWork):
         while True:
             new_events = uow.parse_events()
             if not new_events:
