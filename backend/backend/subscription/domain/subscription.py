@@ -1,3 +1,4 @@
+import dataclasses
 from datetime import timedelta
 from enum import StrEnum
 from typing import Optional, Self
@@ -6,7 +7,6 @@ from uuid import UUID, uuid4
 from pydantic import AwareDatetime
 
 from backend.auth.domain.auth_user import AuthId
-from backend.shared.base_models import MyBase
 from backend.shared.item_maanger import ItemManager
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.cycle import Period
@@ -17,7 +17,8 @@ from backend.subscription.domain.usage import Usage
 SubId = UUID
 
 
-class PlanInfo(MyBase):
+@dataclasses.dataclass()
+class PlanInfo:
     plan_id: PlanId
     title: str
     description: Optional[str]
@@ -25,7 +26,8 @@ class PlanInfo(MyBase):
     features: Optional[str]
 
 
-class BillingInfo(MyBase):
+@dataclasses.dataclass()
+class BillingInfo:
     price: float
     currency: str
     billing_cycle: Period
@@ -41,25 +43,26 @@ class SubscriptionStatus(StrEnum):
 class Subscription:
     def __init__(
             self,
-            id: SubId,
             plan_info: PlanInfo,
             billing_info: BillingInfo,
             subscriber_id: str,
             auth_id: AuthId,
-            status: SubscriptionStatus,
-            paused_from: Optional[AwareDatetime],
-            created_at: AwareDatetime,
-            updated_at: AwareDatetime,
-            autorenew: bool,
-            usages: list[Usage],
-            discounts: list[Discount],
-            fields: dict,
+            autorenew: bool = False,
+            usages: list[Usage] = None,
+            discounts: list[Discount] = None,
+            fields: dict = None,
+            id: SubId = None,
     ):
+        id = id if id else uuid4()
+        fields = fields if fields is not None else {}
+        usages = usages if usages is not None else []
+        discounts = discounts if discounts is not None else []
+
         self._id = id
-        self._status = status
-        self._paused_from = paused_from
-        self._created_at = created_at
-        self._updated_at = updated_at
+        self._status = SubscriptionStatus.Active
+        self._paused_from = None
+        self._created_at = get_current_datetime()
+        self._updated_at = self._created_at
         self._usages = ItemManager(usages, lambda x: x.code)
         self._discounts = ItemManager(discounts, lambda x: x.code)
 
@@ -99,26 +102,27 @@ class Subscription:
         return self._discounts
 
     @classmethod
-    def create(
+    def create_unsafe(
             cls,
+            id: SubId,
             plan_info: PlanInfo,
             billing_info: BillingInfo,
             subscriber_id: str,
             auth_id: AuthId,
-            autorenew: bool = False,
-            usages: list[Usage] = None,
-            discounts: list[Discount] = None,
-            fields: dict = None,
-            id: SubId = None,
-    ) -> Self:
-        id = id if id else uuid4()
-        fields = fields if fields is not None else {}
-        usages = usages if usages is not None else []
-        discounts = discounts if discounts is not None else []
-        dt = get_current_datetime()
-        return cls(id=id, plan_info=plan_info, subscriber_id=subscriber_id, billing_info=billing_info, auth_id=auth_id,
-                   autorenew=autorenew, fields=fields, usages=usages, discounts=discounts,
-                   status=SubscriptionStatus.Active, paused_from=None, created_at=dt, updated_at=dt)
+            status: SubscriptionStatus,
+            paused_from: Optional[AwareDatetime],
+            created_at: AwareDatetime,
+            updated_at: AwareDatetime,
+            autorenew: bool,
+            usages: list[Usage],
+            discounts: list[Discount],
+            fields: dict,
+    ):
+        instance = cls(plan_info, billing_info, subscriber_id, auth_id, autorenew, usages, discounts, fields, id)
+        instance._status = status
+        instance._paused_from = paused_from
+        instance._created_at = created_at
+        instance._updated_at = updated_at
 
     @classmethod
     def from_plan(cls, plan: Plan, subscriber_id: str) -> Self:
@@ -127,6 +131,9 @@ class Subscription:
                              features=plan.features)
         billing_info = BillingInfo(price=plan.price, currency=plan.currency, billing_cycle=plan.billing_cycle,
                                    last_billing=dt)
+        discounts = plan.discounts.get_all().copy()
+        usages = [Usage.from_usage_rate(rate) for rate in plan.usage_rates]
+        return cls(plan_info, billing_info, subscriber_id, plan.auth_id, False, usages, discounts)
 
     def pause(self) -> None:
         if self.status == SubscriptionStatus.Paused:
@@ -135,7 +142,6 @@ class Subscription:
             raise ValueError("Cannot paused the subscription with 'Expired' status")
         self._status = SubscriptionStatus.Paused
         self._paused_from = get_current_datetime()
-        self._updated_at = get_current_datetime()
 
     def resume(self) -> None:
         if self.status == SubscriptionStatus.Active:
@@ -143,15 +149,14 @@ class Subscription:
         if self.status == SubscriptionStatus.Expired:
             raise ValueError("Cannot resumed the subscription with 'Expired' status")
 
-        last_billing = self.plan_info.last_billing
+        last_billing = self.billing_info.last_billing
         if self.status == SubscriptionStatus.Paused:
             saved_days = get_current_datetime() - self.paused_from
-            last_billing = self.plan_info.last_billing + saved_days
+            last_billing = self.billing_info.last_billing + saved_days
 
         self._status = SubscriptionStatus.Active
         self._paused_from = None
         self.billing_info.last_billing = last_billing
-        self._updated_at = get_current_datetime()
 
     def renew(self, from_date: AwareDatetime = None) -> None:
         if from_date is None:
@@ -160,11 +165,9 @@ class Subscription:
         self._status = SubscriptionStatus.Active
         self.billing_info.last_billing = from_date
         self._paused_from = None
-        self._updated_at = get_current_datetime()
 
     def expire(self) -> None:
         self._status = SubscriptionStatus.Expired
-        self._updated_at = get_current_datetime()
 
     @property
     def days_left(self) -> int:

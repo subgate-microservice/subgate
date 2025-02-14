@@ -94,20 +94,18 @@ class PlanUpdated(Event):
 class Plan:
     def __init__(
             self,
-            id: PlanId,
             title: str,
             price: float,
             currency: str,
-            billing_cycle: Period,
-            description: Optional[str],
-            level: int,
-            features: Optional[str],
-            usage_rates: list[UsageRate],
-            discounts: list[Discount],
-            fields: dict[str, Any],
             auth_id: AuthId,
-            created_at: AwareDatetime,
-            updated_at: AwareDatetime,
+            billing_cycle: Period = Period.Monthly,
+            description: str = None,
+            level: int = 10,
+            features: str = None,
+            usage_rates: list[UsageRate] = None,
+            discounts: list[Discount] = None,
+            fields: dict = None,
+            id: PlanId = None,
     ):
         self.title = title
         self.price = price
@@ -116,14 +114,14 @@ class Plan:
         self.description = description
         self.level = level
         self.features = features
-        self.fields = fields
+        self.fields = fields if fields is not None else {}
         self.auth_id = auth_id
 
-        self._id = id
+        self._id = id if id else uuid4()
         self._usage_rates = ItemManager(usage_rates, lambda x: x.code)
         self._discounts = ItemManager(discounts, lambda x: x.code)
-        self._created_at = created_at
-        self._updated_at = updated_at
+        self._created_at = get_current_datetime()
+        self._updated_at = self.created_at
 
     @property
     def id(self):
@@ -146,29 +144,28 @@ class Plan:
         return self._updated_at
 
     @classmethod
-    def create(
+    def create_unsafe(
             cls,
+            id: PlanId,
             title: str,
             price: float,
             currency: str,
+            billing_cycle: Period,
+            description: Optional[str],
+            level: int,
+            features: Optional[str],
+            usage_rates: list[UsageRate],
+            discounts: list[Discount],
+            fields: dict[str, Any],
             auth_id: AuthId,
-            billing_cycle: Period = Period.Monthly,
-            description: str = None,
-            level: int = 10,
-            features: str = None,
-            usage_rates: list[UsageRate] = None,
-            discounts: list[Discount] = None,
-            fields: dict = None,
-            id: PlanId = None,
-    ) -> Self:
-        dt = get_current_datetime()
-        id = id if id else uuid4()
-        fields = fields if fields is not None else {}
-        usage_rates = usage_rates if usage_rates is not None else []
-        discounts = discounts if discounts is not None else []
-        instance = cls(id, title, price, currency, billing_cycle, description, level, features, usage_rates, discounts,
-                       fields, auth_id, dt, dt)
-        return instance
+            created_at: AwareDatetime,
+            updated_at: AwareDatetime,
+    ):
+        instance = cls(title, price, currency, auth_id, billing_cycle, description, level, features, usage_rates,
+                       discounts,
+                       fields, id)
+        instance._created_at = created_at
+        instance._updated_at = updated_at
 
 
 class PlanEventFactory:

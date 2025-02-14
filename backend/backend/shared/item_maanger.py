@@ -1,10 +1,13 @@
-from typing import Iterable, Hashable, TypeVar, Generic, Callable, Any
+from typing import Iterable, Hashable, TypeVar, Generic, Callable, Any, Optional
 
 T = TypeVar("T")
 
 
 class ItemManager(Generic[T]):
-    def __init__(self, items: Iterable[T], key: Callable[[Any], Hashable] = lambda x: x):
+    def __init__(self, items: Optional[Iterable[T]] = None, key: Callable[[Any], Hashable] = lambda x: x):
+        if items is None:
+            items = []
+
         self._key = key
         self._items: dict[Hashable, T] = {}
 

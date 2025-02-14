@@ -26,7 +26,7 @@ container.eventbus().subscribe(PlanUpdated, event_handler)
 @pytest_asyncio.fixture()
 async def simple_plan(current_user):
     user, token, expected_status_code = current_user
-    plan = Plan.create("Simple", 100, "USD", user.id, Period.Monthly)
+    plan = Plan("Simple", 100, "USD", user.id, Period.Monthly)
     async with container.unit_of_work_factory().create_uow() as uow:
         await uow.plan_repo().add_one(plan)
         await uow.commit()
@@ -36,7 +36,7 @@ async def simple_plan(current_user):
 @pytest_asyncio.fixture()
 async def with_usage_rates(current_user):
     user, token, expected_status_code = current_user
-    plan = Plan.create("Simple", 100, "USD", user.id, Period.Monthly)
+    plan = Plan("Simple", 100, "USD", user.id, Period.Monthly)
     plan.usage_rates.add(UsageRate("First", "first", "GB", 100, Period.Monthly))
     plan.usage_rates.add(UsageRate("Second", "second", "call", 120, Period.Daily))
     async with container.unit_of_work_factory().create_uow() as uow:
@@ -52,7 +52,7 @@ class TestCreate:
         headers = {"Authorization": f"Bearer {token}"}
 
         async with get_async_client() as client:
-            plan = Plan.create("Simple", 100, "USD", user.id, Period.Monthly)
+            plan = Plan("Simple", 100, "USD", user.id, Period.Monthly)
             payload = PlanCreate.from_plan(plan).model_dump(mode="json")
             response = await client.post(f"/plan/", json=payload, headers=headers)
             assert response.status_code == expected_status_code
@@ -63,7 +63,7 @@ class TestCreate:
         headers = {"Authorization": f"Bearer {token}"}
 
         async with get_async_client() as client:
-            plan = Plan.create("Simple", 100, "USD", user.id, Period.Monthly)
+            plan = Plan("Simple", 100, "USD", user.id, Period.Monthly)
             plan.usage_rates.add(UsageRate("First", "first", "GB", 100, Period.Monthly))
             plan.usage_rates.add(UsageRate("Second", "second", "call", 120, Period.Daily))
 
@@ -77,7 +77,7 @@ class TestCreate:
         headers = {"Authorization": f"Bearer {token}"}
 
         async with get_async_client() as client:
-            plan = Plan.create("Simple", 100, "USD", user.id, Period.Monthly)
+            plan = Plan("Simple", 100, "USD", user.id, Period.Monthly)
             plan.discounts.add(Discount("First", "first", "desc", 0.2, get_current_datetime()))
             plan.discounts.add(Discount("Second", "sec", "desc", 0.4, get_current_datetime()))
 
