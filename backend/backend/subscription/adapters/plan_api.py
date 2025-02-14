@@ -4,9 +4,8 @@ from fastapi import APIRouter, Depends, Query
 
 from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container, Bootstrap, auth_closure
-from backend.shared.permission_service import PermissionService
 from backend.subscription.adapters.schemas import PlanCreate, PlanUpdate, PlanRetrieve
-from backend.subscription.application.plan_service import PlanService, create_plan, update_plan
+from backend.subscription.application.plan_service import create_plan, update_plan, delete_plan
 from backend.subscription.domain.plan import PlanId
 from backend.subscription.domain.plan_repo import PlanSby
 
@@ -89,12 +88,9 @@ async def delete_one(
         container: Bootstrap = Depends(get_container),
 ) -> str:
     async with container.unit_of_work_factory().create_uow() as uow:
-        subclient = container.subscription_client()
-        bus = container.eventbus()
-        plan_service = PlanService(bus, uow)
-        target = await plan_service.get_one_by_id(plan_id)
-        await PermissionService(subclient).check_auth_user_can_delete(target, auth_user)
-        await plan_service.delete_one(target)
+        target_plan = await uow.plan_repo().get_one_by_id(plan_id)
+        await delete_plan(target_plan, uow)
+        await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
         return "Ok"
 
@@ -106,10 +102,9 @@ async def delete_selected(
         container: Bootstrap = Depends(get_container),
 ) -> str:
     async with container.unit_of_work_factory().create_uow() as uow:
-        subclient = container.subscription_client()
-        bus = container.eventbus()
-        sby.auth_ids = {auth_user.id}
-        await PermissionService(subclient).check_auth_user_can_delete_many(sby, auth_user)
-        await PlanService(bus, uow).delete_selected(sby)
+        targets = await uow.plan_repo().get_selected(sby)
+        for target in targets:
+            await delete_plan(target, uow)
+        await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
         return "Ok"

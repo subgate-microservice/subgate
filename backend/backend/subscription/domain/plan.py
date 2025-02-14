@@ -62,23 +62,6 @@ class DiscountOld(MyBase):
     valid_until: Optional[AwareDatetime]
 
 
-class PlanOld:
-    id: PlanId = Field(default_factory=uuid4)
-    title: str
-    price: float
-    currency: str
-    billing_cycle: Period
-    description: Optional[str] = None
-    level: int = 1
-    features: Optional[str] = None
-    usage_rates: list[UsageRateOld] = Field(default_factory=list, )
-    fields: dict[str, Any] = Field(default_factory=dict)
-    auth_id: AuthId = Field(exclude=True)
-    discounts: list[DiscountOld] = Field(default_factory=list)
-    created_at: AwareDatetime = Field(default_factory=get_current_datetime)
-    updated_at: AwareDatetime = Field(default_factory=get_current_datetime)
-
-
 @dataclasses.dataclass(frozen=True)
 class PlanCreated(Event):
     id: PlanId
@@ -187,16 +170,22 @@ class Plan:
                        fields, auth_id, dt, dt)
         return instance
 
-    def to_plan_created(self) -> PlanCreated:
-        return PlanCreated(self.id, self.title, self.price, self.currency, self.billing_cycle, self.auth_id,
-                           self.created_at)
 
-    def to_plan_deleted(self) -> PlanDeleted:
+class PlanEventFactory:
+    def __init__(self, plan: Plan):
+        self.plan = plan
+
+    def plan_created(self) -> PlanCreated:
+        return PlanCreated(self.plan.id, self.plan.title, self.plan.price, self.plan.currency, self.plan.billing_cycle,
+                           self.plan.auth_id, self.plan.created_at)
+
+    def plan_deleted(self) -> PlanDeleted:
         dt = get_current_datetime()
-        return PlanDeleted(self.id, self.title, self.price, self.currency, self.billing_cycle, self.auth_id, dt)
+        return PlanDeleted(self.plan.id, self.plan.title, self.plan.price, self.plan.currency, self.plan.billing_cycle,
+                           self.plan.auth_id, dt)
 
-    def to_plan_updated(self, new_plan: Self) -> PlanUpdated:
-        old_plan = self
+    def plan_updated(self, new_plan: Plan) -> PlanUpdated:
+        old_plan = self.plan
         updated_fields = []
 
         # Проверяем простые атрибуты
