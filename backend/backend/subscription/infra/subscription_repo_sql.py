@@ -14,8 +14,11 @@ from backend.shared.enums import Lock
 from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper, AwareDateTime
 from backend.shared.unit_of_work.change_log import Log
 from backend.shared.utils import get_current_datetime
+from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.subscription import Subscription, SubId, SubscriptionStatus, BillingInfo, PlanInfo
 from backend.subscription.domain.subscription_repo import SubscriptionSby, SubscriptionRepo
+from backend.subscription.infra.deserializers import deserialize_uuid, deserialize_datetime
+from backend.subscription.infra.serializers import serialize_subscription
 
 subscription_table = Table(
     "subscription",
@@ -51,47 +54,45 @@ class SubscriptionSqlMapper(SQLMapper):
         return Subscription
 
     def entity_to_mapping(self, entity: Subscription) -> dict:
-        result = entity.model_dump(mode="json", exclude={"plan_info", "billing_info"})
-        result["paused_from"] = entity.paused_from
-        result["created_at"] = entity.created_at
-        result["updated_at"] = entity.updated_at
-        result["auth_id"] = entity.auth_id
-        result["_expiration_date"] = entity.expiration_date
+        mapping = serialize_subscription(entity)
+        plan_info = {f"pi_{key}": value for key, value in mapping.pop("plan_info").items()}
+        billing_info = {f"bi_{key}": value for key, value in mapping.pop("billing_info").items()}
+        mapping = mapping | plan_info | billing_info
 
-        result["pi_id"] = entity.plan_info.id
-        result["pi_title"] = entity.plan_info.title
-        result["pi_description"] = entity.plan_info.description
-        result["pi_level"] = entity.plan_info.level
-        result["pi_features"] = entity.plan_info.features
+        mapping["_expiration_date"] = entity.expiration_date
+        usages = entity.usages.get_all()
+        mapping["_earliest_next_renew_in_usages"] = None if not usages else usages[0].next_renew
+        for usage in usages[1:]:
+            if usage.next_renew < mapping["_earliest_next_renew_in_usages"]:
+                mapping["_earliest_next_renew_in_usages"] = usage.next_renew
 
-        result["bi_price"] = entity.billing_info.price
-        result["bi_currency"] = entity.billing_info.currency
-        result["bi_billing_cycle"] = entity.billing_info.billing_cycle
-        result["bi_last_billing"] = entity.billing_info.last_billing
-
-        result["_earliest_next_renew_in_usages"] = None if not entity.usages else entity.usages[0].next_renew
-        for usage in entity.usages[1:]:
-            if usage.next_renew < result["_earliest_next_renew_in_usages"]:
-                result["_earliest_next_renew_in_usages"] = usage.next_renew
-
-        result["_active_status_guard"] = (
+        mapping["_active_status_guard"] = (
             str(uuid4())
             if entity.status != SubscriptionStatus.Active
             else f"{entity.subscriber_id}_{entity.auth_id}"
         )
-        return result
+        return mapping
 
     def mapping_to_entity(self, data: Mapping) -> Subscription:
-        plan_info = PlanInfo(id=data["pi_id"], title=data["pi_title"], description=data["pi_description"],
-                             level=data["pi_level"], features=data["pi_features"])
-        billing_info = BillingInfo(price=data["bi_price"], currency=data["bi_currency"],
-                                   billing_cycle=data["bi_billing_cycle"], last_billing=data["bi_last_billing"])
-        return Subscription(
-            id=str(data["id"]),
+        plan_info = PlanInfo(
+            plan_id=deserialize_uuid(data["pi_id"]),
+            title=data["pi_title"],
+            description=data["pi_description"],
+            level=data["pi_level"],
+            features=data["pi_features"]
+        )
+        billing_info = BillingInfo(
+            price=data["bi_price"],
+            currency=data["bi_currency"],
+            billing_cycle=Period(data["bi_billing_cycle"]),
+            last_billing=deserialize_datetime(data["bi_last_billing"]),
+        )
+        return Subscription.create_unsafe(
+            id=deserialize_uuid(data["id"]),
             plan_info=plan_info,
             billing_info=billing_info,
             subscriber_id=data["subscriber_id"],
-            auth_id=str(data["auth_id"]),
+            auth_id=deserialize_uuid(data["auth_id"]),
             status=data["status"],
             paused_from=data["paused_from"],
             autorenew=data["autorenew"],

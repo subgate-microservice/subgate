@@ -19,7 +19,7 @@ SubId = UUID
 
 @dataclasses.dataclass()
 class PlanInfo:
-    plan_id: PlanId
+    id: PlanId
     title: str
     description: Optional[str]
     level: int
@@ -123,11 +123,12 @@ class Subscription:
         instance._paused_from = paused_from
         instance._created_at = created_at
         instance._updated_at = updated_at
+        return instance
 
     @classmethod
     def from_plan(cls, plan: Plan, subscriber_id: str) -> Self:
         dt = get_current_datetime()
-        plan_info = PlanInfo(plan_id=plan.id, title=plan.title, description=plan.description, level=plan.level,
+        plan_info = PlanInfo(id=plan.id, title=plan.title, description=plan.description, level=plan.level,
                              features=plan.features)
         billing_info = BillingInfo(price=plan.price, currency=plan.currency, billing_cycle=plan.billing_cycle,
                                    last_billing=dt)

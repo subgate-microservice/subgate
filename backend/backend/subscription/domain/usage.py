@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import NamedTuple, Self
 
 from pydantic import AwareDatetime
@@ -28,3 +29,7 @@ class Usage(NamedTuple):
         return cls(title=usage_rate.title, code=usage_rate.code, unit=usage_rate.unit,
                    available_units=usage_rate.available_units, renew_cycle=usage_rate.renew_cycle, used_units=0,
                    last_renew=get_current_datetime())
+
+    @property
+    def next_renew(self) -> AwareDatetime:
+        return self.last_renew + timedelta(self.renew_cycle.get_cycle_in_days())

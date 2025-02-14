@@ -126,3 +126,20 @@ class SubscriptionService(BaseService):
     async def send_events(self):
         await super().send_events()
         await self._partial_service.send_events()
+
+
+async def create_subscription(item: Subscription, uow: UnitOfWork) -> None:
+    current_sub = await uow.subscription_repo().get_subscriber_active_one(
+        subscriber_id=item.subscriber_id, auth_id=item.auth_id,
+    )
+
+    if current_sub:
+        # Если создаваемая подписка старше текущей, то ставим на паузу текущую подписку
+        if item.plan_info.level > current_sub.plan_info.level:
+            current_sub.pause()
+            await uow.subscription_repo().update_one(current_sub)
+        # Если создаваемая подписка идентична или младше текущей, то ставим создаваемую подписку на паузу
+        else:
+            item.pause()
+
+    await uow.subscription_repo().add_one(item)

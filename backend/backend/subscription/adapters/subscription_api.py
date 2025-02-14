@@ -7,11 +7,12 @@ from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import Bootstrap, get_container, auth_closure
 from backend.shared.permission_service import PermissionService
 from backend.subscription.adapters.plan_api import PlanUpdate
-from backend.subscription.adapters.subscription_schemas import SubscriptionCreate, SubscriptionUpdate
+from backend.subscription.adapters.schemas import SubscriptionCreate, SubscriptionUpdate, SubscriptionRetrieve
+from backend.subscription.application import subscription_service as services
 from backend.subscription.application.subscription_service import SubscriptionService, SubscriptionPartialUpdateService
 from backend.subscription.domain.plan import UsageOld
 from backend.subscription.domain.subscription import (
-    Subscription, SubId, SubscriptionStatus, )
+    SubId, SubscriptionStatus, )
 from backend.subscription.domain.subscription_repo import SubscriptionSby
 
 subscription_router = APIRouter(
@@ -25,15 +26,14 @@ async def create_subscription(
         subscription_create: SubscriptionCreate,
         auth_user: AuthUser = Depends(auth_closure),
         container: Bootstrap = Depends(get_container),
-) -> Subscription:
+) -> str:
     # todo вернуть permission service
     async with container.unit_of_work_factory().create_uow() as uow:
         subscription = subscription_create.to_subscription(auth_user.id)
-        service = SubscriptionService(container.eventbus(), uow)
-        await service.create_one(subscription)
-        await service.send_events()
+        await services.create_subscription(subscription, uow)
+        await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
-        return await uow.subscription_repo().get_one_by_id(subscription.id)
+    return "Ok"
 
 
 @subscription_router.get("/")
@@ -50,7 +50,7 @@ async def get_selected(
         order_by: Optional[list[str]] = Query(["created_at,1"]),
         container: Bootstrap = Depends(get_container),
         auth_user=Depends(auth_closure),
-) -> list[Subscription]:
+) -> list[SubscriptionRetrieve]:
     order_by = [(x.split(",")[0], int(x.split(",")[1])) for x in order_by]
     sby = SubscriptionSby(
         ids=set(ids) if ids else None,
@@ -77,7 +77,7 @@ async def get_subscription_by_id(
         sub_id: SubId,
         auth_user: AuthUser = Depends(auth_closure),
         container: Bootstrap = Depends(get_container),
-) -> Subscription:
+) -> SubscriptionRetrieve:
     # todo вернуть permission service
     async with container.unit_of_work_factory().create_uow() as uow:
         result = await SubscriptionService(container.eventbus(), uow).get_one_by_id(sub_id)
@@ -89,7 +89,7 @@ async def get_active_one(
         subscriber_id: str,
         auth_user: AuthUser = Depends(auth_closure),
         container: Bootstrap = Depends(get_container),
-) -> Optional[Subscription]:
+) -> Optional[SubscriptionRetrieve]:
     async with container.unit_of_work_factory().create_uow() as uow:
         result = await uow.subscription_repo().get_subscriber_active_one(subscriber_id, auth_user.id)
         return result
@@ -142,7 +142,7 @@ async def delete_selected(
         await service.delete_selected(sby)
         await service.send_events()
         await uow.commit()
-        return "Ok"
+    return "Ok"
 
 
 @subscription_router.put("/{sub_id}")
@@ -159,7 +159,7 @@ async def update_subscription(
         await service.update_one(new_version)
         await service.send_events()
         await uow.commit()
-        return "Ok"
+    return "Ok"
 
 
 @subscription_router.patch("/{sub_id}/increase-usage")
@@ -178,7 +178,7 @@ async def increase_usages(
         await service.increase_usage(target_sub, code, value)
         await service.send_events()
         await uow.commit()
-        return "Ok"
+    return "Ok"
 
 
 @subscription_router.patch("/{sub_id}/add-usages")
@@ -196,7 +196,7 @@ async def add_usages(
         await service.add_usages(target_sub, usages)
         await service.send_events()
         await uow.commit()
-        return "Ok"
+    return "Ok"
 
 
 @subscription_router.patch("/{sub_id}/remove-usages")
@@ -232,7 +232,7 @@ async def update_usages(
         await service.update_usages(target_sub, usages)
         await uow.commit()
         await service.send_events()
-        return "Ok"
+    return "Ok"
 
 
 @subscription_router.patch("/{sub_id}/update-plan")
@@ -251,7 +251,7 @@ async def update_plan(
         await service.update_plan(target_sub, plan)
         await service.send_events()
         await uow.commit()
-        return "Ok"
+    return "Ok"
 
 
 @subscription_router.patch("/{sub_id}/pause")
@@ -268,7 +268,7 @@ async def pause_subscription(
         await service.pause_sub(target_sub)
         await service.send_events()
         await uow.commit()
-        return "Ok"
+    return "Ok"
 
 
 @subscription_router.patch("/{sub_id}/resume")
@@ -285,7 +285,7 @@ async def resume_subscription(
         await service.resume_sub(target_sub)
         await service.send_events()
         await uow.commit()
-        return "Ok"
+    return "Ok"
 
 
 @subscription_router.patch("/{sub_id}/renew")
@@ -303,4 +303,4 @@ async def renew_subscription(
         await service.renew_sub(target_sub, from_date)
         await service.send_events()
         await uow.commit()
-        return "Ok"
+    return "Ok"
