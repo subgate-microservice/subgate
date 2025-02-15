@@ -75,7 +75,7 @@ class SubscriptionSqlMapper(SQLMapper):
 
     def mapping_to_entity(self, data: Mapping) -> Subscription:
         plan_info = PlanInfo(
-            plan_id=deserialize_uuid(data["pi_id"]),
+            id=deserialize_uuid(data["pi_id"]),
             title=data["pi_title"],
             description=data["pi_description"],
             level=data["pi_level"],

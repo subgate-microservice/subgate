@@ -40,27 +40,6 @@ class UsageOld(MyBase):
         return self.last_renew + timedelta(self.renew_cycle.get_cycle_in_days())
 
 
-class UsageRateOld(MyBase):
-    code: str
-    title: str
-    unit: str
-    available_units: float
-    renew_cycle: Period
-
-    @classmethod
-    def from_usage(cls, usage: UsageOld):
-        return cls(code=usage.code, title=usage.title, unit=usage.unit, available_units=usage.available_units,
-                   renew_cycle=usage.renew_cycle)
-
-
-class DiscountOld(MyBase):
-    title: str
-    code: str
-    description: Optional[str] = None
-    size: float = Field(ge=0, le=1)
-    valid_until: Optional[AwareDatetime]
-
-
 class PlanCreated(Event):
     id: PlanId
     title: str
@@ -73,10 +52,6 @@ class PlanCreated(Event):
 
 class PlanDeleted(Event):
     id: PlanId
-    title: str
-    price: float
-    currency: str
-    billing_cycle: Period
     auth_id: AuthId
     deleted_at: AwareDatetime
 
@@ -84,7 +59,8 @@ class PlanDeleted(Event):
 class PlanUpdated(Event):
     id: PlanId
     updated_at: AwareDatetime
-    updated_fields: list[str]
+    updated_fields: tuple[str]
+    auth_id: AuthId
 
 
 class Plan:
@@ -177,10 +153,7 @@ class PlanEventFactory:
 
     def plan_deleted(self) -> PlanDeleted:
         dt = get_current_datetime()
-        return PlanDeleted(
-            id=self.plan.id, title=self.plan.title, price=self.plan.price, currency=self.plan.currency,
-            billing_cycle=self.plan.billing_cycle, auth_id=self.plan.auth_id, deleted_at=dt
-        )
+        return PlanDeleted(id=self.plan.id, auth_id=self.plan.auth_id, deleted_at=dt)
 
     def plan_updated(self, new_plan: Plan) -> PlanUpdated:
         old_plan = self.plan
@@ -217,4 +190,5 @@ class PlanEventFactory:
         if added_discounts or removed_discounts or changed_discounts:
             updated_fields.append("discounts")
 
-        return PlanUpdated(id=new_plan.id, updated_at=new_plan.updated_at, updated_fields=updated_fields)
+        return PlanUpdated(id=new_plan.id, updated_at=new_plan.updated_at, updated_fields=updated_fields,
+                           auth_id=new_plan.auth_id)

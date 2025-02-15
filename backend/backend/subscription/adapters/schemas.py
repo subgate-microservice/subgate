@@ -162,7 +162,7 @@ class PlanRetrieve(MyBase):
 
 
 class PlanInfoSchema(MyBase):
-    plan_id: PlanId
+    id: PlanId
     title: str
     description: Optional[str]
     level: int
@@ -170,11 +170,11 @@ class PlanInfoSchema(MyBase):
 
     @classmethod
     def from_plan_info(cls, plan_info: PlanInfo) -> Self:
-        return cls(plan_id=plan_info.id, title=plan_info.title, description=plan_info.description,
+        return cls(id=plan_info.id, title=plan_info.title, description=plan_info.description,
                    level=plan_info.level, features=plan_info.features)
 
     def to_plan_info(self):
-        return PlanInfo(id=self.plan_id, title=self.title, description=self.description, level=self.level,
+        return PlanInfo(id=self.id, title=self.title, description=self.description, level=self.level,
                         features=self.features)
 
 

@@ -3,7 +3,7 @@ from uuid import UUID
 
 from pydantic import AwareDatetime
 
-from backend.subscription.domain.plan import DiscountOld, Plan
+from backend.subscription.domain.plan import Discount, Plan
 from backend.subscription.domain.subscription import Subscription, PlanInfo, BillingInfo
 from backend.subscription.domain.usage import UsageRate, Usage
 
@@ -41,7 +41,7 @@ def serialize_usage(usage: Usage, mode="json") -> dict:
     }
 
 
-def serialize_discount(discount: DiscountOld, mode="json") -> dict:
+def serialize_discount(discount: Discount, mode="json") -> dict:
     valid_until = serialize_datetime(discount.valid_until, mode)
     return {
         "code": discount.code,

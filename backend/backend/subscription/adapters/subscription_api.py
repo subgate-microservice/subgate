@@ -7,10 +7,11 @@ from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import Bootstrap, get_container, auth_closure
 from backend.shared.permission_service import PermissionService
 from backend.subscription.adapters.plan_api import PlanUpdate
-from backend.subscription.adapters.schemas import SubscriptionCreate, SubscriptionUpdate, SubscriptionRetrieve
+from backend.subscription.adapters.schemas import (
+    SubscriptionCreate, SubscriptionUpdate, SubscriptionRetrieve,
+    UsageSchema)
 from backend.subscription.application import subscription_service as services
 from backend.subscription.application.subscription_service import SubscriptionService, SubscriptionPartialUpdateService
-from backend.subscription.domain.plan import UsageOld
 from backend.subscription.domain.subscription import (
     SubId, SubscriptionStatus, )
 from backend.subscription.domain.subscription_repo import SubscriptionSby
@@ -155,9 +156,8 @@ async def update_subscription(
     async with container.unit_of_work_factory().create_uow() as uow:
         old_version = await uow.subscription_repo().get_one_by_id(subscription_update.id)
         new_version = subscription_update.to_subscription(auth_user.id, old_version.created_at)
-        service = SubscriptionService(container.eventbus(), uow)
-        await service.update_one(new_version)
-        await service.send_events()
+        await services.update_subscription(old_version, new_version, uow)
+        await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
     return "Ok"
 
@@ -184,7 +184,7 @@ async def increase_usages(
 @subscription_router.patch("/{sub_id}/add-usages")
 async def add_usages(
         sub_id: SubId,
-        usages: list[UsageOld],
+        usages: list[UsageSchema],
         auth_user: AuthUser = Depends(auth_closure),
         container: Bootstrap = Depends(get_container),
 ):
@@ -220,7 +220,7 @@ async def remove_usages(
 @subscription_router.patch("/{sub_id}/update-usages")
 async def update_usages(
         sub_id: SubId,
-        usages: list[UsageOld],
+        usages: list[UsageSchema],
         auth_user: AuthUser = Depends(auth_closure),
         container: Bootstrap = Depends(get_container),
 ):

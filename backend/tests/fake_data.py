@@ -4,18 +4,18 @@ from pydantic import AwareDatetime
 
 from backend.auth.domain.apikey import Apikey
 from backend.auth.domain.auth_user import AuthUser
-from backend.subscription.domain.plan import Plan, UsageOld, UsageRateOld
+from backend.subscription.domain.plan import Plan
 from backend.webhook.domain.telegram import Telegram
 
 
-def create_plan(auth_user: AuthUser = None, title="Business", level=10, usage_rates: list[UsageRateOld] = None):
+def create_plan(auth_user: AuthUser = None, title="Business", level=10, usage_rates: list = None):
     raise NotImplemented
 
 
 def create_subscription(
         plan: Plan = None,
         subscriber_id: str = None,
-        usages: list[UsageOld] = None,
+        usages: list = None,
         auth_user: AuthUser = None,
         last_billing: AwareDatetime = None,
 ):

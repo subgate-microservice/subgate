@@ -10,7 +10,7 @@ from backend.bootstrap import get_container
 from backend.shared.utils import get_current_datetime
 from backend.subscription.application.subscription_manager import SubscriptionManager, SubscriptionUsageManager
 from backend.subscription.domain.cycle import Cycle, Period
-from backend.subscription.domain.plan import Plan, UsageOld, UsageRateOld
+from backend.subscription.domain.plan import Plan
 from backend.subscription.domain.subscription import Subscription, SubscriptionStatus
 from backend.subscription.domain.subscription_repo import SubscriptionSby
 
