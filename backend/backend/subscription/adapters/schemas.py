@@ -251,8 +251,8 @@ class SubscriptionCreate(MyBase):
 class SubscriptionUpdate(MyBase):
     id: SubId
     subscriber_id: str
-    plan_info: PlanInfo
-    billing_info: BillingInfo
+    plan_info: PlanInfoSchema
+    billing_info: BillingInfoSchema
     status: SubscriptionStatus
     paused_from: Optional[AwareDatetime]
     autorenew: bool
@@ -283,11 +283,13 @@ class SubscriptionUpdate(MyBase):
         usages = [x.to_usage() for x in self.usages]
         discounts = [x.to_discount() for x in self.discounts]
         updated_at = get_current_datetime()
+        plan_info = self.plan_info.to_plan_info()
+        billing_info = self.billing_info.to_billing_info()
         return Subscription.create_unsafe(
             id=self.id,
             subscriber_id=self.subscriber_id,
-            plan_info=self.plan_info,
-            billing_info=self.billing_info,
+            plan_info=plan_info,
+            billing_info=billing_info,
             status=self.status,
             paused_from=self.paused_from,
             autorenew=self.autorenew,

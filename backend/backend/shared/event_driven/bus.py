@@ -19,6 +19,11 @@ class Bus:
     def subscribe(self, event_type: Type[Event], subscriber: Subscriber) -> None:
         self._subscribers.setdefault(event_type, set()).add(subscriber)
 
+    def unsubscribe(self, event_type: Type[Event], subscriber: Subscriber) -> None:
+        self._subscribers[event_type].remove(subscriber)
+        if not self._subscribers[event_type]:
+            self._subscribers.pop(event_type)
+
     async def publish(self, event: Event, context: Context) -> None:
         subscribers = self._subscribers.get(event.__class__, set())
         for sub in subscribers:

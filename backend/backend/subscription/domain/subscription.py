@@ -409,6 +409,9 @@ class SubscriptionUpdatesEventGenerator:
             changed_fields.append(f'usages.{code}:added')
         for code in old_usages - new_usages:
             changed_fields.append(f'usages.{code}:removed')
+        for code in old_usages.intersection(new_usages):
+            if self.old_subscription.usages.get(code) != self.new_subscription.usages.get(code):
+                changed_fields.append(f'updates.{code}:updated')
 
         if changed_fields:
             self.events.append(
