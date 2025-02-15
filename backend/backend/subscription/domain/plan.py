@@ -1,4 +1,3 @@
-import dataclasses
 from datetime import timedelta
 from typing import Any, Optional, Self
 from uuid import UUID, uuid4
@@ -62,7 +61,6 @@ class DiscountOld(MyBase):
     valid_until: Optional[AwareDatetime]
 
 
-@dataclasses.dataclass(frozen=True)
 class PlanCreated(Event):
     id: PlanId
     title: str
@@ -73,7 +71,6 @@ class PlanCreated(Event):
     created_at: AwareDatetime
 
 
-@dataclasses.dataclass(frozen=True)
 class PlanDeleted(Event):
     id: PlanId
     title: str
@@ -84,7 +81,6 @@ class PlanDeleted(Event):
     deleted_at: AwareDatetime
 
 
-@dataclasses.dataclass(frozen=True)
 class PlanUpdated(Event):
     id: PlanId
     updated_at: AwareDatetime
@@ -174,13 +170,17 @@ class PlanEventFactory:
         self.plan = plan
 
     def plan_created(self) -> PlanCreated:
-        return PlanCreated(self.plan.id, self.plan.title, self.plan.price, self.plan.currency, self.plan.billing_cycle,
-                           self.plan.auth_id, self.plan.created_at)
+        return PlanCreated(
+            id=self.plan.id, title=self.plan.title, price=self.plan.price, currency=self.plan.currency,
+            billing_cycle=self.plan.billing_cycle, auth_id=self.plan.auth_id, created_at=self.plan.created_at
+        )
 
     def plan_deleted(self) -> PlanDeleted:
         dt = get_current_datetime()
-        return PlanDeleted(self.plan.id, self.plan.title, self.plan.price, self.plan.currency, self.plan.billing_cycle,
-                           self.plan.auth_id, dt)
+        return PlanDeleted(
+            id=self.plan.id, title=self.plan.title, price=self.plan.price, currency=self.plan.currency,
+            billing_cycle=self.plan.billing_cycle, auth_id=self.plan.auth_id, deleted_at=dt
+        )
 
     def plan_updated(self, new_plan: Plan) -> PlanUpdated:
         old_plan = self.plan
@@ -188,7 +188,8 @@ class PlanEventFactory:
 
         # Проверяем простые атрибуты
         for field in (
-                "title", "price", "currency", "billing_cycle", "description", "level", "features", "fields", "auth_id"
+                "title", "price", "currency", "billing_cycle", "description", "level", "features", "fields",
+                "auth_id"
         ):
             if getattr(old_plan, field) != getattr(new_plan, field):
                 updated_fields.append(field)

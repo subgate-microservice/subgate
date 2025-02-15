@@ -1,6 +1,5 @@
-import dataclasses
+from pydantic import BaseModel, ConfigDict
 
 
-@dataclasses.dataclass(frozen=True)
-class Event:
-    pass
+class Event(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
