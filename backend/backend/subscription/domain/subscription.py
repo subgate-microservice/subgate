@@ -213,7 +213,6 @@ class SubscriptionPaused(Event):
 
 class SubscriptionResumed(Event):
     subscription_id: SubId
-    resumed_from: AwareDatetime
     auth_id: AuthId
     occurred_at: AwareDatetime
 
@@ -411,7 +410,7 @@ class SubscriptionUpdatesEventGenerator:
             changed_fields.append(f'usages.{code}:removed')
         for code in old_usages.intersection(new_usages):
             if self.old_subscription.usages.get(code) != self.new_subscription.usages.get(code):
-                changed_fields.append(f'updates.{code}:updated')
+                changed_fields.append(f'usages.{code}:updated')
 
         if changed_fields:
             self.events.append(

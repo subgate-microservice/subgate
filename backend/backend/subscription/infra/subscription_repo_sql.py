@@ -17,7 +17,8 @@ from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.subscription import Subscription, SubId, SubscriptionStatus, BillingInfo, PlanInfo
 from backend.subscription.domain.subscription_repo import SubscriptionSby, SubscriptionRepo
-from backend.subscription.infra.deserializers import deserialize_uuid, deserialize_datetime
+from backend.subscription.infra.deserializers import deserialize_uuid, deserialize_datetime, deserialize_usage, \
+    deserialize_discount
 from backend.subscription.infra.serializers import serialize_subscription
 
 subscription_table = Table(
@@ -87,6 +88,8 @@ class SubscriptionSqlMapper(SQLMapper):
             billing_cycle=Period(data["bi_billing_cycle"]),
             last_billing=deserialize_datetime(data["bi_last_billing"]),
         )
+        usages = [deserialize_usage(x) for x in data["usages"]]
+        discounts = [deserialize_discount(x) for x in data["discounts"]]
         return Subscription.create_unsafe(
             id=deserialize_uuid(data["id"]),
             plan_info=plan_info,
@@ -96,8 +99,8 @@ class SubscriptionSqlMapper(SQLMapper):
             status=data["status"],
             paused_from=data["paused_from"],
             autorenew=data["autorenew"],
-            usages=data["usages"],
-            discounts=data["discounts"],
+            usages=usages,
+            discounts=discounts,
             created_at=data["created_at"],
             updated_at=data["updated_at"],
             fields=data["fields"],

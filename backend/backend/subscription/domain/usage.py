@@ -1,5 +1,6 @@
+import dataclasses
 from datetime import timedelta
-from typing import NamedTuple, Self
+from typing import Self
 
 from pydantic import AwareDatetime
 
@@ -7,7 +8,8 @@ from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.cycle import Period
 
 
-class UsageRate(NamedTuple):
+@dataclasses.dataclass
+class UsageRate:
     title: str
     code: str
     unit: str
@@ -15,7 +17,8 @@ class UsageRate(NamedTuple):
     renew_cycle: Period
 
 
-class Usage(NamedTuple):
+@dataclasses.dataclass
+class Usage:
     title: str
     code: str
     unit: str
@@ -33,3 +36,6 @@ class Usage(NamedTuple):
     @property
     def next_renew(self) -> AwareDatetime:
         return self.last_renew + timedelta(self.renew_cycle.get_cycle_in_days())
+
+    def increase(self, delta: float) -> None:
+        self.used_units += delta
