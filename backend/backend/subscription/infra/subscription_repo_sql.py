@@ -119,11 +119,11 @@ class SubscriptionSqlMapper(SQLMapper):
         if sby.expiration_date_lt:
             result.append(subscription_table.c["_expiration_date"] < sby.expiration_date_lt)
         if sby.expiration_date_lte:
-            result.append(subscription_table.c["_expiration_date"] < sby.expiration_date_lte)
+            result.append(subscription_table.c["_expiration_date"] <= sby.expiration_date_lte)
         if sby.expiration_date_gt:
-            result.append(subscription_table.c["_expiration_date"] < sby.expiration_date_gt)
+            result.append(subscription_table.c["_expiration_date"] > sby.expiration_date_gt)
         if sby.expiration_date_gte:
-            result.append(subscription_table.c["_expiration_date"] < sby.expiration_date_gte)
+            result.append(subscription_table.c["_expiration_date"] >= sby.expiration_date_gte)
         if sby.usage_renew_date_lt:
             result.append(subscription_table.c["_earliest_next_renew_in_usages"] < sby.usage_renew_date_lt)
         return result
@@ -131,8 +131,8 @@ class SubscriptionSqlMapper(SQLMapper):
     def get_orderby(self, orders: OrderBy):
         updated_orders = []
         for pair in orders:
-            if pair[0] == "plan_info.level":
-                updated_orders.append(("pi_level", pair[1]))
+            if "plan_info" in pair[0]:
+                updated_orders.append((pair[0].replace("plan_info.", "pi_"), pair[1]))
             else:
                 updated_orders.append(pair)
         return super().get_orderby(updated_orders)

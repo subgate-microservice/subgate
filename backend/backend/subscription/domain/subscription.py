@@ -1,5 +1,5 @@
 import dataclasses
-from copy import copy
+from copy import copy, deepcopy
 from datetime import timedelta
 from enum import StrEnum
 from typing import Optional, Self
@@ -185,8 +185,8 @@ class Subscription:
         days_delta = saved_days + self.billing_info.billing_cycle.get_cycle_in_days()
         return self.billing_info.last_billing + timedelta(days=days_delta)
 
-    def copy(self) -> Self:
-        return copy(self)
+    def copy(self, deep=False) -> Self:
+        return deepcopy(deep) if deep else copy(self)
 
 
 class SubscriptionCreated(Event):

@@ -37,5 +37,12 @@ class Usage:
     def next_renew(self) -> AwareDatetime:
         return self.last_renew + timedelta(self.renew_cycle.get_cycle_in_days())
 
+    @property
+    def need_to_renew(self) -> bool:
+        return get_current_datetime() > self.renew_cycle.get_next_billing_date(self.last_renew)
+
     def increase(self, delta: float) -> None:
         self.used_units += delta
+
+    def renew(self):
+        self.used_units = 0

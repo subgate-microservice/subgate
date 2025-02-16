@@ -8,11 +8,12 @@ import pytest_asyncio
 from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container
 from backend.shared.utils import get_current_datetime
-from backend.subscription.application.subscription_manager import SubscriptionManager, SubscriptionUsageManager
-from backend.subscription.domain.cycle import Cycle, Period
+from backend.subscription.application.subscription_manager import SubManager
+from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.plan import Plan
 from backend.subscription.domain.subscription import Subscription, SubscriptionStatus
 from backend.subscription.domain.subscription_repo import SubscriptionSby
+from backend.subscription.domain.usage import Usage
 
 container = get_container()
 
@@ -30,14 +31,7 @@ async def subscriber_ids():
 
 @pytest_asyncio.fixture()
 async def plan(auth_user):
-    plan = Plan(
-        title="Business",
-        price=100,
-        currency="USD",
-        billing_cycle=Cycle.from_code(Period.Monthly),
-        level=10,
-        auth_id=auth_user.id if auth_user else uuid4(),
-    )
+    plan = Plan("Business", 100, "USD", auth_user.id, billing_cycle=Period.Monthly)
     yield plan
 
 
@@ -45,19 +39,8 @@ async def plan(auth_user):
 async def expired_subs_with_active_status(plan, subscriber_ids):
     subs = []
     for subscriber_id in subscriber_ids:
-        sub = Subscription(
-            id=uuid4(),
-            auth_id=plan.auth_id,
-            subscriber_id=subscriber_id,
-            plan=plan,
-            status=SubscriptionStatus.Active,
-            usages=[],
-            last_billing=get_current_datetime() - timedelta(32),
-            created_at=get_current_datetime() - timedelta(33),
-            updated_at=get_current_datetime(),
-            paused_from=None,
-            autorenew=False,
-        )
+        sub = Subscription.from_plan(plan, subscriber_id)
+        sub.billing_info.last_billing = get_current_datetime() - timedelta(32)
         subs.append(sub)
     async with get_container().unit_of_work_factory().create_uow() as uow:
         await uow.subscription_repo().add_many(subs)
@@ -69,19 +52,11 @@ async def expired_subs_with_active_status(plan, subscriber_ids):
 async def paused_subs(plan, subscriber_ids):
     subs = []
     for subscriber_id in subscriber_ids:
-        sub = Subscription(
-            id=uuid4(),
-            auth_id=plan.auth_id,
-            subscriber_id=subscriber_id,
-            plan=plan,
-            status=SubscriptionStatus.Paused,
-            usages=[],
-            last_billing=get_current_datetime() - timedelta(100),
-            created_at=get_current_datetime() - timedelta(101),
-            updated_at=get_current_datetime(),
-            paused_from=get_current_datetime() - timedelta(90),
-            autorenew=False,
-        )
+        sub = Subscription.from_plan(plan, subscriber_id)
+        sub._last_billing = get_current_datetime() - timedelta(100)
+        sub._created_at = get_current_datetime() - timedelta(101)
+        sub._paused_from = get_current_datetime() - timedelta(90)
+        sub._status = SubscriptionStatus.Paused
         subs.append(sub)
     async with get_container().unit_of_work_factory().create_uow() as uow:
         await uow.subscription_repo().add_many(subs)
@@ -91,9 +66,7 @@ async def paused_subs(plan, subscriber_ids):
 
 @pytest.mark.asyncio
 async def test_manage_subscriptions_change_statuses(expired_subs_with_active_status):
-    bus = container.eventbus()
-    uow_factory = container.unit_of_work_factory()
-    manager = SubscriptionManager(uow_factory, bus)
+    manager = SubManager(container.unit_of_work_factory())
     await manager.manage_expired_subscriptions()
 
     async with container.unit_of_work_factory().create_uow() as uow:
@@ -103,9 +76,7 @@ async def test_manage_subscriptions_change_statuses(expired_subs_with_active_sta
 
 @pytest.mark.asyncio
 async def test_manage_subscriptions_resume_paused_subs(expired_subs_with_active_status, paused_subs):
-    bus = container.eventbus()
-    uow_factory = container.unit_of_work_factory()
-    manager = SubscriptionManager(uow_factory, bus)
+    manager = SubManager(container.unit_of_work_factory())
     await manager.manage_expired_subscriptions()
 
     async with container.unit_of_work_factory().create_uow() as uow:
@@ -126,69 +97,59 @@ async def test_manage_subscriptions_resume_paused_subs(expired_subs_with_active_
 @pytest.mark.asyncio
 async def test_autorenew_subscription(plan):
     # Before
-    sub = Subscription(
-        plan=plan,
-        subscriber_id="AnySubscriberId",
-        auth_id=uuid4(),
-        last_billing=get_current_datetime() - timedelta(32),
-        created_at=get_current_datetime() - timedelta(32, 1),
-        autorenew=True,
-    )
+    sub = Subscription.from_plan(plan, "AnySubscriberId", )
+    sub.autorenew = True
+    sub.billing_info.last_billing = get_current_datetime() - timedelta(32)
     async with container.unit_of_work_factory().create_uow() as uow:
         await uow.subscription_repo().add_one(sub)
         await uow.commit()
 
     # Test
-    manager = SubscriptionManager(container.unit_of_work_factory(), container.eventbus())
+    manager = SubManager(container.unit_of_work_factory())
     await manager.manage_expired_subscriptions()
     async with container.unit_of_work_factory().create_uow() as uow:
         real = await uow.subscription_repo().get_one_by_id(sub.id)
         assert real.status == SubscriptionStatus.Active
-        assert real.last_billing.date() == get_current_datetime().date()
+        assert real.billing_info.last_billing.date() == get_current_datetime().date()
 
 
 @pytest.mark.asyncio
 async def test_subscription_manager_renew_usages(plan):
-    # Before
-    usages = [
-        UsageOld(
+    sub = Subscription.from_plan(plan, "AnySubscriberId")
+    sub.usages.add(
+        Usage(
             title="AnyTitle",
             code="need_to_renew",
             unit="GB",
             available_units=100,
+            renew_cycle=Period.Monthly,
             used_units=13,
             last_renew=get_current_datetime() - timedelta(days=31, seconds=22),
-            renew_cycle=Cycle.from_code(Period.Monthly),
-        ),
-        UsageOld(
+        )
+    )
+    sub.usages.add(
+        Usage(
             title="AnyTitle",
             code="just_expired",
             unit="GB",
             available_units=300,
+            renew_cycle=Period.Monthly,
             used_units=200,
             last_renew=get_current_datetime(),
-            renew_cycle=Cycle.from_code(Period.Monthly),
-        ),
-    ]
-    plan = plan.add_usage_rates([UsageRateOld.from_usage(x) for x in usages])
-    sub = Subscription(
-        plan=plan,
-        subscriber_id="AnySubscriberId",
-        auth_id=uuid4(),
-        usages=usages,
+        )
     )
     async with container.unit_of_work_factory().create_uow() as uow:
         await uow.subscription_repo().add_one(sub)
         await uow.commit()
 
     # Test
-    manager = SubscriptionUsageManager(container.unit_of_work_factory(), container.eventbus())
+    manager = SubManager(container.unit_of_work_factory())
     await manager.manage_usages()
 
     async with container.unit_of_work_factory().create_uow() as uow:
         real = await uow.subscription_repo().get_one_by_id(sub.id)
-        assert real.usages[0].used_units == 0
-        assert real.usages[1].used_units == usages[1].used_units
+        assert real.usages.get("need_to_renew").used_units == 0
+        assert real.usages.get("just_expired").used_units == 200
 
 
 class TestSubscriptionManagerResumeSubscriptionWithHighestPlanLevel:
@@ -198,20 +159,13 @@ class TestSubscriptionManagerResumeSubscriptionWithHighestPlanLevel:
         self.subscriber_id = "AnySubscriberID"
         self.subs = []
         for i in range(1, 11):
-            plan = Plan(auth_id=self.auth_user.id, title="Business", price=100, currency="USD",
-                        billing_cycle=Cycle.from_code(Period.Monthly), level=i)
-            sub = Subscription(subscriber_id=self.subscriber_id, plan=plan, auth_id=self.auth_user.id)
-            sub = sub.pause()
+            plan = Plan("Business", 100, "USD", self.auth_user.id, level=i)
+            sub = Subscription.from_plan(plan, self.subscriber_id)
+            sub.pause()
             self.subs.append(sub)
 
-        self.subs[3] = Subscription(
-            subscriber_id=self.subscriber_id,
-            plan=self.subs[3].plan,
-            auth_id=self.auth_user.id,
-            created_at=get_current_datetime() - timedelta(300),
-            last_billing=get_current_datetime() - timedelta(299),
-            status=SubscriptionStatus.Active,
-        )
+        self.subs[3].resume()
+        self.subs[3].billing_info.last_billing = get_current_datetime() - timedelta(299)
 
         async with container.unit_of_work_factory().create_uow() as uow:
             random.shuffle(self.subs)
@@ -221,7 +175,7 @@ class TestSubscriptionManagerResumeSubscriptionWithHighestPlanLevel:
     @pytest.mark.asyncio
     async def test_foo(self):
         uow_factory = container.unit_of_work_factory()
-        manager = SubscriptionManager(uow_factory, container.eventbus())
+        manager = SubManager(uow_factory)
         await manager.manage_expired_subscriptions()
 
         async with container.unit_of_work_factory().create_uow() as uow:
@@ -230,4 +184,4 @@ class TestSubscriptionManagerResumeSubscriptionWithHighestPlanLevel:
                 self.auth_user.id,
             )
             assert real.status == SubscriptionStatus.Active
-            assert real.plan.level == 10
+            assert real.plan_info.level == 10

@@ -34,6 +34,9 @@ class ItemManager(Generic[T]):
     def remove(self, key: Hashable) -> None:
         self._items.pop(key, None)
 
+    def pop(self, key: Hashable) -> T:
+        return self._items.pop(key)
+
     def __len__(self):
         return len(self._items)
 
