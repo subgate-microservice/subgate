@@ -137,7 +137,7 @@ class Subscription:
         if self.status == SubscriptionStatus.Paused:
             return None
         if self.status == SubscriptionStatus.Expired:
-            raise ValueError("Cannot paused the subscription with 'Expired' status")
+            raise ValueError("Cannot pause the subscription with 'Expired' status")
         self._status = SubscriptionStatus.Paused
         self._paused_from = get_current_datetime()
 
@@ -145,7 +145,7 @@ class Subscription:
         if self.status == SubscriptionStatus.Active:
             return None
         if self.status == SubscriptionStatus.Expired:
-            raise ValueError("Cannot resumed the subscription with 'Expired' status")
+            raise ValueError("Cannot resume the subscription with 'Expired' status")
 
         last_billing = self.billing_info.last_billing
         if self.status == SubscriptionStatus.Paused:
@@ -157,6 +157,8 @@ class Subscription:
         self.billing_info.last_billing = last_billing
 
     def renew(self, from_date: AwareDatetime = None) -> None:
+        if self.status == SubscriptionStatus.Paused:
+            raise ValueError("Cannot resume the subscription with 'Paused' status")
         if from_date is None:
             from_date = get_current_datetime()
 
@@ -219,7 +221,7 @@ class SubscriptionResumed(Event):
 
 class SubscriptionRenewed(Event):
     subscription_id: SubId
-    renewed_from: AwareDatetime
+    last_billing: AwareDatetime
     auth_id: AuthId
     occurred_at: AwareDatetime
 
@@ -316,11 +318,22 @@ class SubscriptionUpdatesEventGenerator:
             if self.new_subscription.status == SubscriptionStatus.Paused:
                 self.events.append(
                     SubscriptionPaused(subscription_id=self.new_subscription.id, auth_id=self.new_subscription.auth_id,
-                                       occurred_at=self.now, paused_from=self.new_subscription.paused_from))
+                                       occurred_at=self.now, paused_from=self.new_subscription.paused_from)
+                )
             elif self.new_subscription.status == SubscriptionStatus.Active:
-                self.events.append(
-                    SubscriptionResumed(subscription_id=self.new_subscription.id, auth_id=self.new_subscription.auth_id,
-                                        occurred_at=self.now))
+                if self.old_subscription.status == SubscriptionStatus.Expired:
+                    self.events.append(
+                        SubscriptionRenewed(subscription_id=self.new_subscription.id,
+                                            auth_id=self.new_subscription.auth_id, occurred_at=self.now,
+                                            last_billing=self.new_subscription.billing_info.last_billing)
+                    )
+                elif self.old_subscription.status == SubscriptionStatus.Paused:
+                    self.events.append(
+                        SubscriptionResumed(subscription_id=self.new_subscription.id,
+                                            auth_id=self.new_subscription.auth_id, occurred_at=self.now)
+                    )
+                else:
+                    raise ValueError
             elif self.new_subscription.status == SubscriptionStatus.Expired:
                 self.events.append(
                     SubscriptionExpired(subscription_id=self.new_subscription.id, auth_id=self.new_subscription.auth_id,
@@ -382,7 +395,7 @@ class SubscriptionUpdatesEventGenerator:
     def _check_general_updates(self):
         changed_fields = []
         for field in ['plan_info.id', 'plan_info.title', 'plan_info.description', 'plan_info.level',
-                      'plan_info.features', 'billing_info.price', 'billing_info.currency',
+                      'plan_info.features', 'billing_info.price', 'billing_info.currency', 'billing_info.last_billing',
                       'billing_info.billing_cycle', 'status', 'paused_from', 'subscriber_id', 'autorenew', 'fields'
                       ]:
             old_value = eval(f'self.old_subscription.{field}')

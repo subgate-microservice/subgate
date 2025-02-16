@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import Type
 
 import pytest
@@ -5,6 +6,7 @@ import pytest_asyncio
 from loguru import logger
 
 from backend.bootstrap import get_container
+from backend.events import EVENTS
 from backend.shared.event_driven.base_event import Event
 from backend.shared.utils import get_current_datetime
 from backend.subscription.adapters.schemas import SubscriptionCreate, SubscriptionUpdate
@@ -15,18 +17,18 @@ from backend.subscription.domain.plan import Plan
 from backend.subscription.domain.subscription import (
     Subscription, SubscriptionPaused, SubscriptionUpdated, SubscriptionUsageAdded, SubscriptionResumed,
     SubscriptionUsageUpdated, SubscriptionUsageRemoved, SubscriptionDiscountUpdated, SubscriptionDiscountAdded,
-    SubscriptionDiscountRemoved
+    SubscriptionDiscountRemoved, SubscriptionStatus, SubscriptionRenewed,
 )
 from backend.subscription.domain.usage import Usage
 from tests.conftest import current_user, get_async_client
 
 container = get_container()
 
-EVENTS = [
-    Subscription, SubscriptionPaused, SubscriptionUpdated, SubscriptionUsageAdded, SubscriptionResumed,
-    SubscriptionUsageUpdated, SubscriptionUsageRemoved, SubscriptionDiscountUpdated, SubscriptionDiscountAdded,
-    SubscriptionDiscountRemoved,
-]
+
+async def save_sub(sub: Subscription) -> None:
+    async with container.unit_of_work_factory().create_uow() as uow:
+        await subscription_service.create_subscription(sub, uow)
+        await uow.commit()
 
 
 @pytest.fixture()
@@ -58,10 +60,7 @@ async def simple_sub(current_user) -> Subscription:
 
     plan = Plan("Simple", 100, "USD", user.id, Period.Monthly)
     sub = Subscription.from_plan(plan, "AmyID")
-
-    async with container.unit_of_work_factory().create_uow() as uow:
-        await subscription_service.create_subscription(sub, uow)
-        await uow.commit()
+    await save_sub(sub)
 
     yield sub
 
@@ -71,12 +70,19 @@ async def paused_sub(current_user):
     user, token, expected_status_code = current_user
     plan = Plan("Simple", 100, "USD", user.id, Period.Monthly)
     sub = Subscription.from_plan(plan, "AmyID")
-
     sub.pause()
-    async with container.unit_of_work_factory().create_uow() as uow:
-        await uow.subscription_repo().add_one(sub)
-        await uow.commit()
+    await save_sub(sub)
+    yield sub
 
+
+@pytest_asyncio.fixture()
+async def expired_sub(current_user):
+    user, token, expected_status_code = current_user
+    plan = Plan("Simple", 100, "USD", user.id, Period.Monthly)
+    sub = Subscription.from_plan(plan, "AmyID")
+    sub.billing_info.last_billing = get_current_datetime() - timedelta(100)
+    sub.expire()
+    await save_sub(sub)
     yield sub
 
 
@@ -89,9 +95,7 @@ async def sub_with_usages(current_user):
         Usage(title="First", code="first", unit="GB", renew_cycle=Period.Monthly, available_units=111, used_units=0,
               last_renew=get_current_datetime())
     )
-    async with container.unit_of_work_factory().create_uow() as uow:
-        await uow.subscription_repo().add_one(sub)
-        await uow.commit()
+    await save_sub(sub)
     yield sub
 
 
@@ -104,9 +108,7 @@ async def sub_with_discounts(current_user):
     sub.discounts.add(
         Discount(title="First", code="first", size=0.2, description="Black friday", valid_until=get_current_datetime())
     )
-    async with container.unit_of_work_factory().create_uow() as uow:
-        await uow.subscription_repo().add_one(sub)
-        await uow.commit()
+    await save_sub(sub)
     yield sub
 
 
@@ -125,7 +127,7 @@ class TestCreate:
             assert response.status_code == expected_status_code
 
 
-class TestSubscriptionStatusManagement:
+class TestStatusManagement:
     @pytest.mark.asyncio
     async def test_pause_subscription(self, current_user, simple_sub, event_handler):
         user, token, expected_status_code = current_user
@@ -161,6 +163,51 @@ class TestSubscriptionStatusManagement:
         assert sub_resumed is not None
         assert sub_updated is not None
         assert set(sub_updated.changed_fields) == {"paused_from", "status"}
+
+    @pytest.mark.asyncio
+    async def test_renew_active_subscription(self, current_user):
+        raise NotImplemented
+
+    @pytest.mark.asyncio
+    async def test_renew_paused_subscription(self, current_user, paused_sub, event_handler):
+        # Important!
+        # Renew paused subscription is the same that resume paused subscription
+
+        user, token, expected_status_code = current_user
+        headers = {"Authorization": f"Bearer {token}"}
+
+        async with get_async_client() as client:
+            paused_sub._status = SubscriptionStatus.Active
+            paused_sub._paused_from = None
+            paused_sub.billing_info.last_billing = get_current_datetime()
+            payload = SubscriptionUpdate.from_subscription(paused_sub).model_dump(mode="json")
+
+            response = await client.put(f"/subscription/{paused_sub.id}", json=payload, headers=headers)
+            assert response.status_code == expected_status_code
+
+        # Check events
+        sub_resumed, sub_updated = event_handler.get(SubscriptionResumed), event_handler.get(SubscriptionUpdated)
+        assert sub_resumed is not None
+        assert sub_updated is not None
+        assert set(sub_updated.changed_fields) == {"paused_from", "status"}
+
+    @pytest.mark.asyncio
+    async def test_renew_expired_subscription(self, current_user, expired_sub, event_handler):
+        user, token, expected_status_code = current_user
+        headers = {"Authorization": f"Bearer {token}"}
+
+        async with get_async_client() as client:
+            expired_sub.renew()
+            payload = SubscriptionUpdate.from_subscription(expired_sub).model_dump(mode="json")
+
+            response = await client.put(f"/subscription/{expired_sub.id}", json=payload, headers=headers)
+            assert response.status_code == expected_status_code
+
+        # Check events
+        sub_renewed, sub_updated = event_handler.get(SubscriptionRenewed), event_handler.get(SubscriptionUpdated)
+        assert sub_renewed is not None
+        assert sub_updated is not None
+        assert set(sub_updated.changed_fields) == {"status", "billing_info.last_billing"}
 
 
 class TestUsageManagement:
@@ -284,3 +331,29 @@ class TestDiscountManagement:
         assert set(sub_updated.changed_fields) == {"discounts.first:updated"}
         assert d_updated is not None
         assert d_updated.title == "Hello world!"
+
+
+class TestOtherFieldsManagement:
+    @pytest.mark.asyncio
+    def test_update_plan_info(self):
+        raise NotImplemented
+
+    @pytest.mark.asyncio
+    def test_update_billing_info(self):
+        raise NotImplemented
+
+    @pytest.mark.asyncio
+    def test_update_fields(self):
+        raise NotImplemented
+
+    @pytest.mark.asyncio
+    def test_update_fields_inner_values(self):
+        raise NotImplemented
+
+    @pytest.mark.asyncio
+    def test_update_autorenew(self):
+        raise NotImplemented
+
+    @pytest.mark.asyncio
+    def test_update_subscriber_id(self):
+        raise NotImplemented
