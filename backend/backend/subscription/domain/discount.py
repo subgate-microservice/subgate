@@ -1,9 +1,11 @@
+import dataclasses
 from typing import NamedTuple, Optional
 
 from pydantic import AwareDatetime
 
 
-class Discount(NamedTuple):
+@dataclasses.dataclass
+class Discount:
     title: str
     code: str
     description: Optional[str]

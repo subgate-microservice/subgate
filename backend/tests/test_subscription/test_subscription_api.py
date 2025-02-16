@@ -6,19 +6,27 @@ from loguru import logger
 
 from backend.bootstrap import get_container
 from backend.shared.event_driven.base_event import Event
-from backend.shared.event_driven.bus import Context
 from backend.shared.utils import get_current_datetime
 from backend.subscription.adapters.schemas import SubscriptionCreate, SubscriptionUpdate
 from backend.subscription.application import subscription_service
 from backend.subscription.domain.cycle import Period
+from backend.subscription.domain.discount import Discount
 from backend.subscription.domain.plan import Plan
-from backend.subscription.domain.subscription import (Subscription, SubscriptionPaused, SubscriptionUpdated,
-                                                      SubscriptionUsageAdded, SubscriptionResumed,
-                                                      SubscriptionUsageUpdated)
+from backend.subscription.domain.subscription import (
+    Subscription, SubscriptionPaused, SubscriptionUpdated, SubscriptionUsageAdded, SubscriptionResumed,
+    SubscriptionUsageUpdated, SubscriptionUsageRemoved, SubscriptionDiscountUpdated, SubscriptionDiscountAdded,
+    SubscriptionDiscountRemoved
+)
 from backend.subscription.domain.usage import Usage
 from tests.conftest import current_user, get_async_client
 
 container = get_container()
+
+EVENTS = [
+    Subscription, SubscriptionPaused, SubscriptionUpdated, SubscriptionUsageAdded, SubscriptionResumed,
+    SubscriptionUsageUpdated, SubscriptionUsageRemoved, SubscriptionDiscountUpdated, SubscriptionDiscountAdded,
+    SubscriptionDiscountRemoved,
+]
 
 
 @pytest.fixture()
@@ -27,40 +35,21 @@ def event_handler():
         def __init__(self):
             self.events = {}
 
-        async def handle_subscription_paused(self, event: SubscriptionPaused, _context: Context):
+        async def handle_event(self, event: Event, _context):
             logger.debug(event)
-            self.events[SubscriptionPaused] = event
-
-        async def handle_subscription_updated(self, event: SubscriptionUpdated, _context: Context):
-            logger.debug(event)
-            self.events[SubscriptionUpdated] = event
-
-        async def handle_subscription_usage_added(self, event: SubscriptionUsageAdded, _context):
-            logger.debug(event)
-            self.events[SubscriptionUsageAdded] = event
-
-        async def handle_subscription_resumed(self, event: SubscriptionResumed, _context):
-            logger.debug(event)
-            self.events[SubscriptionResumed] = event
-
-        async def handle_subscription_usage_updated(self, event: SubscriptionUsageUpdated, _context):
-            logger.debug(event)
-            self.events[SubscriptionUsageUpdated] = event
+            self.events[type(event)] = event
 
         def get(self, event_class: Type[Event]):
             return self.events.get(event_class)
 
     handler = EventHandler()
-    container.eventbus().subscribe(SubscriptionPaused, handler.handle_subscription_paused)
-    container.eventbus().subscribe(SubscriptionUpdated, handler.handle_subscription_updated)
-    container.eventbus().subscribe(SubscriptionUsageAdded, handler.handle_subscription_usage_added)
-    container.eventbus().subscribe(SubscriptionResumed, handler.handle_subscription_resumed)
-    container.eventbus().subscribe(SubscriptionUsageUpdated, handler.handle_subscription_usage_updated)
+    for ev in EVENTS:
+        container.eventbus().subscribe(ev, handler.handle_event)
 
     yield handler
 
-    handler.subscription_paused = None
-    container.eventbus().unsubscribe(SubscriptionPaused, handler.handle_subscription_paused)
+    for ev in EVENTS:
+        container.eventbus().unsubscribe(ev, handler.handle_event)
 
 
 @pytest_asyncio.fixture()
@@ -106,6 +95,21 @@ async def sub_with_usages(current_user):
     yield sub
 
 
+@pytest_asyncio.fixture()
+async def sub_with_discounts(current_user):
+    user, token, expected_status_code = current_user
+
+    plan = Plan("Simple", 100, "USD", user.id, Period.Monthly)
+    sub = Subscription.from_plan(plan, "AmyID")
+    sub.discounts.add(
+        Discount(title="First", code="first", size=0.2, description="Black friday", valid_until=get_current_datetime())
+    )
+    async with container.unit_of_work_factory().create_uow() as uow:
+        await uow.subscription_repo().add_one(sub)
+        await uow.commit()
+    yield sub
+
+
 class TestCreate:
     @pytest.mark.asyncio
     async def test_create_simple_subscription(self, current_user):
@@ -121,7 +125,7 @@ class TestCreate:
             assert response.status_code == expected_status_code
 
 
-class TestFullUpdate:
+class TestSubscriptionStatusManagement:
     @pytest.mark.asyncio
     async def test_pause_subscription(self, current_user, simple_sub, event_handler):
         user, token, expected_status_code = current_user
@@ -158,6 +162,8 @@ class TestFullUpdate:
         assert sub_updated is not None
         assert set(sub_updated.changed_fields) == {"paused_from", "status"}
 
+
+class TestUsageManagement:
     @pytest.mark.asyncio
     async def test_add_usage(self, current_user, simple_sub, event_handler):
         user, token, expected_status_code = current_user
@@ -196,3 +202,85 @@ class TestFullUpdate:
         assert u_updated is not None
         assert u_updated.code == "first"
         assert u_updated.used_units == 150
+
+    @pytest.mark.asyncio
+    async def test_remove_usage(self, current_user, sub_with_usages, event_handler):
+        user, token, expected_status_code = current_user
+        headers = {"Authorization": f"Bearer {token}"}
+
+        async with get_async_client() as client:
+            sub_with_usages.usages.remove("first")
+
+            payload = SubscriptionUpdate.from_subscription(sub_with_usages).model_dump(mode="json")
+
+            response = await client.put(f"/subscription/{sub_with_usages.id}", json=payload, headers=headers)
+            assert response.status_code == expected_status_code
+
+        # Check events
+        sub_updated, u_removed = event_handler.get(SubscriptionUpdated), event_handler.get(SubscriptionUsageRemoved)
+        assert sub_updated is not None
+        assert set(sub_updated.changed_fields) == {"usages.first:removed"}
+        assert u_removed is not None
+        assert u_removed.code == "first"
+
+
+class TestDiscountManagement:
+    @pytest.mark.asyncio
+    async def test_add_discount(self, current_user, simple_sub, event_handler):
+        user, token, expected_status_code = current_user
+        headers = {"Authorization": f"Bearer {token}"}
+
+        async with get_async_client() as client:
+            simple_sub.discounts.add(
+                Discount(title="Second", code="second", size=0.5, description="Hello world",
+                         valid_until=get_current_datetime())
+            )
+            payload = SubscriptionUpdate.from_subscription(simple_sub).model_dump(mode="json")
+
+            response = await client.put(f"/subscription/{simple_sub.id}", json=payload, headers=headers)
+            assert response.status_code == expected_status_code
+
+        # Check events
+        sub_updated, d_added = event_handler.get(SubscriptionUpdated), event_handler.get(SubscriptionDiscountAdded)
+        assert sub_updated is not None
+        assert set(sub_updated.changed_fields) == {"discounts.second:added"}
+        assert d_added is not None
+        assert d_added.code == "second"
+
+    @pytest.mark.asyncio
+    async def test_remove_discount(self, current_user, sub_with_discounts, event_handler):
+        user, token, expected_status_code = current_user
+        headers = {"Authorization": f"Bearer {token}"}
+
+        async with get_async_client() as client:
+            sub_with_discounts.discounts.remove("first")
+            payload = SubscriptionUpdate.from_subscription(sub_with_discounts).model_dump(mode="json")
+
+            response = await client.put(f"/subscription/{sub_with_discounts.id}", json=payload, headers=headers)
+            assert response.status_code == expected_status_code
+
+        # Check events
+        sub_updated, d_removed = event_handler.get(SubscriptionUpdated), event_handler.get(SubscriptionDiscountRemoved)
+        assert sub_updated is not None
+        assert set(sub_updated.changed_fields) == {"discounts.first:removed"}
+        assert d_removed is not None
+        assert d_removed.code == "first"
+
+    @pytest.mark.asyncio
+    async def test_update_discount(self, current_user, sub_with_discounts, event_handler):
+        user, token, expected_status_code = current_user
+        headers = {"Authorization": f"Bearer {token}"}
+
+        async with get_async_client() as client:
+            sub_with_discounts.discounts.get("first").title = "Hello world!"
+            payload = SubscriptionUpdate.from_subscription(sub_with_discounts).model_dump(mode="json")
+
+            response = await client.put(f"/subscription/{sub_with_discounts.id}", json=payload, headers=headers)
+            assert response.status_code == expected_status_code
+
+        # Check events
+        sub_updated, d_updated = event_handler.get(SubscriptionUpdated), event_handler.get(SubscriptionDiscountUpdated)
+        assert sub_updated is not None
+        assert set(sub_updated.changed_fields) == {"discounts.first:updated"}
+        assert d_updated is not None
+        assert d_updated.title == "Hello world!"
