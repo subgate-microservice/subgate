@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Type
+from typing import Type, Optional
 
 import pytest
 import pytest_asyncio
@@ -41,7 +41,7 @@ def event_handler():
             logger.debug(event)
             self.events[type(event)] = event
 
-        def get(self, event_class: Type[Event]):
+        def get[T](self, event_class: Type[T]) -> Optional[T]:
             return self.events.get(event_class)
 
     handler = EventHandler()
@@ -112,6 +112,17 @@ async def sub_with_discounts(current_user):
     yield sub
 
 
+@pytest_asyncio.fixture()
+async def sub_with_fields(current_user):
+    user, token, expected_status_code = current_user
+
+    plan = Plan("Simple", 100, "USD", user.id, Period.Monthly)
+    sub = Subscription.from_plan(plan, "AmyID")
+    sub.fields = {"any_value": 1, "inner_items": [1, 2, 3, 4, 5]}
+    await save_sub(sub)
+    yield sub
+
+
 class TestCreate:
     @pytest.mark.asyncio
     async def test_create_simple_subscription(self, current_user):
@@ -165,8 +176,19 @@ class TestStatusManagement:
         assert set(sub_updated.changed_fields) == {"paused_from", "status"}
 
     @pytest.mark.asyncio
-    async def test_renew_active_subscription(self, current_user):
-        raise NotImplemented
+    async def test_renew_active_subscription(self, current_user, simple_sub, event_handler):
+        user, token, expected_status_code = current_user
+        headers = {"Authorization": f"Bearer {token}"}
+
+        async with get_async_client() as client:
+            simple_sub.renew()
+            payload = SubscriptionUpdate.from_subscription(simple_sub).model_dump(mode="json")
+
+            response = await client.put(f"/subscription/{simple_sub.id}", json=payload, headers=headers)
+            assert response.status_code == expected_status_code
+
+        # Check events
+        assert len(event_handler.events) == 0
 
     @pytest.mark.asyncio
     async def test_renew_paused_subscription(self, current_user, paused_sub, event_handler):
@@ -335,25 +357,113 @@ class TestDiscountManagement:
 
 class TestOtherFieldsManagement:
     @pytest.mark.asyncio
-    def test_update_plan_info(self):
-        raise NotImplemented
+    async def test_update_plan_info(self, current_user, simple_sub, event_handler):
+        user, token, expected_status_code = current_user
+        headers = {"Authorization": f"Bearer {token}"}
+
+        async with get_async_client() as client:
+            simple_sub.plan_info.title = "Updated title"
+            simple_sub.plan_info.level = 755
+            simple_sub.plan_info.features = "Updated features"
+            simple_sub.plan_info.description = "Updated description"
+
+            payload = SubscriptionUpdate.from_subscription(simple_sub).model_dump(mode="json")
+            response = await client.put(f"/subscription/{simple_sub.id}", json=payload, headers=headers)
+            assert response.status_code == expected_status_code
+
+        # Check events
+        if response.status_code < 400:
+            sub_updated = event_handler.get(SubscriptionUpdated)
+            assert sub_updated is not None
+            assert set(sub_updated.changed_fields) == {"plan_info.title", "plan_info.level", "plan_info.features",
+                                                       "plan_info.description", }
 
     @pytest.mark.asyncio
-    def test_update_billing_info(self):
-        raise NotImplemented
+    async def test_update_billing_info(self, current_user, simple_sub, event_handler):
+        user, token, expected_status_code = current_user
+        headers = {"Authorization": f"Bearer {token}"}
+
+        async with get_async_client() as client:
+            simple_sub.billing_info.price = 99
+            simple_sub.billing_info.currency = "EUR"
+            simple_sub.billing_info.billing_cycle = Period.Semiannual
+            simple_sub.billing_info.last_billing = get_current_datetime().replace(year=1999)
+
+            payload = SubscriptionUpdate.from_subscription(simple_sub).model_dump(mode="json")
+            response = await client.put(f"/subscription/{simple_sub.id}", json=payload, headers=headers)
+            assert response.status_code == expected_status_code
+
+        # Check events
+        if response.status_code < 400:
+            sub_updated = event_handler.get(SubscriptionUpdated)
+            assert sub_updated is not None
+            assert set(sub_updated.changed_fields) == {"billing_info.price", "billing_info.currency",
+                                                       "billing_info.billing_cycle", "billing_info.last_billing", }
 
     @pytest.mark.asyncio
-    def test_update_fields(self):
-        raise NotImplemented
+    async def test_update_fields(self, current_user, simple_sub, event_handler):
+        user, token, expected_status_code = current_user
+        headers = {"Authorization": f"Bearer {token}"}
+
+        async with get_async_client() as client:
+            simple_sub.fields = {"Hello": 1, "World": 2}
+            payload = SubscriptionUpdate.from_subscription(simple_sub).model_dump(mode="json")
+            response = await client.put(f"/subscription/{simple_sub.id}", json=payload, headers=headers)
+            assert response.status_code == expected_status_code
+
+        # Check events
+        if response.status_code < 400:
+            sub_updated = event_handler.get(SubscriptionUpdated)
+            assert sub_updated is not None
+            assert set(sub_updated.changed_fields) == {"fields", }
 
     @pytest.mark.asyncio
-    def test_update_fields_inner_values(self):
-        raise NotImplemented
+    async def test_update_fields_inner_values(self, current_user, sub_with_fields, event_handler):
+        user, token, expected_status_code = current_user
+        headers = {"Authorization": f"Bearer {token}"}
+
+        async with get_async_client() as client:
+            sub_with_fields.fields["any_value"] = "Updated"
+            payload = SubscriptionUpdate.from_subscription(sub_with_fields).model_dump(mode="json")
+            response = await client.put(f"/subscription/{sub_with_fields.id}", json=payload, headers=headers)
+            assert response.status_code == expected_status_code
+
+        # Check events
+        if response.status_code < 400:
+            sub_updated = event_handler.get(SubscriptionUpdated)
+            assert sub_updated is not None
+            assert set(sub_updated.changed_fields) == {"fields", }
 
     @pytest.mark.asyncio
-    def test_update_autorenew(self):
-        raise NotImplemented
+    async def test_update_autorenew(self, current_user, sub_with_fields, event_handler):
+        user, token, expected_status_code = current_user
+        headers = {"Authorization": f"Bearer {token}"}
+
+        async with get_async_client() as client:
+            sub_with_fields.autorenew = True
+            payload = SubscriptionUpdate.from_subscription(sub_with_fields).model_dump(mode="json")
+            response = await client.put(f"/subscription/{sub_with_fields.id}", json=payload, headers=headers)
+            assert response.status_code == expected_status_code
+
+        # Check events
+        if response.status_code < 400:
+            sub_updated = event_handler.get(SubscriptionUpdated)
+            assert sub_updated is not None
+            assert set(sub_updated.changed_fields) == {"autorenew"}
 
     @pytest.mark.asyncio
-    def test_update_subscriber_id(self):
-        raise NotImplemented
+    async def test_update_subscriber_id(self, current_user, simple_sub, event_handler):
+        user, token, expected_status_code = current_user
+        headers = {"Authorization": f"Bearer {token}"}
+
+        async with get_async_client() as client:
+            simple_sub.subscriber_id = "UpdatedID"
+            payload = SubscriptionUpdate.from_subscription(simple_sub).model_dump(mode="json")
+            response = await client.put(f"/subscription/{simple_sub.id}", json=payload, headers=headers)
+            assert response.status_code == expected_status_code
+
+        # Check events
+        if response.status_code < 400:
+            sub_updated = event_handler.get(SubscriptionUpdated)
+            assert sub_updated is not None
+            assert set(sub_updated.changed_fields) == {"subscriber_id"}
