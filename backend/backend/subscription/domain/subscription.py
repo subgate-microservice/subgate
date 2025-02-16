@@ -396,7 +396,7 @@ class SubscriptionUpdatesEventGenerator:
         changed_fields = []
         for field in ['plan_info.id', 'plan_info.title', 'plan_info.description', 'plan_info.level',
                       'plan_info.features', 'billing_info.price', 'billing_info.currency', 'billing_info.last_billing',
-                      'billing_info.billing_cycle', 'status', 'paused_from', 'subscriber_id', 'autorenew', 'fields'
+                      'billing_info.billing_cycle', 'status', 'paused_from', 'subscriber_id', 'autorenew', 'fields',
                       ]:
             old_value = eval(f'self.old_subscription.{field}')
             new_value = eval(f'self.new_subscription.{field}')
@@ -428,4 +428,5 @@ class SubscriptionUpdatesEventGenerator:
         if changed_fields:
             self.events.append(
                 SubscriptionUpdated(subscription_id=self.new_subscription.id, changed_fields=tuple(changed_fields),
-                                    auth_id=self.new_subscription.auth_id, occurred_at=self.now))
+                                    auth_id=self.new_subscription.auth_id, occurred_at=self.now)
+            )
