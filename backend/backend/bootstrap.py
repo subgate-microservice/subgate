@@ -8,14 +8,13 @@ from backend.auth.application.auth_closure_factory import AuthClosureFactory
 from backend.auth.domain.auth_user import AuthUser, AuthId
 from backend.auth.infra.apikey.apikey__auth_closure_factory import ApikeyAuthClosureFactory
 from backend.auth.infra.fastapi_users.auth_closure_factory import FastapiUsersAuthClosureFactory
+from backend.auth.infra.fastapi_users.manager import create_fastapi_users
 from backend.auth.infra.other.complex_factory import ComplexAuthClosureFactory
 from backend.auth.infra.other.fake_factory import FakeAuthClosureFactory
-from backend.auth.infra.fastapi_users.manager import create_fastapi_users
 from backend.shared.event_driven.bus import Bus
-from backend.shared.eventbus import Eventbus
 from backend.shared.unit_of_work.uow import UnitOfWorkFactory
 from backend.shared.unit_of_work.uow_postgres import SqlUowFactory
-from backend.subscription.domain.cycle import Cycle, Period
+from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.plan import Plan
 from backend.subscription.domain.subscription import Subscription
 from backend.subscription.infra.subscription_client import SubscriptionClient, FakeSubscriptionClient

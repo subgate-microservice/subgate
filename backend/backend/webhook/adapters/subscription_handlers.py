@@ -1,12 +1,9 @@
 import json
 
 import aiohttp
-from loguru import logger
 
 from backend.bootstrap import get_container
-from backend.shared.context import Context
-from backend.shared.eventbus import Event
-from backend.subscription.domain.subscription import Subscription
+from backend.shared.event_driven.base_event import Event
 from backend.webhook.application.telegraph import Telegram
 from backend.webhook.domain.webhook_repo import WebhookSby
 
@@ -19,7 +16,7 @@ async def request(method: str, url: str, **kwargs):
             response.raise_for_status()
 
 
-async def handle_subscription_event(event: Event[Subscription, Context]):
+async def handle_subscription_event(event: Event, _context):
     # Превращаем Event в закодированную строку
     auth_user_id = event.payload.auth_id
     data_for_send = {
