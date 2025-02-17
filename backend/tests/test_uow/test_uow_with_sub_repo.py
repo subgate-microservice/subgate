@@ -1,16 +1,20 @@
+from datetime import timedelta
+
 import pytest
 
 from backend.bootstrap import get_container
+from backend.shared.utils import get_current_datetime
+from backend.subscription.domain.subscription import Subscription
 from backend.subscription.domain.subscription_repo import SubscriptionSby
-from tests.fake_data import create_subscription
+from tests.fakes import simple_plan
 
 container = get_container()
 
 
 @pytest.mark.asyncio
-async def test_create_one():
+async def test_create_one(simple_plan):
     async with container.unit_of_work_factory().create_uow() as uow:
-        item = create_subscription()
+        item = Subscription.from_plan(simple_plan, "AnyID")
 
         await uow.subscription_repo().add_one(item)
         with pytest.raises(LookupError):
@@ -25,9 +29,11 @@ async def test_create_one():
 
 
 @pytest.mark.asyncio
-async def test_create_many():
+async def test_create_many(simple_plan):
     async with container.unit_of_work_factory().create_uow() as uow:
-        items = [create_subscription() for _ in range(11)]
+        items = [Subscription.from_plan(simple_plan, "AnyID") for _ in range(11)]
+        for item in items[1:]:
+            item.pause()
 
         await uow.subscription_repo().add_many(items)
         real = await uow.subscription_repo().get_selected(SubscriptionSby())
@@ -43,38 +49,38 @@ async def test_create_many():
 
 
 @pytest.mark.asyncio
-async def test_update_one():
+async def test_update_one(simple_plan):
     # Before
     async with container.unit_of_work_factory().create_uow() as uow:
-        item = create_subscription()
+        item = Subscription.from_plan(simple_plan, "AnyID")
         await uow.subscription_repo().add_one(item)
         await uow.commit()
 
     # Test
     async with container.unit_of_work_factory().create_uow() as uow:
-        updated = item.shift_last_billing(10)
+        item.billing_info.last_billing = get_current_datetime() + timedelta(111)
 
         # Update without commit
-        await uow.subscription_repo().update_one(updated)
+        await uow.subscription_repo().update_one(item)
         real = await uow.subscription_repo().get_one_by_id(item.id)
-        assert real.expiration_date == item.expiration_date
+        assert real.expiration_date != item.expiration_date
 
         # Commit
         await uow.commit()
         real = await uow.subscription_repo().get_one_by_id(item.id)
-        assert real.expiration_date == updated.expiration_date
+        assert real.expiration_date == item.expiration_date
 
         # Rollback
         await uow.rollback()
         real = await uow.subscription_repo().get_one_by_id(item.id)
-        assert real.expiration_date == item.expiration_date
+        assert real.expiration_date != item.expiration_date
 
 
 @pytest.mark.asyncio
-async def test_delete_one():
+async def test_delete_one(simple_plan):
     # Before
     async with container.unit_of_work_factory().create_uow() as uow:
-        item = create_subscription()
+        item = Subscription.from_plan(simple_plan, "AnyID")
         await uow.subscription_repo().add_one(item)
         await uow.commit()
 
@@ -97,10 +103,12 @@ async def test_delete_one():
 
 
 @pytest.mark.asyncio
-async def test_delete_many():
+async def test_delete_many(simple_plan):
     # Before
     async with container.unit_of_work_factory().create_uow() as uow:
-        items = [create_subscription() for _ in range(11)]
+        items = [Subscription.from_plan(simple_plan, "AnyID") for _ in range(11)]
+        for item in items[1:]:
+            item.pause()
         await uow.subscription_repo().add_many(items)
         await uow.commit()
 

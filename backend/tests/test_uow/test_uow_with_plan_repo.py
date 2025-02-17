@@ -1,8 +1,10 @@
+from uuid import uuid4
+
 import pytest
 
 from backend.bootstrap import get_container
+from backend.subscription.domain.plan import Plan
 from backend.subscription.domain.plan_repo import PlanSby
-from tests.fake_data import create_plan
 
 container = get_container()
 
@@ -10,7 +12,7 @@ container = get_container()
 @pytest.mark.asyncio
 async def test_create_one():
     async with container.unit_of_work_factory().create_uow() as uow:
-        item = create_plan()
+        item = Plan("Personal", 100, "USD", uuid4())
         await uow.plan_repo().add_one(item)
 
         # Без коммита данных нет в базе
@@ -31,7 +33,7 @@ async def test_create_one():
 async def test_create_many():
     async with container.unit_of_work_factory().create_uow() as uow:
         # Без коммита данных нет в базе
-        items = [create_plan() for _ in range(11)]
+        items = [Plan("Personal", 100, "USD", uuid4()) for _ in range(11)]
         await uow.plan_repo().add_many(items)
         real = await uow.plan_repo().get_selected(PlanSby())
         assert len(real) == 0
@@ -51,12 +53,13 @@ async def test_create_many():
 async def test_update_one():
     # Before
     async with container.unit_of_work_factory().create_uow() as uow:
-        item = create_plan()
+        item = Plan("Personal", 100, "USD", uuid4())
         await uow.plan_repo().add_one(item)
         await uow.commit()
 
     # Test
-    updated = item.model_copy(update={"price": 123_123})
+    updated = item.copy()
+    updated.price = 123_123
 
     async with container.unit_of_work_factory().create_uow() as uow:
         # Update without commit
@@ -79,7 +82,7 @@ async def test_update_one():
 async def test_delete_one():
     # Before
     async with container.unit_of_work_factory().create_uow() as uow:
-        item = create_plan()
+        item = Plan("Personal", 100, "USD", uuid4())
         await uow.plan_repo().add_one(item)
         await uow.commit()
 
@@ -105,7 +108,7 @@ async def test_delete_one():
 async def test_delete_many():
     # Before
     async with container.unit_of_work_factory().create_uow() as uow:
-        items = [create_plan() for _ in range(11)]
+        items = [Plan("Personal", 100, "USD", uuid4()) for _ in range(11)]
         await uow.plan_repo().add_many(items)
         await uow.commit()
 

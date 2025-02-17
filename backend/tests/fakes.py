@@ -9,7 +9,6 @@ from backend.bootstrap import container
 from backend.events import EVENTS
 from backend.shared.event_driven.base_event import Event
 from backend.shared.utils import get_current_datetime
-from backend.subscription.application import subscription_service
 from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.discount import Discount
 from backend.subscription.domain.plan import Plan
@@ -19,7 +18,13 @@ from backend.subscription.domain.usage import Usage
 
 async def save_sub(sub: Subscription) -> None:
     async with container.unit_of_work_factory().create_uow() as uow:
-        await subscription_service.create_subscription(sub, uow)
+        await uow.subscription_repo().add_one(sub)
+        await uow.commit()
+
+
+async def save_plan(plan: Plan) -> None:
+    async with container.unit_of_work_factory().create_uow() as uow:
+        await uow.plan_repo().add_one(plan)
         await uow.commit()
 
 
@@ -44,6 +49,14 @@ def event_handler():
 
     for ev in EVENTS:
         container.eventbus().unsubscribe(ev, handler.handle_event)
+
+
+@pytest_asyncio.fixture()
+async def simple_plan(current_user):
+    user, token, expected_status_code = current_user
+    plan = Plan("Simple", 100, "USD", user.id, Period.Monthly, level=10)
+    await save_plan(plan)
+    yield plan
 
 
 @pytest_asyncio.fixture()

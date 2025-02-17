@@ -1,3 +1,4 @@
+from copy import copy
 from datetime import timedelta
 from typing import Any, Optional, Self
 from uuid import UUID, uuid4
@@ -139,6 +140,9 @@ class Plan:
         instance._created_at = created_at
         instance._updated_at = updated_at
         return instance
+
+    def copy(self):
+        return copy(self)
 
 
 class PlanEventFactory:
