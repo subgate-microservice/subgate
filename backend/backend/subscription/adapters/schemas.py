@@ -305,8 +305,8 @@ class SubscriptionUpdate(MyBase):
 class SubscriptionRetrieve(MyBase):
     id: SubId
     subscriber_id: str
-    plan_info: PlanInfo
-    billing_info: BillingInfo
+    plan_info: PlanInfoSchema
+    billing_info: BillingInfoSchema
     status: SubscriptionStatus
     paused_from: Optional[AwareDatetime]
     autorenew: bool

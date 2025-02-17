@@ -1,4 +1,3 @@
-import dataclasses
 from copy import copy, deepcopy
 from datetime import timedelta
 from enum import StrEnum
@@ -9,7 +8,8 @@ from pydantic import AwareDatetime
 
 from backend.auth.domain.auth_user import AuthId
 from backend.shared.event_driven.base_event import Event
-from backend.shared.item_maanger import ItemManager
+from backend.shared.event_driven.eventable import (Eventable, EventableSet, ItemUpdated, ItemRemoved, ItemAdded,
+                                                   EntityUpdated)
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.discount import Discount
@@ -19,8 +19,7 @@ from backend.subscription.domain.usage import Usage
 SubId = UUID
 
 
-@dataclasses.dataclass()
-class PlanInfo:
+class PlanInfo(Eventable):
     id: PlanId
     title: str
     description: Optional[str]
@@ -28,8 +27,7 @@ class PlanInfo:
     features: Optional[str]
 
 
-@dataclasses.dataclass()
-class BillingInfo:
+class BillingInfo(Eventable):
     price: float
     currency: str
     billing_cycle: Period
@@ -40,153 +38,6 @@ class SubscriptionStatus(StrEnum):
     Active = "active"
     Paused = "paused"
     Expired = "expired"
-
-
-class Subscription:
-    def __init__(
-            self,
-            plan_info: PlanInfo,
-            billing_info: BillingInfo,
-            subscriber_id: str,
-            auth_id: AuthId,
-            autorenew: bool = False,
-            usages: list[Usage] = None,
-            discounts: list[Discount] = None,
-            fields: dict = None,
-            id: SubId = None,
-    ):
-        self._id = id if id else uuid4()
-        self._status = SubscriptionStatus.Active
-        self._paused_from = None
-        self._created_at = get_current_datetime()
-        self._updated_at = self._created_at
-        self._usages = ItemManager(usages, lambda x: x.code)
-        self._discounts = ItemManager(discounts, lambda x: x.code)
-
-        self.plan_info = plan_info
-        self.billing_info = billing_info
-        self.subscriber_id = subscriber_id
-        self.auth_id = auth_id
-        self.fields = fields if fields is not None else {}
-        self.autorenew = autorenew
-
-    @property
-    def id(self):
-        return self._id
-
-    @property
-    def status(self):
-        return self._status
-
-    @property
-    def paused_from(self):
-        return self._paused_from
-
-    @property
-    def created_at(self):
-        return self._created_at
-
-    @property
-    def updated_at(self):
-        return self._updated_at
-
-    @property
-    def usages(self) -> ItemManager[Usage]:
-        return self._usages
-
-    @property
-    def discounts(self) -> ItemManager[Discount]:
-        return self._discounts
-
-    @classmethod
-    def create_unsafe(
-            cls,
-            id: SubId,
-            plan_info: PlanInfo,
-            billing_info: BillingInfo,
-            subscriber_id: str,
-            auth_id: AuthId,
-            status: SubscriptionStatus,
-            paused_from: Optional[AwareDatetime],
-            created_at: AwareDatetime,
-            updated_at: AwareDatetime,
-            autorenew: bool,
-            usages: list[Usage],
-            discounts: list[Discount],
-            fields: dict,
-    ):
-        instance = cls(plan_info, billing_info, subscriber_id, auth_id, autorenew, usages, discounts, fields, id)
-        instance._status = status
-        instance._paused_from = paused_from
-        instance._created_at = created_at
-        instance._updated_at = updated_at
-        return instance
-
-    @classmethod
-    def from_plan(cls, plan: Plan, subscriber_id: str) -> Self:
-        dt = get_current_datetime()
-        plan_info = PlanInfo(id=plan.id, title=plan.title, description=plan.description, level=plan.level,
-                             features=plan.features)
-        billing_info = BillingInfo(price=plan.price, currency=plan.currency, billing_cycle=plan.billing_cycle,
-                                   last_billing=dt)
-        discounts = plan.discounts.get_all().copy()
-        usages = [Usage.from_usage_rate(rate) for rate in plan.usage_rates]
-        return cls(plan_info, billing_info, subscriber_id, plan.auth_id, False, usages, discounts)
-
-    def pause(self) -> None:
-        if self.status == SubscriptionStatus.Paused:
-            return None
-        if self.status == SubscriptionStatus.Expired:
-            raise ValueError("Cannot pause the subscription with 'Expired' status")
-        self._status = SubscriptionStatus.Paused
-        self._paused_from = get_current_datetime()
-
-    def resume(self) -> None:
-        if self.status == SubscriptionStatus.Active:
-            return None
-        if self.status == SubscriptionStatus.Expired:
-            raise ValueError("Cannot resume the subscription with 'Expired' status")
-
-        last_billing = self.billing_info.last_billing
-        if self.status == SubscriptionStatus.Paused:
-            saved_days = get_current_datetime() - self.paused_from
-            last_billing = self.billing_info.last_billing + saved_days
-
-        self._status = SubscriptionStatus.Active
-        self._paused_from = None
-        self.billing_info.last_billing = last_billing
-
-    def renew(self, from_date: AwareDatetime = None) -> None:
-        if self.status == SubscriptionStatus.Paused:
-            raise ValueError("Cannot resume the subscription with 'Paused' status")
-        if from_date is None:
-            from_date = get_current_datetime()
-
-        self._status = SubscriptionStatus.Active
-        self.billing_info.last_billing = from_date
-        self._paused_from = None
-
-    def expire(self) -> None:
-        self._status = SubscriptionStatus.Expired
-
-    @property
-    def days_left(self) -> int:
-        billing_days = self.billing_info.billing_cycle.get_cycle_in_days()
-        if self.status == SubscriptionStatus.Paused:
-            saved_days = (get_current_datetime() - self.paused_from).days
-            return (self.billing_info.last_billing + timedelta(
-                days=saved_days + billing_days) - get_current_datetime()).days
-        days_left = (self.billing_info.last_billing + timedelta(days=billing_days) - get_current_datetime()).days
-        return days_left if days_left > 0 else 0
-
-    @property
-    def expiration_date(self):
-        saved_days = (get_current_datetime() - self.paused_from).days if self.status == SubscriptionStatus.Paused else 0
-        days_delta = saved_days + self.billing_info.billing_cycle.get_cycle_in_days()
-        return self.billing_info.last_billing + timedelta(days=days_delta)
-
-    def copy(self, deep=False) -> Self:
-        return deepcopy(deep) if deep else copy(self)
 
 
 class SubscriptionCreated(Event):
@@ -294,6 +145,291 @@ class SubscriptionUpdated(Event):
     changed_fields: tuple[str, ...]
     auth_id: AuthId
     occurred_at: AwareDatetime
+
+
+class Subscription(Eventable):
+    plan_info: PlanInfo
+    billing_info: BillingInfo
+    subscriber_id: str
+    auth_id: AuthId
+    autorenew: bool
+    fields: dict
+
+    _id: SubId
+    _status: SubscriptionStatus
+    _paused_from: Optional[AwareDatetime]
+    _created_at: AwareDatetime
+    _updated_at: AwareDatetime
+    _usages: EventableSet[Usage]
+    _discounts: EventableSet[Discount]
+
+    def __init__(
+            self,
+            plan_info: PlanInfo,
+            billing_info: BillingInfo,
+            subscriber_id: str,
+            auth_id: AuthId,
+            autorenew: bool = False,
+            usages: list[Usage] = None,
+            discounts: list[Discount] = None,
+            fields: dict = None,
+            id: SubId = None,
+    ):
+        dt = get_current_datetime()
+        data = {
+            "plan_info": plan_info,
+            "billing_info": billing_info,
+            "subscriber_id": subscriber_id,
+            "auth_id": auth_id,
+            "autorenew": autorenew,
+            "fields": fields if fields is not None else {},
+            "_id": id if id else uuid4(),
+            "_status": SubscriptionStatus.Active,
+            "_paused_from": None,
+            "_created_at": dt,
+            "_updated_at": dt,
+            "_usages": EventableSet(usages, lambda x: x.code, True),
+            "_discounts": EventableSet(discounts, lambda x: x.code, True),
+        }
+        super().__init__(**data)
+
+    @property
+    def id(self):
+        return self._id
+
+    @property
+    def status(self):
+        return self._status
+
+    @property
+    def paused_from(self):
+        return self._paused_from
+
+    @property
+    def created_at(self):
+        return self._created_at
+
+    @property
+    def updated_at(self):
+        return self._updated_at
+
+    @property
+    def usages(self) -> EventableSet[Usage]:
+        return self._usages
+
+    @property
+    def discounts(self) -> EventableSet[Discount]:
+        return self._discounts
+
+    @classmethod
+    def create_unsafe(
+            cls,
+            id: SubId,
+            plan_info: PlanInfo,
+            billing_info: BillingInfo,
+            subscriber_id: str,
+            auth_id: AuthId,
+            status: SubscriptionStatus,
+            paused_from: Optional[AwareDatetime],
+            created_at: AwareDatetime,
+            updated_at: AwareDatetime,
+            autorenew: bool,
+            usages: list[Usage],
+            discounts: list[Discount],
+            fields: dict,
+    ):
+        instance = cls(plan_info, billing_info, subscriber_id, auth_id, autorenew, usages, discounts, fields, id)
+        instance.__setuntrack__("_status", status)
+        instance.__setuntrack__("_paused_from", paused_from)
+        instance.__setuntrack__("_created_at", created_at)
+        instance.__setuntrack__("_updated_at", updated_at)
+        return instance
+
+    @classmethod
+    def from_plan(cls, plan: Plan, subscriber_id: str) -> Self:
+        dt = get_current_datetime()
+        plan_info = PlanInfo(id=plan.id, title=plan.title, description=plan.description, level=plan.level,
+                             features=plan.features)
+        billing_info = BillingInfo(price=plan.price, currency=plan.currency, billing_cycle=plan.billing_cycle,
+                                   last_billing=dt)
+        discounts = plan.discounts.get_all().copy()
+        usages = [Usage.from_usage_rate(rate) for rate in plan.usage_rates]
+        return cls(plan_info, billing_info, subscriber_id, plan.auth_id, False, usages, discounts)
+
+    def pause(self) -> None:
+        if self.status == SubscriptionStatus.Paused:
+            return None
+        if self.status == SubscriptionStatus.Expired:
+            raise ValueError("Cannot pause the subscription with 'Expired' status")
+        self._status = SubscriptionStatus.Paused
+        self._paused_from = get_current_datetime()
+        self.push_event(SubscriptionPaused(subscription_id=self.id, paused_from=self.paused_from, auth_id=self.auth_id,
+                                           occurred_at=get_current_datetime()))
+
+    def resume(self) -> None:
+        if self.status == SubscriptionStatus.Active:
+            return None
+        if self.status == SubscriptionStatus.Expired:
+            raise ValueError("Cannot resume the subscription with 'Expired' status")
+
+        last_billing = self.billing_info.last_billing
+        if self.status == SubscriptionStatus.Paused:
+            saved_days = get_current_datetime() - self.paused_from
+            last_billing = self.billing_info.last_billing + saved_days
+
+        self._status = SubscriptionStatus.Active
+        self._paused_from = None
+        self.billing_info.last_billing = last_billing
+
+    def renew(self, from_date: AwareDatetime = None) -> None:
+        if self.status == SubscriptionStatus.Paused:
+            raise ValueError("Cannot resume the subscription with 'Paused' status")
+        if from_date is None:
+            from_date = get_current_datetime()
+
+        self._status = SubscriptionStatus.Active
+        self.billing_info.last_billing = from_date
+        self._paused_from = None
+
+    def expire(self) -> None:
+        self._status = SubscriptionStatus.Expired
+
+    @property
+    def days_left(self) -> int:
+        billing_days = self.billing_info.billing_cycle.get_cycle_in_days()
+        if self.status == SubscriptionStatus.Paused:
+            saved_days = (get_current_datetime() - self.paused_from).days
+            return (self.billing_info.last_billing + timedelta(
+                days=saved_days + billing_days) - get_current_datetime()).days
+        days_left = (self.billing_info.last_billing + timedelta(days=billing_days) - get_current_datetime()).days
+        return days_left if days_left > 0 else 0
+
+    @property
+    def expiration_date(self):
+        saved_days = (get_current_datetime() - self.paused_from).days if self.status == SubscriptionStatus.Paused else 0
+        days_delta = saved_days + self.billing_info.billing_cycle.get_cycle_in_days()
+        return self.billing_info.last_billing + timedelta(days=days_delta)
+
+    def copy(self, deep=False) -> Self:
+        return deepcopy(deep) if deep else copy(self)
+
+    def parse_events(self) -> list[Event]:
+        dt = get_current_datetime()
+        result: list = []
+
+        parsed_events = super().parse_events()
+        updated_fields: set[str] = set()
+
+        for ev in parsed_events:
+            if isinstance(ev, EntityUpdated):
+                if isinstance(ev.entity, Subscription):
+                    for key in ev.updated_fields.keys():
+                        if key[0] == "_":
+                            key = key[1:]
+                        updated_fields.add(key)
+                elif isinstance(ev.entity, Usage):
+                    for key in ev.updated_fields:
+                        updated_fields.add(f"usages.{key}:updated")
+                elif isinstance(ev.entity, Discount):
+                    for key in ev.updated_fields:
+                        updated_fields.add(f"discounts.{key}:updated")
+                elif isinstance(ev.entity, BillingInfo):
+                    for key in ev.updated_fields:
+                        updated_fields.add(f"billing_info.{key}")
+                elif isinstance(ev.entity, PlanInfo):
+                    for key in ev.updated_fields:
+                        updated_fields.add(f"plan_info.{key}")
+            elif isinstance(ev, ItemAdded):
+                if isinstance(ev.item, Usage):
+                    updated_fields.add(f"usages.{ev.item.code}:added")
+                    result.append(
+                        SubscriptionUsageAdded(
+                            subscription_id=self.id,
+                            code=ev.item.code,
+                            unit=ev.item.unit,
+                            available_units=ev.item.available_units,
+                            auth_id=self.auth_id,
+                            occurred_at=dt,
+                        )
+                    )
+                elif isinstance(ev.item, Discount):
+                    updated_fields.add(f"discounts.{ev.item.code}:added")
+                    result.append(
+                        SubscriptionDiscountAdded(
+                            subscription_id=self.id,
+                            title=ev.item.title,
+                            code=ev.item.code,
+                            size=ev.item.size,
+                            valid_until=ev.item.valid_until,
+                            description=ev.item.description,
+                            auth_id=self.auth_id,
+                            occurred_at=dt,
+                        )
+                    )
+                else:
+                    raise TypeError(ev.item.__class__)
+            elif isinstance(ev, ItemUpdated):
+                if isinstance(ev.new_item, Usage):
+                    updated_fields.add(f"usages.{ev.new_item.code}:updated")
+                    result.append(SubscriptionUsageUpdated(
+                        subscription_id=self.id,
+                        title=ev.new_item.title,
+                        code=ev.new_item.code,
+                        unit=ev.new_item.unit,
+                        available_units=ev.new_item.available_units,
+                        used_units=ev.new_item.used_units,
+                        delta=ev.new_item.used_units - ev.old_item.used_units,
+                        auth_id=self.auth_id,
+                        occurred_at=dt,
+                    ))
+                elif isinstance(ev.new_item, Discount):
+                    updated_fields.add(f"usages.{ev.new_item.code}:updated")
+                    result.append(
+                        SubscriptionDiscountUpdated(
+                            subscription_id=self.id,
+                            title=ev.new_item.title,
+                            code=ev.new_item.code,
+                            size=ev.new_item.size,
+                            valid_until=ev.new_item.valid_until,
+                            description=ev.new_item.description,
+                            auth_id=self.auth_id,
+                            occurred_at=dt,
+                        )
+                    )
+                else:
+                    raise TypeError(ev.new_item.__class__)
+            elif isinstance(ev, ItemRemoved):
+                if isinstance(ev.item, Usage):
+                    updated_fields.add(f"usages.{ev.item.code}:removed")
+                    result.append(
+                        SubscriptionUsageRemoved(
+                            subscription_id=self.id,
+                            code=ev.item.code,
+                            auth_id=self.auth_id,
+                            occurred_at=dt,
+                        )
+                    )
+                elif isinstance(ev.item, Discount):
+                    updated_fields.add(f"usages.{ev.item.code}:removed")
+                    result.append(
+                        SubscriptionDiscountRemoved(
+                            subscription_id=self.id,
+                            code=ev.item.code,
+                            auth_id=self.auth_id,
+                            occurred_at=dt,
+                        )
+                    )
+                else:
+                    raise TypeError(ev.item.__class__)
+            else:
+                result.append(ev)
+
+        if updated_fields:
+            result.append(
+                SubscriptionUpdated(subscription_id=self.id, changed_fields=tuple(updated_fields), auth_id=self.auth_id,
+                                    occurred_at=dt)
+            )
+        return result
 
 
 class SubscriptionUpdatesEventGenerator:

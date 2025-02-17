@@ -53,7 +53,7 @@ async def paused_subs(plan, subscriber_ids):
     subs = []
     for subscriber_id in subscriber_ids:
         sub = Subscription.from_plan(plan, subscriber_id)
-        sub._last_billing = get_current_datetime() - timedelta(100)
+        sub.billing_info.last_billing = get_current_datetime() - timedelta(100)
         sub._created_at = get_current_datetime() - timedelta(101)
         sub._paused_from = get_current_datetime() - timedelta(90)
         sub._status = SubscriptionStatus.Paused

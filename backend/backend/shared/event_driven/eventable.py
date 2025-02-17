@@ -1,24 +1,24 @@
-from typing import Any, Callable, Iterable, Hashable
+from typing import Any, Callable, Iterable, Hashable, Union
 
 from backend.shared.event_driven.base_event import Event
 
 
-class FieldUpdated(Event):
+class FieldUpdated[T](Event):
     field: str
-    old_value: Any
-    new_value: Any
+    old_value: T
+    new_value: T
 
 
-class EntityCreated(Event):
-    entity: Any
+class EntityCreated[T](Event):
+    entity: T
 
 
-class EntityDeleted(Event):
-    entity: Any
+class EntityDeleted[T](Event):
+    entity: T
 
 
-class EntityUpdated(Event):
-    entity: Any
+class EntityUpdated[T](Event):
+    entity: T
     updated_fields: dict[str, tuple[Any, Any]]
 
     @classmethod
@@ -30,37 +30,48 @@ class EntityUpdated(Event):
         return cls(entity=entity, updated_fields=updated_fields)
 
 
-class ItemAdded(Event):
-    item: Any
+class ItemAdded[T](Event):
+    item: T
 
 
-class ItemRemoved(Event):
-    item: Any
+class ItemRemoved[T](Event):
+    item: T
 
 
-class ItemReplaced(Event):
-    new_item: Any
-    old_item: Any
+class ItemUpdated[T](Event):
+    new_item: T
+    old_item: T
+
+
+CollectionEvent = Union[ItemAdded, ItemUpdated, ItemRemoved]
 
 
 class EventStore:
     def __init__(self):
         self._field_updated_events: list[FieldUpdated] = []
+        self._collection_events: list[CollectionEvent] = []
         self._other_events: list[Event] = []
 
     @property
     def total_len(self):
-        return len(self._field_updated_events) + len(self._other_events)
+        return len(self._field_updated_events) + len(self._other_events) + len(self._collection_events)
 
     def push_event(self, event: Event):
         if isinstance(event, FieldUpdated):
             self._field_updated_events.append(event)
+        elif isinstance(event, CollectionEvent):
+            self._collection_events.append(event)
         else:
             self._other_events.append(event)
 
     def parse_field_updated_events(self) -> list[FieldUpdated]:
         events = self._field_updated_events
         self._field_updated_events = []
+        return events
+
+    def parse_collection_events(self) -> list[CollectionEvent]:
+        events = self._collection_events
+        self._collection_events = []
         return events
 
     def parse_other_events(self) -> list[Event]:
@@ -100,22 +111,24 @@ class EventNode:
             child.traverse(callback)
 
 
-class Field:
+class Property:
     def __init__(self, default_factory: Callable[[], Any] = None):
         self.default_factory = default_factory
 
 
-UNTRACKABLE = {"_event_node"}
+UNTRACKABLE = {"_event_node", "_track_flag"}
 
 
 class Eventable:
+    _track_flag = False
+
     def __init__(self, **kwargs):
         self._event_node = EventNode()
 
         for field in self.__class__.__annotations__:
             if field not in kwargs:
                 default_value = self.__getattribute__(field)
-                if isinstance(default_value, Field):
+                if isinstance(default_value, Property):
                     if default_value.default_factory:
                         default_value = default_value.default_factory()
                 value = default_value
@@ -125,6 +138,8 @@ class Eventable:
 
             if isinstance(value, Eventable):
                 self._event_node.add_child(value._event_node)
+
+        self._start_tracking()
 
     def push_event(self, event: Event) -> None:
         self._event_node.event_store.push_event(event)
@@ -139,6 +154,7 @@ class Eventable:
                     EntityUpdated.from_field_updates(self, field_updated_events)
                 )
             events.extend(node.event_store.parse_other_events())
+            events.extend(node.event_store.parse_collection_events())
             assert node.event_store.total_len == 0
 
         self.get_event_node().traverse(callback)
@@ -147,6 +163,12 @@ class Eventable:
     def get_event_node(self) -> EventNode:
         return self._event_node
 
+    def _stop_tracking(self):
+        self._track_flag = False
+
+    def _start_tracking(self):
+        self._track_flag = True
+
     def __str__(self):
         return f"{self.__class__.__name__}"
 
@@ -154,16 +176,22 @@ class Eventable:
         return self.__str__()
 
     def __setattr__(self, key, value):
-        if key not in UNTRACKABLE:
+        if self._track_flag and key not in UNTRACKABLE:
             old_value = self.__getattribute__(key)
-            print(f"track: {key} => {value}")
             self.get_event_node().event_store.push_event(
                 FieldUpdated(field=key, old_value=old_value, new_value=value)
             )
         super().__setattr__(key, value)
 
+    def __setuntrack__(self, key, value):
+        super().__setattr__(key, value)
+
 
 class EventableSet[T](Eventable):
+    _items: dict[Hashable, T] = None
+    _key: Callable[[T], Hashable] = None
+    _prevent_duplicates: bool = None
+
     def __init__(
             self,
             items: Iterable[T] = None,
@@ -171,15 +199,21 @@ class EventableSet[T](Eventable):
             prevent_duplicates=False,
     ):
         super().__init__()
-        self._items: dict[Hashable, T] = {}
-        self._key = key
-        self._prevent_duplicates = prevent_duplicates
+        items = items or []
+        d = {}
 
-        if items:
-            for item in items:
-                self.add(item)
+        for item in items:
+            d[key(item)] = item
+            if isinstance(item, Eventable):
+                self.get_event_node().add_child(item.get_event_node())
 
-        self.parse_events()
+        self.__setuntrack__("_items", d)
+        self.__setuntrack__("_key", key)
+        self.__setuntrack__("_prevent_duplicates", prevent_duplicates)
+
+        if prevent_duplicates:
+            if len(self._items) < len(items):
+                raise ValueError
 
     def get(self, key: Hashable) -> T:
         return self._items[key]
@@ -189,10 +223,10 @@ class EventableSet[T](Eventable):
 
     def add(self, value: T):
         key = self._key(value)
-        if self._prevent_duplicates and key in self._items:
+        if key in self._items and self._prevent_duplicates:
             raise ValueError(key)
 
-        event_class = ItemReplaced if key in self._items else ItemAdded
+        event_class = ItemUpdated if key in self._items else ItemAdded
 
         self._items[key] = value
         self.push_event(event_class(item=value))
@@ -219,7 +253,7 @@ class EventableSet[T](Eventable):
 
         # Вставляем новый объект
         self._items[key] = item
-        self.push_event(ItemReplaced(old_item=removed, new_item=item))
+        self.push_event(ItemUpdated(old_item=removed, new_item=item))
         if isinstance(item, Eventable):
             self.get_event_node().add_child(item.get_event_node())
 

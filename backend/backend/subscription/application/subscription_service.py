@@ -1,3 +1,5 @@
+from loguru import logger
+
 from backend.shared.unit_of_work.uow import UnitOfWork
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.discount import Discount
@@ -38,6 +40,13 @@ async def create_subscription(item: Subscription, uow: UnitOfWork) -> None:
 async def update_subscription(old_sub: Subscription, new_sub: Subscription, uow: UnitOfWork) -> None:
     await uow.subscription_repo().update_one(new_sub)
     events = SubscriptionUpdatesEventGenerator(old_sub, new_sub).generate_events()
+    for ev in events:
+        uow.push_event(ev)
+
+
+async def update_subscription_new(target: Subscription, uow: UnitOfWork) -> None:
+    await uow.subscription_repo().update_one(target)
+    events = target.parse_events()
     for ev in events:
         uow.push_event(ev)
 

@@ -8,7 +8,7 @@ from pydantic import Field, AwareDatetime
 from backend.auth.domain.auth_user import AuthId
 from backend.shared.base_models import MyBase
 from backend.shared.event_driven.base_event import Event
-from backend.shared.item_maanger import ItemManager
+from backend.shared.event_driven.eventable import Eventable, EventableSet
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.discount import Discount
@@ -64,7 +64,22 @@ class PlanUpdated(Event):
     auth_id: AuthId
 
 
-class Plan:
+class Plan(Eventable):
+    title: str
+    price: float
+    currency: str
+    auth_id: AuthId
+    billing_cycle: Period = Period.Monthly
+    description: Optional[str]
+    level: int = 10
+    features: Optional[str]
+    fields: dict
+    _id: PlanId
+    _usage_rates: EventableSet[UsageRate]
+    _discounts: EventableSet[Discount]
+    _created_at: AwareDatetime
+    _updated_at: AwareDatetime
+
     def __init__(
             self,
             title: str,
@@ -80,32 +95,35 @@ class Plan:
             fields: dict = None,
             id: PlanId = None,
     ):
-        self.title = title
-        self.price = price
-        self.currency = currency
-        self.billing_cycle = billing_cycle
-        self.description = description
-        self.level = level
-        self.features = features
-        self.fields = fields if fields is not None else {}
-        self.auth_id = auth_id
-
-        self._id = id if id else uuid4()
-        self._usage_rates = ItemManager(usage_rates, lambda x: x.code)
-        self._discounts = ItemManager(discounts, lambda x: x.code)
-        self._created_at = get_current_datetime()
-        self._updated_at = self.created_at
+        dt = get_current_datetime()
+        data = {
+            "title": title,
+            "price": price,
+            "currency": currency,
+            "auth_id": auth_id,
+            "billing_cycle": billing_cycle,
+            "description": description,
+            "level": level,
+            "features": features,
+            "fields": fields if fields is not None else {},
+            "_id": id if id else uuid4(),
+            "_usage_rates": EventableSet(usage_rates, lambda x: x.code, True),
+            "_discounts": EventableSet(discounts, lambda x: x.code, True),
+            "_created_at": dt,
+            "_updated_at": dt,
+        }
+        super().__init__(**data)
 
     @property
     def id(self):
         return self._id
 
     @property
-    def usage_rates(self) -> ItemManager[UsageRate]:
+    def usage_rates(self) -> EventableSet[UsageRate]:
         return self._usage_rates
 
     @property
-    def discounts(self) -> ItemManager[Discount]:
+    def discounts(self) -> EventableSet[Discount]:
         return self._discounts
 
     @property

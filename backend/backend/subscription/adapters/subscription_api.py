@@ -8,7 +8,7 @@ from backend.bootstrap import Bootstrap, get_container, auth_closure
 from backend.shared.permission_service import PermissionService
 from backend.subscription.adapters.schemas import (
     SubscriptionCreate, SubscriptionUpdate, SubscriptionRetrieve,
-    UsageSchema, PlanInfoSchema)
+    UsageSchema, PlanInfoSchema, DiscountSchema)
 from backend.subscription.application import subscription_service as services
 from backend.subscription.application.subscription_service import SubscriptionPartialUpdateService
 from backend.subscription.domain.subscription import (
@@ -182,7 +182,9 @@ async def add_usages(
     async with container.unit_of_work_factory().create_uow() as uow:
         target_sub = await uow.subscription_repo().get_one_by_id(sub_id)
         for usage in usages:
-            await services.add_usage(target_sub, usage.to_usage(), uow)
+            target_sub.usages.add(usage.to_usage())
+            await services.update_subscription_new(target_sub, uow)
+        await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
     return "Ok"
 
@@ -197,7 +199,9 @@ async def remove_usages(
     async with container.unit_of_work_factory().create_uow() as uow:
         target_sub = await uow.subscription_repo().get_one_by_id(sub_id)
         for code in codes:
-            await services.remove_usage(target_sub, code, uow)
+            target_sub.usages.remove(code)
+            await services.update_subscription_new(target_sub, uow)
+        await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
         return "Ok"
 
@@ -212,7 +216,9 @@ async def update_usages(
     async with container.unit_of_work_factory().create_uow() as uow:
         target_sub = await uow.subscription_repo().get_one_by_id(sub_id)
         for usage in usages:
-            await services.update_usage(target_sub, usage.to_usage(), uow)
+            target_sub.usages.update(usage.to_usage())
+            await services.update_subscription_new(target_sub, uow)
+        await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
     return "Ok"
 
@@ -235,11 +241,9 @@ async def pause_subscription(
 ):
     async with container.unit_of_work_factory().create_uow() as uow:
         target_sub = await uow.subscription_repo().get_one_by_id(sub_id)
-        subclient = container.subscription_client()
-        await PermissionService(subclient).check_auth_user_can_update(target_sub, auth_user)
-        service = SubscriptionPartialUpdateService(container.eventbus(), uow)
-        await service.pause_sub(target_sub)
-        await service.send_events()
+        target_sub.pause()
+        await services.update_subscription_new(target_sub, uow)
+        await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
     return "Ok"
 
@@ -275,5 +279,22 @@ async def renew_subscription(
         service = SubscriptionPartialUpdateService(container.eventbus(), uow)
         await service.renew_sub(target_sub, from_date)
         await service.send_events()
+        await uow.commit()
+    return "Ok"
+
+
+@subscription_router.patch("/{sub_id}/add-discounts")
+async def add_discounts(
+        sub_id: SubId,
+        discounts: list[DiscountSchema],
+        auth_user: AuthUser = Depends(auth_closure),
+        container: Bootstrap = Depends(get_container),
+):
+    async with container.unit_of_work_factory().create_uow() as uow:
+        target_sub = await uow.subscription_repo().get_one_by_id(sub_id)
+        for disc in discounts:
+            target_sub.discounts.add(disc.to_discount())
+            await services.update_subscription_new(target_sub, uow)
+        await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
     return "Ok"

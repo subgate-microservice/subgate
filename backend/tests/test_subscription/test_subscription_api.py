@@ -1,12 +1,20 @@
+import pytest
+
 from backend.bootstrap import get_container
-from backend.subscription.adapters.schemas import SubscriptionCreate, SubscriptionUpdate
+from backend.shared.utils import get_current_datetime
+from backend.subscription.adapters.schemas import SubscriptionCreate, SubscriptionUpdate, UsageSchema, DiscountSchema
+from backend.subscription.domain.cycle import Period
+from backend.subscription.domain.discount import Discount
+from backend.subscription.domain.plan import Plan
 from backend.subscription.domain.subscription import (
     SubscriptionPaused, SubscriptionUpdated, SubscriptionUsageAdded, SubscriptionResumed,
     SubscriptionUsageUpdated, SubscriptionUsageRemoved, SubscriptionDiscountUpdated, SubscriptionDiscountAdded,
-    SubscriptionDiscountRemoved, SubscriptionStatus, SubscriptionRenewed,
+    SubscriptionDiscountRemoved, SubscriptionStatus, SubscriptionRenewed, Subscription,
 )
+from backend.subscription.domain.usage import Usage
 from tests.conftest import current_user, get_async_client
-from tests.fakes import *
+from tests.fakes import (event_handler, simple_sub, paused_sub, expired_sub, sub_with_discounts, sub_with_usages,
+                         sub_with_fields)
 
 container = get_container()
 
@@ -368,3 +376,101 @@ class TestOtherFieldsManagement:
             sub_updated = event_handler.get(SubscriptionUpdated)
             assert sub_updated is not None
             assert set(sub_updated.changed_fields) == {"subscriber_id"}
+
+
+class TestSpecificAPI:
+    @pytest.mark.asyncio
+    async def test_pause_endpoint(self, current_user, simple_sub, event_handler):
+        user, token, expected_status_code = current_user
+        headers = {"Authorization": f"Bearer {token}"}
+
+        async with get_async_client() as client:
+            response = await client.patch(f"/subscription/{simple_sub.id}/pause", headers=headers)
+            assert response.status_code == expected_status_code
+
+        # Check events
+        if response.status_code < 400:
+            assert len(event_handler.events) == 2
+            sub_updated, sub_paused = event_handler.get(SubscriptionUpdated), event_handler.get(SubscriptionPaused)
+            assert sub_updated is not None
+            assert set(sub_updated.changed_fields) == {"status", "paused_from"}
+
+    @pytest.mark.asyncio
+    async def test_add_usages_endpoint(self, current_user, simple_sub, event_handler):
+        user, token, expected_status_code = current_user
+        headers = {"Authorization": f"Bearer {token}"}
+
+        usages = [Usage("First", "first", "GB", 111, Period.Monthly)]
+
+        async with get_async_client() as client:
+            payload = [UsageSchema.from_usage(x).model_dump(mode="json") for x in usages]
+            response = await client.patch(f"/subscription/{simple_sub.id}/add-usages", headers=headers, json=payload)
+            assert response.status_code == expected_status_code
+
+        # Check events
+        if response.status_code < 400:
+            assert len(event_handler.events) == 2
+            sub_updated, u_added = event_handler.get(SubscriptionUpdated), event_handler.get(SubscriptionUsageAdded)
+            assert sub_updated is not None
+            assert set(sub_updated.changed_fields) == {"usages.first:added"}
+
+    @pytest.mark.asyncio
+    async def test_update_usages_endpoint(self, current_user, sub_with_usages, event_handler):
+        user, token, expected_status_code = current_user
+        headers = {"Authorization": f"Bearer {token}"}
+
+        updated = next(x for x in sub_with_usages.usages)
+        updated.increase(150)
+
+        async with get_async_client() as client:
+            payload = [UsageSchema.from_usage(updated).model_dump(mode="json")]
+            response = await client.patch(f"/subscription/{sub_with_usages.id}/update-usages", headers=headers,
+                                          json=payload)
+            assert response.status_code == expected_status_code
+
+        # Check events
+        if response.status_code < 400:
+            assert len(event_handler.events) == 2
+            sub_updated, u_updated = event_handler.get(SubscriptionUpdated), event_handler.get(SubscriptionUsageUpdated)
+            assert sub_updated is not None
+            assert set(sub_updated.changed_fields) == {f"usages.{updated.code}:updated"}
+
+    @pytest.mark.asyncio
+    async def test_remove_usages_endpoint(self, current_user, sub_with_usages, event_handler):
+        user, token, expected_status_code = current_user
+        headers = {"Authorization": f"Bearer {token}"}
+
+        remove_code = next(x for x in sub_with_usages.usages).code
+
+        async with get_async_client() as client:
+            payload = [remove_code]
+            response = await client.patch(f"/subscription/{sub_with_usages.id}/remove-usages", headers=headers,
+                                          json=payload)
+            assert response.status_code == expected_status_code
+
+        # Check events
+        if response.status_code < 400:
+            assert len(event_handler.events) == 2
+            sub_updated, u_removed = event_handler.get(SubscriptionUpdated), event_handler.get(SubscriptionUsageRemoved)
+            assert sub_updated is not None
+            assert set(sub_updated.changed_fields) == {f"usages.{remove_code}:removed"}
+
+    @pytest.mark.asyncio
+    async def test_add_discounts_endpoint(self, current_user, simple_sub, event_handler):
+        user, token, expected_status_code = current_user
+        headers = {"Authorization": f"Bearer {token}"}
+
+        discounts = [Discount("First", "first", "Hello", 0.5, get_current_datetime())]
+
+        async with get_async_client() as client:
+            payload = [DiscountSchema.from_discount(x).model_dump(mode="json") for x in discounts]
+            response = await client.patch(f"/subscription/{simple_sub.id}/add-discounts", headers=headers,
+                                          json=payload)
+            assert response.status_code == expected_status_code
+
+        # Check events
+        if response.status_code < 400:
+            assert len(event_handler.events) == 2
+            sub_updated, d_added = event_handler.get(SubscriptionUpdated), event_handler.get(SubscriptionDiscountAdded)
+            assert sub_updated is not None
+            assert set(sub_updated.changed_fields) == {f"discounts.{discounts[0].code}:added"}

@@ -1,24 +1,25 @@
-import dataclasses
 from datetime import timedelta
 from typing import Self
 
 from pydantic import AwareDatetime
 
+from backend.shared.event_driven.eventable import Eventable
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.cycle import Period
 
 
-@dataclasses.dataclass
-class UsageRate:
+class UsageRate(Eventable):
     title: str
     code: str
     unit: str
     available_units: float
     renew_cycle: Period
 
+    def __init__(self, title: str, code: str, unit: str, available_units: float, renew_cycle: Period):
+        super().__init__(title=title, code=code, unit=unit, available_units=available_units, renew_cycle=renew_cycle)
 
-@dataclasses.dataclass
-class Usage:
+
+class Usage(Eventable):
     title: str
     code: str
     unit: str
@@ -26,6 +27,12 @@ class Usage:
     renew_cycle: Period
     used_units: float
     last_renew: AwareDatetime
+
+    def __init__(self, title: str, code: str, unit: str, available_units: float, renew_cycle: Period,
+                 used_units: float = 0, last_renew: AwareDatetime = None):
+        last_renew = last_renew if last_renew else get_current_datetime()
+        super().__init__(title=title, code=code, unit=unit, available_units=available_units, used_units=used_units,
+                         last_renew=last_renew, renew_cycle=renew_cycle)
 
     @classmethod
     def from_usage_rate(cls, usage_rate: UsageRate) -> Self:
