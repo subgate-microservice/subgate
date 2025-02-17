@@ -314,122 +314,114 @@ class Subscription(Eventable):
         return deepcopy(deep) if deep else copy(self)
 
     def parse_events(self) -> list[Event]:
-        dt = get_current_datetime()
-        result: list = []
+        events = super().parse_events()
+        parser = SubscriptionEventParser(self)
+        return parser.parse(events)
 
-        parsed_events = super().parse_events()
-        updated_fields: set[str] = set()
 
-        for ev in parsed_events:
-            if isinstance(ev, EntityUpdated):
-                if isinstance(ev.entity, Subscription):
-                    for key in ev.updated_fields.keys():
-                        if key[0] == "_":
-                            key = key[1:]
-                        updated_fields.add(key)
-                elif isinstance(ev.entity, Usage):
-                    for key in ev.updated_fields:
-                        updated_fields.add(f"usages.{key}:updated")
-                elif isinstance(ev.entity, Discount):
-                    for key in ev.updated_fields:
-                        updated_fields.add(f"discounts.{key}:updated")
-                elif isinstance(ev.entity, BillingInfo):
-                    for key in ev.updated_fields:
-                        updated_fields.add(f"billing_info.{key}")
-                elif isinstance(ev.entity, PlanInfo):
-                    for key in ev.updated_fields:
-                        updated_fields.add(f"plan_info.{key}")
-            elif isinstance(ev, ItemAdded):
-                if isinstance(ev.item, Usage):
-                    updated_fields.add(f"usages.{ev.item.code}:added")
-                    result.append(
-                        SubscriptionUsageAdded(
-                            subscription_id=self.id,
-                            code=ev.item.code,
-                            unit=ev.item.unit,
-                            available_units=ev.item.available_units,
-                            auth_id=self.auth_id,
-                            occurred_at=dt,
-                        )
-                    )
-                elif isinstance(ev.item, Discount):
-                    updated_fields.add(f"discounts.{ev.item.code}:added")
-                    result.append(
-                        SubscriptionDiscountAdded(
-                            subscription_id=self.id,
-                            title=ev.item.title,
-                            code=ev.item.code,
-                            size=ev.item.size,
-                            valid_until=ev.item.valid_until,
-                            description=ev.item.description,
-                            auth_id=self.auth_id,
-                            occurred_at=dt,
-                        )
-                    )
-                else:
-                    raise TypeError(ev.item.__class__)
-            elif isinstance(ev, ItemUpdated):
-                if isinstance(ev.new_item, Usage):
-                    updated_fields.add(f"usages.{ev.new_item.code}:updated")
-                    result.append(SubscriptionUsageUpdated(
-                        subscription_id=self.id,
-                        title=ev.new_item.title,
-                        code=ev.new_item.code,
-                        unit=ev.new_item.unit,
-                        available_units=ev.new_item.available_units,
-                        used_units=ev.new_item.used_units,
-                        delta=ev.new_item.used_units - ev.old_item.used_units,
-                        auth_id=self.auth_id,
-                        occurred_at=dt,
-                    ))
-                elif isinstance(ev.new_item, Discount):
-                    updated_fields.add(f"usages.{ev.new_item.code}:updated")
-                    result.append(
-                        SubscriptionDiscountUpdated(
-                            subscription_id=self.id,
-                            title=ev.new_item.title,
-                            code=ev.new_item.code,
-                            size=ev.new_item.size,
-                            valid_until=ev.new_item.valid_until,
-                            description=ev.new_item.description,
-                            auth_id=self.auth_id,
-                            occurred_at=dt,
-                        )
-                    )
-                else:
-                    raise TypeError(ev.new_item.__class__)
-            elif isinstance(ev, ItemRemoved):
-                if isinstance(ev.item, Usage):
-                    updated_fields.add(f"usages.{ev.item.code}:removed")
-                    result.append(
-                        SubscriptionUsageRemoved(
-                            subscription_id=self.id,
-                            code=ev.item.code,
-                            auth_id=self.auth_id,
-                            occurred_at=dt,
-                        )
-                    )
-                elif isinstance(ev.item, Discount):
-                    updated_fields.add(f"usages.{ev.item.code}:removed")
-                    result.append(
-                        SubscriptionDiscountRemoved(
-                            subscription_id=self.id,
-                            code=ev.item.code,
-                            auth_id=self.auth_id,
-                            occurred_at=dt,
-                        )
-                    )
-                else:
-                    raise TypeError(ev.item.__class__)
-            else:
-                result.append(ev)
+class SubscriptionEventParser:
+    def __init__(self, subscription: Subscription):
+        self.subscription = subscription
+        self.updated_fields = set()
+        self.result = []
+        self.dt = get_current_datetime()
 
-        if updated_fields:
-            result.append(
-                SubscriptionUpdated(subscription_id=self.id, changed_fields=tuple(updated_fields), auth_id=self.auth_id,
-                                    occurred_at=dt)
+    def parse(self, events: list[Event]) -> list[Event]:
+        for event in events:
+            self._handle_event(event)
+
+        if self.updated_fields:
+            self.result.append(
+                SubscriptionUpdated(
+                    subscription_id=self.subscription.id,
+                    changed_fields=tuple(self.updated_fields),
+                    auth_id=self.subscription.auth_id,
+                    occurred_at=self.dt
+                )
             )
-        return result
+        return self.result
+
+    def _handle_event(self, event):
+        event_handlers = {
+            EntityUpdated: self._handle_entity_updated,
+            ItemAdded: self._handle_item_added,
+            ItemUpdated: self._handle_item_updated,
+            ItemRemoved: self._handle_item_removed
+        }
+
+        handler = event_handlers.get(type(event))
+        if handler:
+            handler(event)
+        else:
+            self.result.append(event)
+
+    def _handle_entity_updated(self, event: Event):
+        entity_field_map = {
+            Subscription: "",
+            Usage: "usages.{key}:updated",
+            Discount: "discounts.{key}:updated",
+            BillingInfo: "billing_info.{key}",
+            PlanInfo: "plan_info.{key}"
+        }
+
+        for key in event.updated_fields.keys():
+            key = key.lstrip("_")
+            field_template = entity_field_map.get(type(event.entity))
+            if field_template:
+                self.updated_fields.add(field_template.format(key=key))
+
+    def _handle_item_added(self, event):
+        if isinstance(event.item, Usage):
+            self.updated_fields.add(f"usages.{event.item.code}:added")
+            self.result.append(
+                SubscriptionUsageAdded(
+                    subscription_id=self.subscription.id, code=event.item.code, unit=event.item.unit,
+                    available_units=event.item.available_units, auth_id=self.subscription.auth_id, occurred_at=self.dt)
+            )
+        elif isinstance(event.item, Discount):
+            self.updated_fields.add(f"discounts.{event.item.code}:added")
+            self.result.append(
+                SubscriptionDiscountAdded(
+                    subscription_id=self.subscription.id, title=event.item.title, code=event.item.code,
+                    size=event.item.size, valid_until=event.item.valid_until, description=event.item.description,
+                    auth_id=self.subscription.auth_id, occurred_at=self.dt)
+            )
+
+    def _handle_item_updated(self, event):
+        if isinstance(event.new_item, Usage):
+            self.updated_fields.add(f"usages.{event.new_item.code}:updated")
+            self.result.append(
+                SubscriptionUsageUpdated(
+                    subscription_id=self.subscription.id, title=event.new_item.title, code=event.new_item.code,
+                    unit=event.new_item.unit, available_units=event.new_item.available_units,
+                    used_units=event.new_item.used_units,
+                    delta=event.new_item.used_units - event.old_item.used_units,
+                    auth_id=self.subscription.auth_id, occurred_at=self.dt)
+            )
+        elif isinstance(event.new_item, Discount):
+            self.updated_fields.add(f"discounts.{event.new_item.code}:updated")
+            self.result.append(
+                SubscriptionDiscountUpdated(
+                    subscription_id=self.subscription.id, title=event.new_item.title, code=event.new_item.code,
+                    size=event.new_item.size, valid_until=event.new_item.valid_until,
+                    description=event.new_item.description, auth_id=self.subscription.auth_id, occurred_at=self.dt)
+            )
+
+    def _handle_item_removed(self, event):
+        if isinstance(event.item, Usage):
+            self.updated_fields.add(f"usages.{event.item.code}:removed")
+            self.result.append(
+                SubscriptionUsageRemoved(
+                    subscription_id=self.subscription.id, code=event.item.code, auth_id=self.subscription.auth_id,
+                    occurred_at=self.dt)
+            )
+        elif isinstance(event.item, Discount):
+            self.updated_fields.add(f"discounts.{event.item.code}:removed")
+            self.result.append(
+                SubscriptionDiscountRemoved(
+                    subscription_id=self.subscription.id, code=event.item.code, auth_id=self.subscription.auth_id,
+                    occurred_at=self.dt)
+            )
 
 
 class SubscriptionUpdatesEventGenerator:
