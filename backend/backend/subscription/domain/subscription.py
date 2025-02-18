@@ -4,7 +4,6 @@ from enum import StrEnum
 from typing import Optional, Self, Callable
 from uuid import UUID, uuid4
 
-from loguru import logger
 from pydantic import AwareDatetime
 
 from backend.auth.domain.auth_user import AuthId
@@ -157,8 +156,9 @@ class Subscription(Eventable):
             raise ValueError("Cannot pause the subscription with 'Expired' status")
         self._status = SubscriptionStatus.Paused
         self._paused_from = get_current_datetime()
-        self.push_event(SubscriptionPaused(subscription_id=self.id, paused_from=self.paused_from, auth_id=self.auth_id,
-                                           occurred_at=get_current_datetime()))
+        self.push_event(
+            SubscriptionPaused(subscription_id=self.id, paused_from=self.paused_from, auth_id=self.auth_id)
+        )
 
     def resume(self) -> None:
         if self.status == SubscriptionStatus.Active:
@@ -175,9 +175,13 @@ class Subscription(Eventable):
         self._paused_from = None
         self.billing_info.last_billing = last_billing
 
+        self.push_event(
+            SubscriptionResumed(subscription_id=self.id, auth_id=self.auth_id)
+        )
+
     def renew(self, from_date: AwareDatetime = None) -> None:
-        if self.status == SubscriptionStatus.Paused:
-            raise ValueError("Cannot resume the subscription with 'Paused' status")
+        if self.status != SubscriptionStatus.Expired:
+            raise ValueError(f"Cannot resume the subscription with {self.status} status")
         if from_date is None:
             from_date = get_current_datetime()
 
@@ -185,8 +189,15 @@ class Subscription(Eventable):
         self.billing_info.last_billing = from_date
         self._paused_from = None
 
+        self.push_event(
+            SubscriptionRenewed(subscription_id=self.id, auth_id=self.auth_id, last_billing=from_date)
+        )
+
     def expire(self) -> None:
         self._status = SubscriptionStatus.Expired
+        self.push_event(
+            SubscriptionExpired(subscription_id=self.id, auth_id=self.auth_id)
+        )
 
     @property
     def days_left(self) -> int:

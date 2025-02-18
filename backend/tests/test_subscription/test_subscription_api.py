@@ -112,18 +112,6 @@ class TestStatusManagement:
             assert set(sub_updated.changed_fields) == {"paused_from", "status"}
 
     @pytest.mark.asyncio
-    async def test_renew_active_subscription(self, current_user, simple_sub, event_handler):
-        user, token, expected_status_code = current_user
-        headers = get_headers(current_user)
-
-        simple_sub.renew()
-        await full_update_sub_request(simple_sub, headers, expected_status_code)
-
-        # Check events
-        if expected_status_code < 400:
-            assert len(event_handler.events) == 2
-
-    @pytest.mark.asyncio
     async def test_renew_paused_subscription(self, current_user, paused_sub, event_handler):
         # Important!
         # Renew paused subscription is the same that resume paused subscription
