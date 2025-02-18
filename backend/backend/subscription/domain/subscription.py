@@ -4,10 +4,12 @@ from enum import StrEnum
 from typing import Optional, Self, Callable
 from uuid import UUID, uuid4
 
+from loguru import logger
 from pydantic import AwareDatetime
 
 from backend.auth.domain.auth_user import AuthId
-from backend.shared.event_driven.base_event import (Event, EntityUpdated, ItemAdded, ItemRemoved, ItemUpdated)
+from backend.shared.event_driven.base_event import (Event, ItemAdded, ItemRemoved, ItemUpdated,
+                                                    FieldUpdated)
 from backend.shared.event_driven.eventable import (Eventable, EventableSet)
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.cycle import Period
@@ -50,10 +52,10 @@ class Subscription(Eventable):
     _id: SubId
     _status: SubscriptionStatus
     _paused_from: Optional[AwareDatetime]
+    _discounts: EventableSet[Discount]
+    _usages: EventableSet[Usage]
     _created_at: AwareDatetime
     _updated_at: AwareDatetime
-    _usages: EventableSet[Usage]
-    _discounts: EventableSet[Discount]
 
     def __init__(
             self,
@@ -235,7 +237,7 @@ class SubscriptionEventParser:
 
     def _handle_event(self, event):
         event_handlers = {
-            EntityUpdated: self._handle_entity_updated,
+            FieldUpdated: self._handle_field_updated,
             ItemAdded: self._handle_item_added,
             ItemUpdated: self._handle_item_updated,
             ItemRemoved: self._handle_item_removed
@@ -247,7 +249,7 @@ class SubscriptionEventParser:
         else:
             self.result.append(event)
 
-    def _handle_entity_updated(self, event: Event):
+    def _handle_field_updated(self, event: FieldUpdated):
         entity_field_map = {
             Subscription: "",
             Usage: "usages.{key}:updated",
@@ -256,11 +258,13 @@ class SubscriptionEventParser:
             PlanInfo: "plan_info.{key}"
         }
 
-        for key in event.updated_fields.keys():
-            key = key.lstrip("_")
-            field_template = entity_field_map.get(type(event.entity))
-            if field_template:
-                self.updated_fields.add(field_template.format(key=key))
+        key = event.field.lstrip("_")
+        entity_type = type(event.entity)
+        try:
+            field_template = entity_field_map[entity_type]
+            self.updated_fields.add(field_template.format(key=key))
+        except KeyError:
+            raise TypeError(entity_type)
 
     def _handle_item_added(self, event):
         if isinstance(event.item, Usage):
