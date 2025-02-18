@@ -7,7 +7,7 @@ from uuid import uuid4
 from pydantic import AwareDatetime
 
 from backend.auth.domain.auth_user import AuthId
-from backend.shared.event_driven.eventable import (Eventable, EventableSet)
+from backend.shared.event_driven.eventable import (Eventable, EventableSet, Property)
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.discount import Discount
@@ -46,14 +46,14 @@ class Subscription(Eventable):
     auth_id: AuthId
     autorenew: bool
     fields: dict
+    id: SubId = Property(frozen=True)
+    discounts: EventableSet[Discount] = Property(frozen=True)
+    usages: EventableSet[Usage] = Property(frozen=True)
+    created_at: AwareDatetime = Property(frozen=True)
+    updated_at: AwareDatetime = Property(frozen=True)
 
-    _id: SubId
     _status: SubscriptionStatus
     _paused_from: Optional[AwareDatetime]
-    _discounts: EventableSet[Discount]
-    _usages: EventableSet[Usage]
-    _created_at: AwareDatetime
-    _updated_at: AwareDatetime
 
     def __init__(
             self,
@@ -75,19 +75,15 @@ class Subscription(Eventable):
             "auth_id": auth_id,
             "autorenew": autorenew,
             "fields": fields if fields is not None else {},
-            "_id": id if id else uuid4(),
+            "id": id if id else uuid4(),
             "_status": SubscriptionStatus.Active,
             "_paused_from": None,
-            "_created_at": dt,
-            "_updated_at": dt,
-            "_usages": EventableSet(usages, lambda x: x.code, True),
-            "_discounts": EventableSet(discounts, lambda x: x.code, True),
+            "created_at": dt,
+            "updated_at": dt,
+            "usages": EventableSet(usages, lambda x: x.code, True),
+            "discounts": EventableSet(discounts, lambda x: x.code, True),
         }
         super().__init__(**data)
-
-    @property
-    def id(self):
-        return self._id
 
     @property
     def status(self):
@@ -96,22 +92,6 @@ class Subscription(Eventable):
     @property
     def paused_from(self):
         return self._paused_from
-
-    @property
-    def created_at(self):
-        return self._created_at
-
-    @property
-    def updated_at(self):
-        return self._updated_at
-
-    @property
-    def usages(self) -> EventableSet[Usage]:
-        return self._usages
-
-    @property
-    def discounts(self) -> EventableSet[Discount]:
-        return self._discounts
 
     @classmethod
     def create_unsafe(

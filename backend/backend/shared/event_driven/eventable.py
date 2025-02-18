@@ -1,4 +1,4 @@
-from typing import Any, Callable, Iterable, Hashable, Optional, Self
+from typing import Callable, Iterable, Hashable, Optional, Self
 
 from backend.shared.event_driven.base_event import (
     Event, FieldUpdated, ItemAdded, ItemRemoved, ItemUpdated
@@ -25,8 +25,22 @@ class EventStore:
 
 
 class Property:
-    def __init__(self, default_factory: Callable[[], Any] = None):
-        self.default_factory = default_factory
+    def __init__(self, frozen=False):
+        self.frozen = frozen
+        self.private_name = None
+
+    def __set_name__(self, owner, name):
+        self.private_name = f"_{name}"
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        return getattr(instance, self.private_name, None)
+
+    def __set__(self, instance, value):
+        if self.frozen and hasattr(instance, self.private_name):
+            raise AttributeError("Cannot modify frozen property")
+        setattr(instance, self.private_name, value)
 
 
 class EventNode:
@@ -59,11 +73,18 @@ class Eventable(EventNode):
     def __init__(self, **kwargs):
         self._unset_track_flag()
         super().__init__()
-        for field, field_type in self.__class__.__annotations__.items():
-            value = kwargs[field]
-            super().__setattr__(field, value)
-            if isinstance(value, EventNode):
-                value._set_parent(self)
+        for key, value in kwargs.items():
+            if key in self.__class__.__annotations__:
+                prop = getattr(self.__class__, key, None)
+                if isinstance(prop, Property):
+                    setattr(self, key, value)
+
+                    if isinstance(value, EventNode):
+                        value._set_parent(self)
+                else:
+                    setattr(self, key, value)
+            else:
+                raise AttributeError(f"'{self.__class__.__name__}' has no attribute '{key}'")
         self._set_track_flag()
 
     def __setuntrack__(self, key, value):
@@ -168,3 +189,16 @@ class EventableSet[T](EventNode):
     def __iter__(self):
         for item in self._items.values():
             yield item
+
+
+class Foo(Eventable):
+    frozen_value: int = Property(frozen=True)
+
+
+def main():
+    foo = Foo(frozen_value=100)
+    foo.frozen_value = 400
+
+
+if __name__ == "__main__":
+    main()
