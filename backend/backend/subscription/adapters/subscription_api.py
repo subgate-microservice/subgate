@@ -298,3 +298,37 @@ async def add_discounts(
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
     return "Ok"
+
+
+@subscription_router.patch("/{sub_id}/remove-discounts")
+async def remove_discounts(
+        sub_id: SubId,
+        codes: list[str],
+        auth_user: AuthUser = Depends(auth_closure),
+        container: Bootstrap = Depends(get_container),
+) -> str:
+    async with container.unit_of_work_factory().create_uow() as uow:
+        target_sub = await uow.subscription_repo().get_one_by_id(sub_id)
+        for code in codes:
+            target_sub.discounts.remove(code)
+            await services.update_subscription_new(target_sub, uow)
+        await container.eventbus().publish_from_unit_of_work(uow)
+        await uow.commit()
+    return "Ok"
+
+
+@subscription_router.patch("/{sub_id}/update-discounts")
+async def update_discounts(
+        sub_id: SubId,
+        discounts: list[DiscountSchema],
+        auth_user: AuthUser = Depends(auth_closure),
+        container: Bootstrap = Depends(get_container),
+) -> str:
+    async with container.unit_of_work_factory().create_uow() as uow:
+        target_sub = await uow.subscription_repo().get_one_by_id(sub_id)
+        for disc in discounts:
+            target_sub.discounts.update(disc.to_discount())
+            await services.update_subscription_new(target_sub, uow)
+        await container.eventbus().publish_from_unit_of_work(uow)
+        await uow.commit()
+    return "Ok"

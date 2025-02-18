@@ -1,9 +1,12 @@
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, AwareDatetime, Field
+
+from backend.shared.utils import get_current_datetime
 
 
 class Event(BaseModel):
+    occurred_at: AwareDatetime = Field(default_factory=get_current_datetime)
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     @property

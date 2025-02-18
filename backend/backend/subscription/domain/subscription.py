@@ -464,39 +464,33 @@ class SubscriptionCreated(Event):
     usage_codes: tuple[str]
     discount_codes: tuple[str]
     auth_id: AuthId
-    occurred_at: AwareDatetime
 
 
 class SubscriptionDeleted(Event):
     subscription_id: SubId
     auth_id: AuthId
-    occurred_at: AwareDatetime
 
 
 class SubscriptionPaused(Event):
     subscription_id: SubId
     paused_from: AwareDatetime
     auth_id: AuthId
-    occurred_at: AwareDatetime
 
 
 class SubscriptionResumed(Event):
     subscription_id: SubId
     auth_id: AuthId
-    occurred_at: AwareDatetime
 
 
 class SubscriptionRenewed(Event):
     subscription_id: SubId
     last_billing: AwareDatetime
     auth_id: AuthId
-    occurred_at: AwareDatetime
 
 
 class SubscriptionExpired(Event):
     subscription_id: SubId
     auth_id: AuthId
-    occurred_at: AwareDatetime
 
 
 class SubscriptionUsageAdded(Event):
@@ -505,14 +499,12 @@ class SubscriptionUsageAdded(Event):
     unit: str
     available_units: float
     auth_id: AuthId
-    occurred_at: AwareDatetime
 
 
 class SubscriptionUsageRemoved(Event):
     subscription_id: SubId
     code: str
     auth_id: AuthId
-    occurred_at: AwareDatetime
 
 
 class SubscriptionUsageUpdated(Event):
@@ -524,7 +516,6 @@ class SubscriptionUsageUpdated(Event):
     used_units: float
     delta: float
     auth_id: AuthId
-    occurred_at: AwareDatetime
 
 
 class SubscriptionDiscountAdded(Event):
@@ -535,14 +526,12 @@ class SubscriptionDiscountAdded(Event):
     valid_until: AwareDatetime
     description: str
     auth_id: AuthId
-    occurred_at: AwareDatetime
 
 
 class SubscriptionDiscountRemoved(Event):
     subscription_id: SubId
     code: str
     auth_id: AuthId
-    occurred_at: AwareDatetime
 
 
 class SubscriptionDiscountUpdated(Event):
@@ -553,11 +542,9 @@ class SubscriptionDiscountUpdated(Event):
     valid_until: AwareDatetime
     description: str
     auth_id: AuthId
-    occurred_at: AwareDatetime
 
 
 class SubscriptionUpdated(Event):
     subscription_id: SubId
     changed_fields: tuple[str, ...]
     auth_id: AuthId
-    occurred_at: AwareDatetime
