@@ -1,4 +1,4 @@
-from typing import Callable, Iterable, Hashable, Optional, Self
+from typing import Callable, Iterable, Hashable, Optional, Self, Any
 
 from backend.shared.event_driven.base_event import (
     Event, FieldUpdated, ItemAdded, ItemRemoved, ItemUpdated
@@ -25,8 +25,13 @@ class EventStore:
 
 
 class Property:
-    def __init__(self, frozen=False):
+    def __init__(self, *, frozen=False, default=None, default_factory=None, mapper: Callable[[Any], Any] = lambda x: x):
+        if default is not None and default_factory is not None:
+            raise ValueError("Only one of default or default_factory can be set")
         self.frozen = frozen
+        self.default = default
+        self.default_factory = default_factory
+        self.mapper = mapper
         self.private_name = None
 
     def __set_name__(self, owner, name):
@@ -35,12 +40,15 @@ class Property:
     def __get__(self, instance, owner):
         if instance is None:
             return self
-        return getattr(instance, self.private_name, None)
+        if not hasattr(instance, self.private_name):
+            value = self.default_factory() if self.default_factory else self.default
+            setattr(instance, self.private_name, value)
+        return getattr(instance, self.private_name)
 
     def __set__(self, instance, value):
         if self.frozen and hasattr(instance, self.private_name):
             raise AttributeError("Cannot modify frozen property")
-        setattr(instance, self.private_name, value)
+        setattr(instance, self.private_name, self.mapper(value))
 
 
 class EventNode:
@@ -78,11 +86,12 @@ class Eventable(EventNode):
                 prop = getattr(self.__class__, key, None)
                 if isinstance(prop, Property):
                     setattr(self, key, value)
-
-                    if isinstance(value, EventNode):
-                        value._set_parent(self)
                 else:
                     setattr(self, key, value)
+
+                mapped_value = self.__getattribute__(key)
+                if isinstance(mapped_value, EventNode):
+                    mapped_value._set_parent(self)
             else:
                 raise AttributeError(f"'{self.__class__.__name__}' has no attribute '{key}'")
         self._set_track_flag()
@@ -193,11 +202,12 @@ class EventableSet[T](EventNode):
 
 class Foo(Eventable):
     frozen_value: int = Property(frozen=True)
+    maps: int = Property(mapper=lambda x: x ** 3)
 
 
 def main():
     foo = Foo(frozen_value=100)
-    foo.frozen_value = 400
+    # print(foo.maps)
 
 
 if __name__ == "__main__":

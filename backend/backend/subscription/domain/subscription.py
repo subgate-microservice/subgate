@@ -14,6 +14,7 @@ from backend.subscription.domain.discount import Discount
 from backend.subscription.domain.events import (
     SubscriptionPaused, SubscriptionResumed, SubscriptionRenewed,
     SubscriptionExpired, SubId)
+from backend.subscription.domain.item_manager import ItemManager
 from backend.subscription.domain.plan import PlanId, Plan
 from backend.subscription.domain.usage import Usage
 
@@ -47,8 +48,8 @@ class Subscription(Eventable):
     autorenew: bool
     fields: dict
     id: SubId = Property(frozen=True)
-    discounts: EventableSet[Discount] = Property(frozen=True)
-    usages: EventableSet[Usage] = Property(frozen=True)
+    discounts: ItemManager[Discount] = Property(frozen=True, mapper=ItemManager)
+    usages: ItemManager[Usage] = Property(frozen=True, mapper=ItemManager)
     created_at: AwareDatetime = Property(frozen=True)
     updated_at: AwareDatetime = Property(frozen=True)
 
@@ -80,8 +81,8 @@ class Subscription(Eventable):
             "_paused_from": None,
             "created_at": dt,
             "updated_at": dt,
-            "usages": EventableSet(usages, lambda x: x.code, True),
-            "discounts": EventableSet(discounts, lambda x: x.code, True),
+            "usages": usages,
+            "discounts": discounts,
         }
         super().__init__(**data)
 
