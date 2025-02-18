@@ -61,7 +61,7 @@ class Eventable(EventNode):
         super().__init__()
         for field, field_type in self.__class__.__annotations__.items():
             value = kwargs[field]
-            self.__setuntrack__(field, value)
+            super().__setattr__(field, value)
             if isinstance(value, EventNode):
                 value._set_parent(self)
         self._set_track_flag()
