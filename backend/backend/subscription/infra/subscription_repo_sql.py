@@ -15,7 +15,8 @@ from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper, Aw
 from backend.shared.unit_of_work.change_log import Log
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.cycle import Period
-from backend.subscription.domain.subscription import Subscription, SubId, SubscriptionStatus, BillingInfo, PlanInfo
+from backend.subscription.domain.subscription import Subscription, SubscriptionStatus, BillingInfo, PlanInfo
+from backend.subscription.domain.events import SubId
 from backend.subscription.domain.subscription_repo import SubscriptionSby, SubscriptionRepo
 from backend.subscription.infra.deserializers import deserialize_uuid, deserialize_datetime, deserialize_usage, \
     deserialize_discount

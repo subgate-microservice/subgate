@@ -1,7 +1,9 @@
 from backend.shared.unit_of_work.uow import UnitOfWork
 from backend.shared.utils import get_current_datetime
+from backend.subscription.domain.events import SubscriptionDeleted
 from backend.subscription.domain.subscription import (
-    Subscription, SubscriptionUpdatesEventGenerator, SubscriptionDeleted, )
+    Subscription, )
+from backend.subscription.domain.subscription_services import SubscriptionUpdatesEventGenerator, SubscriptionEventParser
 
 
 class SubscriptionPartialUpdateService:
@@ -39,7 +41,7 @@ async def update_subscription(old_sub: Subscription, new_sub: Subscription, uow:
 
 async def update_subscription_new(target: Subscription, uow: UnitOfWork) -> None:
     await uow.subscription_repo().update_one(target)
-    events = target.parse_events()
+    events = SubscriptionEventParser(target).parse(target.parse_events())
     for ev in events:
         uow.push_event(ev)
 

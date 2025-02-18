@@ -1,5 +1,5 @@
 from backend.subscription.domain.plan import PlanCreated, PlanUpdated, PlanDeleted
-from backend.subscription.domain.subscription import SubscriptionCreated, SubscriptionDeleted, SubscriptionPaused, \
+from backend.subscription.domain.events import SubscriptionCreated, SubscriptionDeleted, SubscriptionPaused, \
     SubscriptionResumed, SubscriptionRenewed, SubscriptionUsageAdded, SubscriptionUsageRemoved, \
     SubscriptionUsageUpdated, SubscriptionDiscountAdded, SubscriptionDiscountRemoved, SubscriptionDiscountUpdated, \
     SubscriptionUpdated

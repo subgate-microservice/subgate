@@ -6,7 +6,8 @@ from pydantic import AwareDatetime
 from backend.auth.domain.auth_user import AuthId
 from backend.shared.base_models import BaseSby
 from backend.shared.enums import Lock
-from backend.subscription.domain.subscription import SubId, Subscription, SubscriptionStatus
+from backend.subscription.domain.subscription import Subscription, SubscriptionStatus
+from backend.subscription.domain.events import SubId
 
 
 class SubscriptionSby(BaseSby):
