@@ -251,7 +251,7 @@ class SubscriptionEventParser:
 
     def _handle_field_updated(self, event: FieldUpdated):
         entity_field_map = {
-            Subscription: "",
+            Subscription: "{key}",
             Usage: "usages.{key}:updated",
             Discount: "discounts.{key}:updated",
             BillingInfo: "billing_info.{key}",

@@ -153,7 +153,7 @@ class EventableSet[T](EventNode):
 
         # Не забываем отписаться от ноды
         removed = self._items.pop(key)
-        if isinstance(removed, Eventable):
+        if isinstance(removed, EventNode):
             removed._unset_parent()
 
         # Вставляем новый объект
