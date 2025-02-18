@@ -7,9 +7,9 @@ from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.discount import Discount
 from backend.subscription.domain.plan import Plan
 from backend.subscription.domain.subscription import (
-    SubscriptionPaused, SubscriptionUpdated, SubscriptionUsageAdded, SubscriptionResumed,
-    SubscriptionUsageUpdated, SubscriptionUsageRemoved, SubscriptionDiscountUpdated, SubscriptionDiscountAdded,
-    SubscriptionDiscountRemoved, SubscriptionStatus, SubscriptionRenewed, Subscription,
+    SubscriptionStatus, Subscription, SubscriptionPaused, SubscriptionResumed, SubscriptionRenewed,
+    SubscriptionUsageAdded, SubscriptionUsageRemoved, SubscriptionUsageUpdated, SubscriptionDiscountAdded,
+    SubscriptionDiscountRemoved, SubscriptionDiscountUpdated, SubscriptionUpdated,
 )
 from backend.subscription.domain.usage import Usage
 from tests.conftest import current_user, get_async_client

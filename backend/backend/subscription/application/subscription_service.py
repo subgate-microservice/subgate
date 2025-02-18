@@ -4,10 +4,10 @@ from backend.shared.unit_of_work.uow import UnitOfWork
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.discount import Discount
 from backend.subscription.domain.subscription import (
-    Subscription, SubscriptionUpdatesEventGenerator, SubscriptionDeleted, SubscriptionUpdated, SubscriptionUsageUpdated,
-    SubscriptionUsageAdded, SubscriptionUsageRemoved, SubscriptionDiscountAdded, SubscriptionDiscountRemoved,
-    SubscriptionDiscountUpdated, SubscriptionStatus, SubscriptionResumed, SubscriptionExpired, SubscriptionRenewed,
-)
+    Subscription, SubscriptionUpdatesEventGenerator, SubscriptionStatus, SubscriptionDeleted, SubscriptionResumed,
+    SubscriptionRenewed, SubscriptionExpired, SubscriptionUsageAdded, SubscriptionUsageRemoved,
+    SubscriptionUsageUpdated, SubscriptionDiscountAdded, SubscriptionDiscountRemoved, SubscriptionDiscountUpdated,
+    SubscriptionUpdated, )
 from backend.subscription.domain.usage import Usage
 
 

@@ -1,47 +1,8 @@
 from typing import Any, Callable, Iterable, Hashable, Union
 
-from backend.shared.event_driven.base_event import Event
-
-
-class FieldUpdated[T](Event):
-    field: str
-    old_value: T
-    new_value: T
-
-
-class EntityCreated[T](Event):
-    entity: T
-
-
-class EntityDeleted[T](Event):
-    entity: T
-
-
-class EntityUpdated[T](Event):
-    entity: T
-    updated_fields: dict[str, tuple[Any, Any]]
-
-    @classmethod
-    def from_field_updates(cls, entity: Any, events: list[FieldUpdated]):
-        updated_fields: dict[str, tuple[Any, Any]] = {}
-        for ev in events:
-            old_value = updated_fields[ev.field][0] if ev.field in updated_fields else ev.old_value
-            updated_fields[ev.field] = (old_value, ev.new_value)
-        return cls(entity=entity, updated_fields=updated_fields)
-
-
-class ItemAdded[T](Event):
-    item: T
-
-
-class ItemRemoved[T](Event):
-    item: T
-
-
-class ItemUpdated[T](Event):
-    new_item: T
-    old_item: T
-
+from backend.shared.event_driven.base_event import (
+    Event, FieldUpdated, EntityUpdated, ItemAdded, ItemRemoved,ItemUpdated
+)
 
 CollectionEvent = Union[ItemAdded, ItemUpdated, ItemRemoved]
 
@@ -179,7 +140,7 @@ class Eventable:
         if self._track_flag and key not in UNTRACKABLE:
             old_value = self.__getattribute__(key)
             self.get_event_node().event_store.push_event(
-                FieldUpdated(field=key, old_value=old_value, new_value=value)
+                FieldUpdated(field=key, old_value=old_value, new_value=value, entity=self)
             )
         super().__setattr__(key, value)
 

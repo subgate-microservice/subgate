@@ -1,15 +1,14 @@
 from copy import copy, deepcopy
 from datetime import timedelta
 from enum import StrEnum
-from typing import Optional, Self
+from typing import Optional, Self, Callable
 from uuid import UUID, uuid4
 
 from pydantic import AwareDatetime
 
 from backend.auth.domain.auth_user import AuthId
-from backend.shared.event_driven.base_event import Event
-from backend.shared.event_driven.eventable import (Eventable, EventableSet, ItemUpdated, ItemRemoved, ItemAdded,
-                                                   EntityUpdated)
+from backend.shared.event_driven.base_event import (Event, EntityUpdated, ItemAdded, ItemRemoved, ItemUpdated)
+from backend.shared.event_driven.eventable import (Eventable, EventableSet)
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.discount import Discount
@@ -38,113 +37,6 @@ class SubscriptionStatus(StrEnum):
     Active = "active"
     Paused = "paused"
     Expired = "expired"
-
-
-class SubscriptionCreated(Event):
-    subscription_id: SubId
-    price: float
-    currency: str
-    billing_cycle: Period
-    usage_codes: tuple[str]
-    discount_codes: tuple[str]
-    auth_id: AuthId
-    occurred_at: AwareDatetime
-
-
-class SubscriptionDeleted(Event):
-    subscription_id: SubId
-    auth_id: AuthId
-    occurred_at: AwareDatetime
-
-
-class SubscriptionPaused(Event):
-    subscription_id: SubId
-    paused_from: AwareDatetime
-    auth_id: AuthId
-    occurred_at: AwareDatetime
-
-
-class SubscriptionResumed(Event):
-    subscription_id: SubId
-    auth_id: AuthId
-    occurred_at: AwareDatetime
-
-
-class SubscriptionRenewed(Event):
-    subscription_id: SubId
-    last_billing: AwareDatetime
-    auth_id: AuthId
-    occurred_at: AwareDatetime
-
-
-class SubscriptionExpired(Event):
-    subscription_id: SubId
-    auth_id: AuthId
-    occurred_at: AwareDatetime
-
-
-class SubscriptionUsageAdded(Event):
-    subscription_id: SubId
-    code: str
-    unit: str
-    available_units: float
-    auth_id: AuthId
-    occurred_at: AwareDatetime
-
-
-class SubscriptionUsageRemoved(Event):
-    subscription_id: SubId
-    code: str
-    auth_id: AuthId
-    occurred_at: AwareDatetime
-
-
-class SubscriptionUsageUpdated(Event):
-    subscription_id: SubId
-    title: str
-    code: str
-    unit: str
-    available_units: float
-    used_units: float
-    delta: float
-    auth_id: AuthId
-    occurred_at: AwareDatetime
-
-
-class SubscriptionDiscountAdded(Event):
-    subscription_id: SubId
-    title: str
-    code: str
-    size: float
-    valid_until: AwareDatetime
-    description: str
-    auth_id: AuthId
-    occurred_at: AwareDatetime
-
-
-class SubscriptionDiscountRemoved(Event):
-    subscription_id: SubId
-    code: str
-    auth_id: AuthId
-    occurred_at: AwareDatetime
-
-
-class SubscriptionDiscountUpdated(Event):
-    subscription_id: SubId
-    title: str
-    code: str
-    size: float
-    valid_until: AwareDatetime
-    description: str
-    auth_id: AuthId
-    occurred_at: AwareDatetime
-
-
-class SubscriptionUpdated(Event):
-    subscription_id: SubId
-    changed_fields: tuple[str, ...]
-    auth_id: AuthId
-    occurred_at: AwareDatetime
 
 
 class Subscription(Eventable):
@@ -349,7 +241,7 @@ class SubscriptionEventParser:
             ItemRemoved: self._handle_item_removed
         }
 
-        handler = event_handlers.get(type(event))
+        handler: Callable = event_handlers.get(type(event))
         if handler:
             handler(event)
         else:
@@ -558,3 +450,110 @@ class SubscriptionUpdatesEventGenerator:
                 SubscriptionUpdated(subscription_id=self.new_subscription.id, changed_fields=tuple(changed_fields),
                                     auth_id=self.new_subscription.auth_id, occurred_at=self.now)
             )
+
+
+class SubscriptionCreated(Event):
+    subscription_id: SubId
+    price: float
+    currency: str
+    billing_cycle: Period
+    usage_codes: tuple[str]
+    discount_codes: tuple[str]
+    auth_id: AuthId
+    occurred_at: AwareDatetime
+
+
+class SubscriptionDeleted(Event):
+    subscription_id: SubId
+    auth_id: AuthId
+    occurred_at: AwareDatetime
+
+
+class SubscriptionPaused(Event):
+    subscription_id: SubId
+    paused_from: AwareDatetime
+    auth_id: AuthId
+    occurred_at: AwareDatetime
+
+
+class SubscriptionResumed(Event):
+    subscription_id: SubId
+    auth_id: AuthId
+    occurred_at: AwareDatetime
+
+
+class SubscriptionRenewed(Event):
+    subscription_id: SubId
+    last_billing: AwareDatetime
+    auth_id: AuthId
+    occurred_at: AwareDatetime
+
+
+class SubscriptionExpired(Event):
+    subscription_id: SubId
+    auth_id: AuthId
+    occurred_at: AwareDatetime
+
+
+class SubscriptionUsageAdded(Event):
+    subscription_id: SubId
+    code: str
+    unit: str
+    available_units: float
+    auth_id: AuthId
+    occurred_at: AwareDatetime
+
+
+class SubscriptionUsageRemoved(Event):
+    subscription_id: SubId
+    code: str
+    auth_id: AuthId
+    occurred_at: AwareDatetime
+
+
+class SubscriptionUsageUpdated(Event):
+    subscription_id: SubId
+    title: str
+    code: str
+    unit: str
+    available_units: float
+    used_units: float
+    delta: float
+    auth_id: AuthId
+    occurred_at: AwareDatetime
+
+
+class SubscriptionDiscountAdded(Event):
+    subscription_id: SubId
+    title: str
+    code: str
+    size: float
+    valid_until: AwareDatetime
+    description: str
+    auth_id: AuthId
+    occurred_at: AwareDatetime
+
+
+class SubscriptionDiscountRemoved(Event):
+    subscription_id: SubId
+    code: str
+    auth_id: AuthId
+    occurred_at: AwareDatetime
+
+
+class SubscriptionDiscountUpdated(Event):
+    subscription_id: SubId
+    title: str
+    code: str
+    size: float
+    valid_until: AwareDatetime
+    description: str
+    auth_id: AuthId
+    occurred_at: AwareDatetime
+
+
+class SubscriptionUpdated(Event):
+    subscription_id: SubId
+    changed_fields: tuple[str, ...]
+    auth_id: AuthId
+    occurred_at: AwareDatetime

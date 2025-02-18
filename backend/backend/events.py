@@ -1,9 +1,8 @@
 from backend.subscription.domain.plan import PlanCreated, PlanUpdated, PlanDeleted
-from backend.subscription.domain.subscription import (
-    SubscriptionPaused, SubscriptionUpdated, SubscriptionUsageAdded, SubscriptionResumed, SubscriptionUsageUpdated,
-    SubscriptionUsageRemoved, SubscriptionDiscountUpdated, SubscriptionDiscountAdded, SubscriptionDiscountRemoved,
-    SubscriptionRenewed, SubscriptionCreated, SubscriptionDeleted,
-)
+from backend.subscription.domain.subscription import SubscriptionCreated, SubscriptionDeleted, SubscriptionPaused, \
+    SubscriptionResumed, SubscriptionRenewed, SubscriptionUsageAdded, SubscriptionUsageRemoved, \
+    SubscriptionUsageUpdated, SubscriptionDiscountAdded, SubscriptionDiscountRemoved, SubscriptionDiscountUpdated, \
+    SubscriptionUpdated
 
 EVENTS = [
     PlanCreated,
