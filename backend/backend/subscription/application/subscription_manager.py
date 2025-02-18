@@ -4,8 +4,7 @@ from loguru import logger
 
 from backend.shared.unit_of_work.uow import UnitOfWorkFactory, UnitOfWork
 from backend.shared.utils import get_current_datetime
-from backend.subscription.application.subscription_service import (expire_subscription, resume_subscription,
-                                                                   renew_subscription, renew_subscription_usages)
+from backend.subscription.application.subscription_service import update_subscription_new
 from backend.subscription.domain.subscription import SubscriptionStatus, Subscription
 from backend.subscription.domain.subscription_repo import SubscriptionSby
 
@@ -17,7 +16,8 @@ class SubManager:
     @staticmethod
     async def _processing_expired_sub(sub: Subscription, uow: UnitOfWork):
         try:
-            await expire_subscription(sub, uow)
+            sub.expire()
+            await update_subscription_new(sub, uow)
             # Если есть подписка на паузе, то возобновляем
             sby = SubscriptionSby(
                 statuses={SubscriptionStatus.Paused},
@@ -28,13 +28,16 @@ class SubManager:
             )
             other_subscriber_subs = await uow.subscription_repo().get_selected(sby)
             for other_sub in other_subscriber_subs:
-                await resume_subscription(other_sub, uow)
+                other_sub.resume()
+                await update_subscription_new(other_sub, uow)
         except Exception as err:
             logger.exception(err)
 
     @staticmethod
     async def _processing_autorenew_sub(sub: Subscription, uow: UnitOfWork):
-        await renew_subscription(sub, uow)
+        sub.expire()
+        sub.renew()
+        await update_subscription_new(sub, uow)
 
     async def manage_expired_subscriptions(self):
         async with self._uow_factory.create_uow() as uow:
@@ -60,5 +63,8 @@ class SubManager:
             )
             logger.info(f"{len(targets)} subscriptions needed to renew usages")
             for target in targets:
-                await renew_subscription_usages(target, uow)
+                for usage in target.usages:
+                    if usage.need_to_renew:
+                        usage.renew()
+                await update_subscription_new(target, uow)
             await uow.commit()

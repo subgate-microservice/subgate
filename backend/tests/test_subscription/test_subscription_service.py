@@ -3,7 +3,7 @@ import pytest_asyncio
 
 from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container
-from backend.subscription.application.subscription_service import create_subscription, resume_subscription
+from backend.subscription.application.subscription_service import create_subscription, update_subscription_new
 from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.exceptions import ActiveStatusConflict
 from backend.subscription.domain.plan import Plan
@@ -172,5 +172,6 @@ class TestResumePausedSubscriptionWhileActiveOneExists:
     async def test_foo(self):
         with pytest.raises(ActiveStatusConflict):
             async with container.unit_of_work_factory().create_uow() as uow:
-                await resume_subscription(self.paused, uow)
+                self.paused.resume()
+                await update_subscription_new(self.paused,  uow)
                 await uow.commit()
