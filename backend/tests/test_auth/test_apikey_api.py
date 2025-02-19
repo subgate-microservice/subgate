@@ -1,11 +1,23 @@
+from uuid import uuid4
+
 import pytest
 
 from backend.auth.adapters.apikey_router import ApikeyCreate
+from backend.auth.domain.apikey import Apikey
+from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container
 from tests.conftest import current_user, get_async_client
-from tests.fake_data import create_apikey
 
 container = get_container()
+
+
+def create_apikey(auth_user: AuthUser = None):
+    if auth_user is None:
+        auth_user = AuthUser(id=uuid4())
+    return Apikey(
+        title=f"Title_{uuid4()}",
+        auth_user=auth_user,
+    )
 
 
 def get_expected_status(token: str):
