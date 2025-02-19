@@ -53,8 +53,8 @@ class Subscription(Eventable):
     created_at: AwareDatetime = Property(frozen=True, default_factory=get_current_datetime)
     updated_at: AwareDatetime = Property(frozen=True, default_factory=get_current_datetime)
 
-    _status: SubscriptionStatus = SubscriptionStatus.Active
-    _paused_from: Optional[AwareDatetime] = None
+    _status: SubscriptionStatus = PrivateProperty(default=SubscriptionStatus.Active, excluded=True)
+    _paused_from: Optional[AwareDatetime] = PrivateProperty(default=None, excluded=True)
 
     @property
     def status(self):
