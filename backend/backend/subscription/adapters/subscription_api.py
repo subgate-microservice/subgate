@@ -1,7 +1,6 @@
 from typing import Optional
 
 from fastapi import Depends, APIRouter, Query
-from loguru import logger
 from pydantic import AwareDatetime
 
 from backend.auth.domain.auth_user import AuthUser
@@ -10,9 +9,9 @@ from backend.subscription.adapters.schemas import (
     SubscriptionCreate, SubscriptionUpdate, SubscriptionRetrieve,
     UsageSchema, PlanInfoSchema, DiscountSchema)
 from backend.subscription.application import subscription_service as services
+from backend.subscription.domain.events import SubId
 from backend.subscription.domain.subscription import (
     SubscriptionStatus, )
-from backend.subscription.domain.events import SubId
 from backend.subscription.domain.subscription_repo import SubscriptionSby
 
 subscription_router = APIRouter(
@@ -167,7 +166,9 @@ async def increase_usage(
 ):
     async with container.unit_of_work_factory().create_uow() as uow:
         target = await uow.subscription_repo().get_one_by_id(sub_id)
-        await services.increase_usage(target, code, value, uow)
+        target.usages.get(code).increase(value)
+        await services.update_subscription_new(target, uow)
+        await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
     return "Ok"
 

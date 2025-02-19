@@ -14,12 +14,11 @@ from backend.auth.domain.auth_user import AuthUser, AuthRole
 from backend.auth.infra.other.fake_factory import FakeAuthClosureFactory
 from backend.bootstrap import get_container, auth_closure
 from backend.main import app
-from backend.shared.permission_service import SubscriptionClient
 from backend.shared.database import drop_and_create_postgres_tables
+from backend.shared.permission_service import SubscriptionClient
 from backend.shared.unit_of_work.uow_postgres import SqlUowFactory
 from backend.startup_service import run_preparations
 from backend.subscription.infra.subscription_client import FakeSubscriptionClient
-from tests.fake_data import create_subscription
 
 admin_user = AuthUser(id=uuid4(), roles={AuthRole.Admin})
 paid_user = AuthUser(id=uuid4())
