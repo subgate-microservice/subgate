@@ -15,8 +15,8 @@ class SubscriptionCreated(Event):
     price: float
     currency: str
     billing_cycle: Period
-    usage_codes: tuple[str]
-    discount_codes: tuple[str]
+    usage_codes: tuple[str, ...]
+    discount_codes: tuple[str, ...]
     auth_id: AuthId
 
 

@@ -6,12 +6,12 @@ from backend.shared.utils import get_current_datetime
 from backend.subscription.adapters.schemas import SubscriptionCreate, SubscriptionUpdate, UsageSchema, DiscountSchema
 from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.discount import Discount
-from backend.subscription.domain.plan import Plan
-from backend.subscription.domain.subscription import (
-    SubscriptionStatus, Subscription, )
 from backend.subscription.domain.events import SubscriptionPaused, SubscriptionResumed, SubscriptionRenewed, \
     SubscriptionUsageAdded, SubscriptionUsageRemoved, SubscriptionUsageUpdated, SubscriptionDiscountAdded, \
     SubscriptionDiscountRemoved, SubscriptionDiscountUpdated, SubscriptionUpdated
+from backend.subscription.domain.plan import Plan
+from backend.subscription.domain.subscription import (
+    SubscriptionStatus, Subscription, )
 from backend.subscription.domain.usage import Usage
 from tests.conftest import current_user, get_async_client
 from tests.fakes import (event_handler, simple_sub, paused_sub, expired_sub, sub_with_discounts, sub_with_usages,
@@ -24,6 +24,10 @@ async def request(method: str, url, headers, expected_status_code, json=None):
     async with get_async_client() as client:
         response = await client.request(method, url, json=json, headers=headers)
         assert response.status_code == expected_status_code
+
+
+async def post_request(url, headers, expected_status_code, json):
+    await request("POST", url, headers, expected_status_code, json)
 
 
 async def patch_request(url, headers, expected_status_code, json=None):
@@ -62,17 +66,17 @@ def check_event(event_handler, expected_event: Event):
 
 class TestCreate:
     @pytest.mark.asyncio
-    async def test_create_simple_subscription(self, current_user):
+    async def test_create_simple_subscription(self, current_user, event_handler):
         user, token, expected_status_code = current_user
         headers = get_headers(current_user)
 
-        async with get_async_client() as client:
-            plan = Plan("Simple", 100, "USD", user.id, Period.Monthly)
-            subscription = Subscription.from_plan(plan, "AnyID")
-            payload = SubscriptionCreate.from_subscription(subscription).model_dump(mode="json")
+        plan = Plan("Simple", 100, "USD", user.id, Period.Monthly)
+        subscription = Subscription.from_plan(plan, "AnyID")
+        payload = SubscriptionCreate.from_subscription(subscription).model_dump(mode="json")
+        await post_request(f"/subscription/", headers, expected_status_code, json=payload)
 
-            response = await client.post(f"/subscription/", json=payload, headers=headers)
-            assert response.status_code == expected_status_code
+        if expected_status_code < 400:
+            assert len(event_handler.events) == 1
 
 
 class TestStatusManagement:
