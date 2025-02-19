@@ -57,3 +57,11 @@ def test_included_property_with_constructor():
 def test_excluded_property_with_constructor():
     with pytest.raises(AttributeError):
         _foo = Foo(_excluded="BigBen")
+
+
+def test_private_property_with_wrong_name():
+    with pytest.raises(ValueError):
+        class Bad(Eventable):
+            private_attr = PrivateProperty(default=None, excluded=True)
+
+        _bad = Bad()

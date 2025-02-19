@@ -1,5 +1,7 @@
 from typing import Callable, Iterable, Hashable, Any
 
+from loguru import logger
+
 from backend.shared.event_driven.base_event import (
     Event, FieldUpdated, ItemAdded, ItemRemoved, ItemUpdated
 )
@@ -41,7 +43,7 @@ class EventNode:
         self._children[child._id] = child
 
     def _remove_child(self, child: "EventNode"):
-        self._children.pop(child._id)
+        self._children.pop(child._id, None)
 
     def push_event(self, event: Event):
         self._event_store.push_event(event)
@@ -71,7 +73,7 @@ class Property:
         self.private_name = None
 
     def __set_name__(self, owner, name):
-        self.private_name = f"_{name}"
+        self.private_name = f"{name}_desc"
 
     def __get__(self, instance, owner):
         if instance is None:
@@ -79,32 +81,32 @@ class Property:
         default_value = self.default_factory() if self.default_factory != _Unset else self.default
         return getattr(instance, self.private_name, default_value)
 
-    def __set__(self, instance, value):
+    def __set__(self, instance: EventNode, value: Any):
         if self.frozen and hasattr(instance, self.private_name):
             raise AttributeError(f"Cannot modify frozen property {self.private_name}")
-        setattr(instance, self.private_name, self.mapper(value))
+        value = self.mapper(value)
+        instance.__dict__[self.private_name] = value
+        if isinstance(value, EventNode):
+            instance._add_child(value)
 
 
-class PrivateProperty:
-    def __init__(self, *, default=_Unset, default_factory=_Unset, excluded=True):
-        if default != _Unset and default_factory != _Unset:
-            raise ValueError("Only one of default or default_factory can be set")
-        self.default = default
-        self.default_factory = default_factory
-        self.private_name = None
+class PrivateProperty(Property):
+    def __init__(
+            self,
+            *,
+            frozen=False,
+            default: Any = _Unset,
+            default_factory: Callable[[], Any] = _Unset,
+            mapper: Callable[[Any], Any] = lambda x: x,
+            excluded=True,
+    ):
+        super().__init__(frozen=frozen, default=default, default_factory=default_factory, mapper=mapper)
         self.excluded = excluded
 
     def __set_name__(self, owner, name):
-        self.private_name = f"_d{name}"
-
-    def __get__(self, instance, owner):
-        if instance is None:
-            return self
-        default_value = self.default_factory() if self.default_factory != _Unset else self.default
-        return getattr(instance, self.private_name, default_value)
-
-    def __set__(self, instance, value):
-        instance.__dict__[self.private_name] = value
+        if not name.startswith("_"):
+            raise ValueError(f"Name for private property must start from '_'")
+        self.private_name = f"{name}_desc"
 
 
 class Eventable(EventNode):
@@ -196,6 +198,7 @@ class EventableSet[T](EventNode):
 
         self._items[key] = value
         if push_event:
+            logger.debug("added")
             self.push_event(ItemAdded(item=value))
             if isinstance(value, EventNode):
                 self._add_child(value)
@@ -233,21 +236,3 @@ class EventableSet[T](EventNode):
     def __iter__(self):
         for item in self._items.values():
             yield item
-
-
-class Foo(Eventable):
-    frozen_value: int = Property(frozen=True)
-    _private: int = PrivateProperty(default=100)
-
-
-def main():
-    foo = Foo(frozen_value=100, _private=500, )
-    foo._private = 500
-    print(foo._private)
-    print(foo.parse_events())
-    print(foo.__dict__)
-    # print(foo.maps)
-
-
-if __name__ == "__main__":
-    main()

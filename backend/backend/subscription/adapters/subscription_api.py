@@ -1,6 +1,7 @@
 from typing import Optional
 
 from fastapi import Depends, APIRouter, Query
+from loguru import logger
 from pydantic import AwareDatetime
 
 from backend.auth.domain.auth_user import AuthUser
@@ -182,6 +183,7 @@ async def add_usages(
         target_sub = await uow.subscription_repo().get_one_by_id(sub_id)
         for usage in usages:
             target_sub.usages.add(usage.to_usage())
+
         await services.update_subscription_new(target_sub, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
