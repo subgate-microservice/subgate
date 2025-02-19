@@ -7,7 +7,7 @@ from uuid import uuid4
 from pydantic import AwareDatetime
 
 from backend.auth.domain.auth_user import AuthId
-from backend.shared.event_driven.eventable import (Eventable, EventableSet, Property)
+from backend.shared.event_driven.eventable import (Eventable, Property)
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.discount import Discount
@@ -45,46 +45,16 @@ class Subscription(Eventable):
     billing_info: BillingInfo
     subscriber_id: str
     auth_id: AuthId
-    autorenew: bool
-    fields: dict
-    id: SubId = Property(frozen=True)
+    autorenew: bool = Property(default=False)
+    fields: dict = Property(default_factory=dict)
+    id: SubId = Property(frozen=True, default_factory=uuid4)
     discounts: ItemManager[Discount] = Property(frozen=True, mapper=ItemManager)
     usages: ItemManager[Usage] = Property(frozen=True, mapper=ItemManager)
-    created_at: AwareDatetime = Property(frozen=True)
-    updated_at: AwareDatetime = Property(frozen=True)
+    created_at: AwareDatetime = Property(frozen=True, default_factory=get_current_datetime)
+    updated_at: AwareDatetime = Property(frozen=True, default_factory=get_current_datetime)
 
-    _status: SubscriptionStatus
-    _paused_from: Optional[AwareDatetime]
-
-    def __init__(
-            self,
-            plan_info: PlanInfo,
-            billing_info: BillingInfo,
-            subscriber_id: str,
-            auth_id: AuthId,
-            autorenew: bool = False,
-            usages: list[Usage] = None,
-            discounts: list[Discount] = None,
-            fields: dict = None,
-            id: SubId = None,
-    ):
-        dt = get_current_datetime()
-        data = {
-            "plan_info": plan_info,
-            "billing_info": billing_info,
-            "subscriber_id": subscriber_id,
-            "auth_id": auth_id,
-            "autorenew": autorenew,
-            "fields": fields if fields is not None else {},
-            "id": id if id else uuid4(),
-            "_status": SubscriptionStatus.Active,
-            "_paused_from": None,
-            "created_at": dt,
-            "updated_at": dt,
-            "usages": usages,
-            "discounts": discounts,
-        }
-        super().__init__(**data)
+    _status: SubscriptionStatus = SubscriptionStatus.Active
+    _paused_from: Optional[AwareDatetime] = None
 
     @property
     def status(self):
@@ -111,7 +81,8 @@ class Subscription(Eventable):
             discounts: list[Discount],
             fields: dict,
     ):
-        instance = cls(plan_info, billing_info, subscriber_id, auth_id, autorenew, usages, discounts, fields, id)
+        instance = cls(plan_info=plan_info, billing_info=billing_info, subscriber_id=subscriber_id, auth_id=auth_id,
+                       autorenew=autorenew, usages=usages, discounts=discounts, fields=fields, id=id)
         instance.__setuntrack__("_status", status)
         instance.__setuntrack__("_paused_from", paused_from)
         instance.__setuntrack__("_created_at", created_at)
@@ -127,7 +98,8 @@ class Subscription(Eventable):
                                    last_billing=dt)
         discounts = plan.discounts.get_all().copy()
         usages = [Usage.from_usage_rate(rate) for rate in plan.usage_rates]
-        return cls(plan_info, billing_info, subscriber_id, plan.auth_id, False, usages, discounts)
+        return cls(plan_info=plan_info, billing_info=billing_info, subscriber_id=subscriber_id, auth_id=plan.auth_id,
+                   autorenew=False, usages=usages, discounts=discounts)
 
     def pause(self) -> None:
         if self.status == SubscriptionStatus.Paused:

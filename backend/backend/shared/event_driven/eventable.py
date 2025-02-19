@@ -24,33 +24,6 @@ class EventStore:
         return len(self._events)
 
 
-class Property:
-    def __init__(self, *, frozen=False, default=None, default_factory=None, mapper: Callable[[Any], Any] = lambda x: x):
-        if default is not None and default_factory is not None:
-            raise ValueError("Only one of default or default_factory can be set")
-        self.frozen = frozen
-        self.default = default
-        self.default_factory = default_factory
-        self.mapper = mapper
-        self.private_name = None
-
-    def __set_name__(self, owner, name):
-        self.private_name = f"_{name}"
-
-    def __get__(self, instance, owner):
-        if instance is None:
-            return self
-        if not hasattr(instance, self.private_name):
-            value = self.default_factory() if self.default_factory else self.default
-            setattr(instance, self.private_name, value)
-        return getattr(instance, self.private_name)
-
-    def __set__(self, instance, value):
-        if self.frozen and hasattr(instance, self.private_name):
-            raise AttributeError("Cannot modify frozen property")
-        setattr(instance, self.private_name, self.mapper(value))
-
-
 class EventNode:
     def __init__(self):
         self._event_store = EventStore()
@@ -77,35 +50,60 @@ class EventNode:
         return self._event_store.parse_events()
 
 
+class Property:
+    def __init__(self, *, frozen=False, default=None, default_factory=None, mapper: Callable[[Any], Any] = lambda x: x):
+        if default is not None and default_factory is not None:
+            raise ValueError("Only one of default or default_factory can be set")
+        self.frozen = frozen
+        self.default = default
+        self.default_factory = default_factory
+        self.mapper = mapper
+        self.private_name = None
+
+    def __set_name__(self, owner, name):
+        self.private_name = f"_{name}"
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        return getattr(instance, self.private_name,
+                       self.default if self.default_factory is None else self.default_factory())
+
+    def __set__(self, instance, value):
+        if self.frozen and hasattr(instance, self.private_name):
+            raise AttributeError(f"Cannot modify frozen property {self.private_name}")
+        setattr(instance, self.private_name, self.mapper(value))
+
+
 class Eventable(EventNode):
     def __init__(self, **kwargs):
         self._unset_track_flag()
         super().__init__()
-        for key, value in kwargs.items():
-            if key in self.__class__.__annotations__:
-                prop = getattr(self.__class__, key, None)
-                if isinstance(prop, Property):
-                    setattr(self, key, value)
-                else:
-                    setattr(self, key, value)
 
-                mapped_value = self.__getattribute__(key)
-                if isinstance(mapped_value, EventNode):
-                    mapped_value._set_parent(self)
+        for field, field_type in self.__annotations__.items():
+            if field in kwargs:
+                value = kwargs.pop(field)
             else:
-                raise AttributeError(f"'{self.__class__.__name__}' has no attribute '{key}'")
+                try:
+                    value = getattr(self, field)
+                except AttributeError:
+                    raise AttributeError(f"Argument '{field}' is required")
+            setattr(self, field, value)
+
         self._set_track_flag()
 
     def __setuntrack__(self, key, value):
         super().__setattr__(key, value)
 
     def __setattr__(self, key, value):
+        old_value = getattr(self, key, None)
+        super().__setattr__(key, value)
+        if isinstance(old_value, EventNode):
+            old_value._unset_parent()
+        if isinstance(value, EventNode):
+            value._set_parent(self)
         if self._is_trackable():
-            old_value = self.__getattribute__(key)
-            super().__setattr__(key, value)
             self.push_event(FieldUpdated(entity=self, old_value=old_value, new_value=value, field=key))
-        else:
-            super().__setattr__(key, value)
 
     def _set_track_flag(self):
         self.__dict__["__track_flag"] = True
@@ -202,11 +200,11 @@ class EventableSet[T](EventNode):
 
 class Foo(Eventable):
     frozen_value: int = Property(frozen=True)
-    maps: int = Property(mapper=lambda x: x ** 3)
+    maps: int
 
 
 def main():
-    foo = Foo(frozen_value=100)
+    foo = Foo(frozen_value=100, )
     # print(foo.maps)
 
 
