@@ -65,7 +65,3 @@ class ValidationError(Exception):
             "value_type": self.value_type,
             "message": self.message,
         }
-
-    @classmethod
-    def from_json(cls, data):
-        return cls(field=data["field"], value=data["value"], value_type=data["value_type"], message=data["message"])
