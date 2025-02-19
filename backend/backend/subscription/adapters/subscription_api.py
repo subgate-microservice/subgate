@@ -67,7 +67,7 @@ async def get_selected(
     async with container.unit_of_work_factory().create_uow() as uow:
         subs = await uow.subscription_repo().get_selected(sby)
         schemas = [SubscriptionRetrieve.from_subscription(x) for x in subs]
-        return schemas
+    return schemas
 
 
 @subscription_router.get("/{sub_id}")
@@ -80,7 +80,7 @@ async def get_subscription_by_id(
     async with container.unit_of_work_factory().create_uow() as uow:
         sub = await uow.subscription_repo().get_one_by_id(sub_id)
         schema = SubscriptionRetrieve.from_subscription(sub)
-        return schema
+    return schema
 
 
 @subscription_router.get("/active-one/{subscriber_id}")
@@ -92,7 +92,7 @@ async def get_active_one(
     async with container.unit_of_work_factory().create_uow() as uow:
         sub = await uow.subscription_repo().get_subscriber_active_one(subscriber_id, auth_user.id)
         schema = SubscriptionRetrieve.from_subscription(sub)
-        return schema
+    return schema
 
 
 @subscription_router.delete("/{sub_id}")
@@ -104,8 +104,9 @@ async def delete_one_by_id(
     async with container.unit_of_work_factory().create_uow() as uow:
         target = await uow.subscription_repo().get_one_by_id(sub_id)
         await services.delete_subscription(target, uow)
+        await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
-        return "Ok"
+    return "Ok"
 
 
 @subscription_router.delete("/")
@@ -136,6 +137,7 @@ async def delete_selected(
         targets = await uow.subscription_repo().get_selected(sby)
         for target in targets:
             await services.delete_subscription(target, uow)
+        await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
     return "Ok"
 
@@ -184,7 +186,6 @@ async def add_usages(
         target_sub = await uow.subscription_repo().get_one_by_id(sub_id)
         for usage in usages:
             target_sub.usages.add(usage.to_usage())
-
         await services.save_updated_subscription(target_sub, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
@@ -205,7 +206,7 @@ async def remove_usages(
         await services.save_updated_subscription(target_sub, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
-        return "Ok"
+    return "Ok"
 
 
 @subscription_router.patch("/{sub_id}/update-usages")
