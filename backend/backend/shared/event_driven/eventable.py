@@ -1,4 +1,4 @@
-from typing import Callable, Iterable, Hashable, Optional, Self, Any
+from typing import Callable, Iterable, Hashable, Any
 
 from backend.shared.event_driven.base_event import (
     Event, FieldUpdated, ItemAdded, ItemRemoved, ItemUpdated
@@ -27,27 +27,25 @@ class EventStore:
 class EventNode:
     def __init__(self):
         self._event_store = EventStore()
-        self._parent: Optional[Self] = None
+        self._children: dict[Hashable, "EventNode"] = {}
+        self._id = id(self)
 
-    def _set_parent(self, parent: Self):
-        if self._parent:
-            raise ValueError("This object already has a parent node")
-        self._parent = parent
-        if len(self._event_store):
-            for ev in self._event_store.parse_events():
-                self._parent.push_event(ev)
+    def _add_child(self, child: "EventNode"):
+        if child._id == self._id:
+            raise Exception(f"Circular error: {self._id}")
+        self._children[child._id] = child
 
-    def _unset_parent(self):
-        self._parent = None
+    def _remove_child(self, child: "EventNode"):
+        self._children.pop(child._id)
 
     def push_event(self, event: Event):
-        if self._parent:
-            self._parent.push_event(event)
-        else:
-            self._event_store.push_event(event)
+        self._event_store.push_event(event)
 
     def parse_events(self) -> list[Event]:
-        return self._event_store.parse_events()
+        events = self._event_store.parse_events()
+        for child in self._children.values():
+            events.extend(child.parse_events())
+        return events
 
 
 class Property:
@@ -66,13 +64,35 @@ class Property:
     def __get__(self, instance, owner):
         if instance is None:
             return self
-        return getattr(instance, self.private_name,
-                       self.default if self.default_factory is None else self.default_factory())
+        default_value = self.default_factory() if self.default_factory else self.default
+        return getattr(instance, self.private_name, default_value)
 
     def __set__(self, instance, value):
         if self.frozen and hasattr(instance, self.private_name):
             raise AttributeError(f"Cannot modify frozen property {self.private_name}")
         setattr(instance, self.private_name, self.mapper(value))
+
+
+class PrivateProperty:
+    def __init__(self, *, default=None, default_factory=None, exclude=True):
+        if default is not None and default_factory is not None:
+            raise ValueError("Only one of default or default_factory can be set")
+        self.default = default
+        self.default_factory = default_factory
+        self.private_name = None
+        self.exclude = exclude
+
+    def __set_name__(self, owner, name):
+        self.private_name = f"_{name}"
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        default_value = self.default_factory() if self.default_factory else self.default
+        return getattr(instance, self.private_name, default_value)
+
+    def __set__(self, instance, value):
+        setattr(instance, self.private_name, value)
 
 
 class Eventable(EventNode):
@@ -90,6 +110,9 @@ class Eventable(EventNode):
                     raise AttributeError(f"Argument '{field}' is required")
             setattr(self, field, value)
 
+        if len(kwargs):
+            raise AttributeError(f"Extra arguments: {list(kwargs.keys())}")
+
         self._set_track_flag()
 
     def __setuntrack__(self, key, value):
@@ -97,11 +120,13 @@ class Eventable(EventNode):
 
     def __setattr__(self, key, value):
         old_value = getattr(self, key, None)
-        super().__setattr__(key, value)
         if isinstance(old_value, EventNode):
-            old_value._unset_parent()
+            self._remove_child(old_value)
+
+        super().__setattr__(key, value)
+
         if isinstance(value, EventNode):
-            value._set_parent(self)
+            self._add_child(value)
         if self._is_trackable():
             self.push_event(FieldUpdated(entity=self, old_value=old_value, new_value=value, field=key))
 
@@ -113,12 +138,6 @@ class Eventable(EventNode):
 
     def _is_trackable(self) -> bool:
         return self.__dict__.get("__track_flag", False)
-
-    def _set_parent(self, parent: Self):
-        self.__setuntrack__("_parent", parent)
-
-    def _unset_parent(self):
-        self.__setuntrack__("_parent", None)
 
     def __str__(self):
         return f"{self.__class__.__name__}"
@@ -161,7 +180,7 @@ class EventableSet[T](EventNode):
         if push_event:
             self.push_event(ItemAdded(item=value))
             if isinstance(value, EventNode):
-                value._set_parent(self)
+                self._add_child(value)
 
     def add(self, value: T):
         self._add(value, True)
@@ -172,7 +191,7 @@ class EventableSet[T](EventNode):
         if item:
             self.push_event(ItemRemoved(item=item))
             if isinstance(item, EventNode):
-                item._unset_parent()
+                self._remove_child(item)
 
     def update(self, item: T):
         # Проверяем, что он существует
@@ -182,13 +201,13 @@ class EventableSet[T](EventNode):
         # Не забываем отписаться от ноды
         removed = self._items.pop(key)
         if isinstance(removed, EventNode):
-            removed._unset_parent()
+            self._remove_child(removed)
 
         # Вставляем новый объект
         self._items[key] = item
         self.push_event(ItemUpdated(old_item=removed, new_item=item))
         if isinstance(item, EventNode):
-            item._set_parent(self)
+            self._add_child(item)
 
     def __len__(self):
         return len(self._items)
@@ -200,11 +219,15 @@ class EventableSet[T](EventNode):
 
 class Foo(Eventable):
     frozen_value: int = Property(frozen=True)
-    maps: int
+    _private: int = PrivateProperty(default=100)
 
 
 def main():
-    foo = Foo(frozen_value=100, )
+    foo = Foo(frozen_value=100, _private=500, )
+    foo._private = 500
+    print(foo._private)
+    print(foo.parse_events())
+    print(foo.__dict__)
     # print(foo.maps)
 
 
