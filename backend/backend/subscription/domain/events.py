@@ -1,3 +1,4 @@
+from typing import Optional
 from uuid import UUID
 
 from pydantic import AwareDatetime
@@ -77,7 +78,7 @@ class SubscriptionDiscountAdded(Event):
     code: str
     size: float
     valid_until: AwareDatetime
-    description: str
+    description: Optional[str]
     auth_id: AuthId
 
 
@@ -93,7 +94,7 @@ class SubscriptionDiscountUpdated(Event):
     code: str
     size: float
     valid_until: AwareDatetime
-    description: str
+    description: Optional[str]
     auth_id: AuthId
 
 
@@ -101,6 +102,3 @@ class SubscriptionUpdated(Event):
     subscription_id: SubId
     changed_fields: tuple[str, ...]
     auth_id: AuthId
-
-
-SubId = UUID
