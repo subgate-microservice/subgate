@@ -1,44 +1,18 @@
 from copy import copy
-from datetime import timedelta
 from typing import Any, Optional, Self
 from uuid import UUID, uuid4
 
-from pydantic import Field, AwareDatetime
+from pydantic import AwareDatetime
 
 from backend.auth.domain.auth_user import AuthId
-from backend.shared.base_models import MyBase
 from backend.shared.event_driven.base_event import Event
-from backend.shared.event_driven.eventable import Eventable, EventableSet
+from backend.shared.event_driven.eventable import Eventable, EventableSet, Property
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.discount import Discount
 from backend.subscription.domain.usage import UsageRate
 
 PlanId = UUID
-
-
-class UsageOld(MyBase):
-    title: str
-    code: str
-    unit: str
-    available_units: float
-    renew_cycle: Period
-    last_renew: AwareDatetime = Field(default_factory=get_current_datetime)
-    used_units: float
-
-    def renew(self) -> Self:
-        return self.model_copy(update={
-            "used_units": 0,
-            "last_renew": get_current_datetime(),
-        })
-
-    @property
-    def need_to_renew(self) -> bool:
-        return get_current_datetime() > self.renew_cycle.get_next_billing_date(self.last_renew)
-
-    @property
-    def next_renew(self) -> AwareDatetime:
-        return self.last_renew + timedelta(self.renew_cycle.get_cycle_in_days())
 
 
 class PlanCreated(Event):
@@ -69,16 +43,16 @@ class Plan(Eventable):
     price: float
     currency: str
     auth_id: AuthId
-    billing_cycle: Period = Period.Monthly
+    billing_cycle: Period
     description: Optional[str]
-    level: int = 10
+    level: int
     features: Optional[str]
     fields: dict
-    _id: PlanId
-    _usage_rates: EventableSet[UsageRate]
-    _discounts: EventableSet[Discount]
-    _created_at: AwareDatetime
-    _updated_at: AwareDatetime
+    id: PlanId = Property(frozen=True)
+    usage_rates: EventableSet[UsageRate] = Property(frozen=True)
+    discounts: EventableSet[Discount] = Property(frozen=True)
+    created_at: AwareDatetime = Property(frozen=True)
+    updated_at: AwareDatetime = Property(frozen=True)
 
     def __init__(
             self,
@@ -106,33 +80,13 @@ class Plan(Eventable):
             "level": level,
             "features": features,
             "fields": fields if fields is not None else {},
-            "_id": id if id else uuid4(),
-            "_usage_rates": EventableSet(usage_rates, lambda x: x.code, True),
-            "_discounts": EventableSet(discounts, lambda x: x.code, True),
-            "_created_at": dt,
-            "_updated_at": dt,
+            "id": id if id else uuid4(),
+            "usage_rates": EventableSet(usage_rates, lambda x: x.code, True),
+            "discounts": EventableSet(discounts, lambda x: x.code, True),
+            "created_at": dt,
+            "updated_at": dt,
         }
         super().__init__(**data)
-
-    @property
-    def id(self):
-        return self._id
-
-    @property
-    def usage_rates(self) -> EventableSet[UsageRate]:
-        return self._usage_rates
-
-    @property
-    def discounts(self) -> EventableSet[Discount]:
-        return self._discounts
-
-    @property
-    def created_at(self):
-        return self._created_at
-
-    @property
-    def updated_at(self):
-        return self._updated_at
 
     @classmethod
     def create_unsafe(
