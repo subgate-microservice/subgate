@@ -65,7 +65,7 @@ async def handle_item_not_exist(_request: Request, exc: ItemNotExist):
 
 @app.exception_handler(ItemAlreadyExist)
 async def handle_item_already_exist(_request: Request, exc: ItemAlreadyExist):
-    logger.exception(exc)
+    logger.error(exc)
     return JSONResponse(
         status_code=409,
         content=exc.to_json(),
@@ -74,7 +74,7 @@ async def handle_item_already_exist(_request: Request, exc: ItemAlreadyExist):
 
 @app.exception_handler(ActiveStatusConflict)
 async def handle_item_active_status_conflict(_request: Request, exc: ActiveStatusConflict):
-    logger.exception(exc)
+    logger.error(exc)
     return JSONResponse(
         status_code=409,
         content=exc.to_json(),
