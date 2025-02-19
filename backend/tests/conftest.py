@@ -15,10 +15,8 @@ from backend.auth.infra.other.fake_factory import FakeAuthClosureFactory
 from backend.bootstrap import get_container, auth_closure
 from backend.main import app
 from backend.shared.database import drop_and_create_postgres_tables
-from backend.shared.permission_service import SubscriptionClient
 from backend.shared.unit_of_work.uow_postgres import SqlUowFactory
 from backend.startup_service import run_preparations
-from backend.subscription.infra.subscription_client import FakeSubscriptionClient
 
 admin_user = AuthUser(id=uuid4(), roles={AuthRole.Admin})
 paid_user = AuthUser(id=uuid4())
@@ -49,16 +47,11 @@ def fake_auth_closure_factory() -> AuthClosureFactory:
     return factory
 
 
-def fake_subscription_client() -> SubscriptionClient:
-    return FakeSubscriptionClient()
-
-
 @pytest.fixture(autouse=True, scope="session")
 def override_deps():
     logger.info("Overriding dependencies...")
     container.set_dependency("database", fake_postgres_database())
     container.set_dependency("auth_closure_factory", fake_auth_closure_factory())
-    container.set_dependency("subscription_client", fake_subscription_client())
 
     app.dependency_overrides[auth_closure] = container.auth_closure_factory().fastapi_closure()
 

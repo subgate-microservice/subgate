@@ -9,7 +9,7 @@ from backend.auth.infra.fastapi_users.database import User
 from backend.auth.infra.fastapi_users.manager import UserManager
 from backend.auth.infra.fastapi_users.schemas import UserCreate
 from backend.bootstrap import get_container
-from backend.shared.events import EventCode
+from backend.events import EVENTS
 from backend.shared.database import drop_and_create_postgres_tables
 from backend.webhook.adapters import subscription_handlers
 
@@ -49,8 +49,8 @@ async def _create_apikey_if_not_exist(auth_user: AuthUser, title: str, value: st
 async def _subscribe_events_to_eventbus():
     logger.info("Subscribe events to eventbus")
     bus = get_container().eventbus()
-    for event_code in EventCode:
-        bus.subscribe(event_code, subscription_handlers.handle_subscription_event)
+    for event in EVENTS:
+        bus.subscribe(event.event_code, subscription_handlers.handle_subscription_event)
 
 
 async def _create_database():

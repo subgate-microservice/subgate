@@ -17,7 +17,7 @@ from backend.shared.unit_of_work.uow_postgres import SqlUowFactory
 from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.plan import Plan
 from backend.subscription.domain.subscription import Subscription
-from backend.subscription.infra.subscription_client import SubscriptionClient, FakeSubscriptionClient
+from backend.subscription.infra.subscription_client import FakeSubscriptionClient
 from backend.webhook.application.encrypt_service import GDPRCompliantEncryptor
 from backend.webhook.application.telegraph import Telegraph
 
@@ -120,11 +120,6 @@ class Bootstrap:
         if not self._telegraph:
             self._telegraph = Telegraph(self.unit_of_work_factory())
         return self._telegraph
-
-    def subscription_client(self) -> SubscriptionClient:
-        if not self._subscription_client:
-            self._subscription_client = create_fake_subclient()
-        return self._subscription_client
 
 
 container = Bootstrap()

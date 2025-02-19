@@ -6,7 +6,6 @@ from pydantic import Field, AwareDatetime
 from backend.auth.domain.auth_user import AuthUser, AuthId
 from backend.bootstrap import Bootstrap, get_container, auth_closure
 from backend.shared.base_models import MyBase
-from backend.shared.events import EventCode
 from backend.shared.utils import get_current_datetime
 from backend.webhook.application import usecases
 from backend.webhook.domain.webhook import Webhook, WebhookId
@@ -19,14 +18,14 @@ webhook_router = APIRouter(
 
 
 class WebhookCreate(MyBase):
-    event_code: EventCode = Field()
+    event_code: str = Field()
     target_url: str = Field()
     created_at: AwareDatetime = Field(default_factory=get_current_datetime, )
 
 
 class WebhookUpdate(WebhookCreate):
     id: WebhookId
-    event_code: EventCode = Field()
+    event_code: str = Field()
     target_url: str = Field()
     created_at: AwareDatetime = Field()
 
