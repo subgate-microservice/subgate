@@ -5,6 +5,11 @@ from backend.shared.event_driven.base_event import (
 )
 
 
+class _Unset:
+    def __init__(self):
+        raise NotImplemented
+
+
 class EventStore:
     def __init__(self):
         self._events: list[Event] = []
@@ -49,8 +54,15 @@ class EventNode:
 
 
 class Property:
-    def __init__(self, *, frozen=False, default=None, default_factory=None, mapper: Callable[[Any], Any] = lambda x: x):
-        if default is not None and default_factory is not None:
+    def __init__(
+            self,
+            *,
+            frozen=False,
+            default: Any = _Unset,
+            default_factory: Callable[[], Any] = _Unset,
+            mapper: Callable[[Any], Any] = lambda x: x
+    ):
+        if default != _Unset and default_factory != _Unset:
             raise ValueError("Only one of default or default_factory can be set")
         self.frozen = frozen
         self.default = default
@@ -64,7 +76,7 @@ class Property:
     def __get__(self, instance, owner):
         if instance is None:
             return self
-        default_value = self.default_factory() if self.default_factory else self.default
+        default_value = self.default_factory() if self.default_factory != _Unset else self.default
         return getattr(instance, self.private_name, default_value)
 
     def __set__(self, instance, value):
@@ -74,25 +86,25 @@ class Property:
 
 
 class PrivateProperty:
-    def __init__(self, *, default=None, default_factory=None, exclude=True):
-        if default is not None and default_factory is not None:
+    def __init__(self, *, default=_Unset, default_factory=_Unset, excluded=True):
+        if default != _Unset and default_factory != _Unset:
             raise ValueError("Only one of default or default_factory can be set")
         self.default = default
         self.default_factory = default_factory
         self.private_name = None
-        self.exclude = exclude
+        self.excluded = excluded
 
     def __set_name__(self, owner, name):
-        self.private_name = f"_{name}"
+        self.private_name = f"_d{name}"
 
     def __get__(self, instance, owner):
         if instance is None:
             return self
-        default_value = self.default_factory() if self.default_factory else self.default
+        default_value = self.default_factory() if self.default_factory != _Unset else self.default
         return getattr(instance, self.private_name, default_value)
 
     def __set__(self, instance, value):
-        setattr(instance, self.private_name, value)
+        instance.__dict__[self.private_name] = value
 
 
 class Eventable(EventNode):
@@ -103,9 +115,15 @@ class Eventable(EventNode):
         for field, field_type in self.__annotations__.items():
             if field in kwargs:
                 value = kwargs.pop(field)
+                if field.startswith("_"):
+                    prop = getattr(self.__class__, field, None)
+                    if isinstance(prop, PrivateProperty) and prop.excluded:
+                        raise AttributeError(f"Field '{field}' excluded from init")
             else:
                 try:
                     value = getattr(self, field)
+                    if value == _Unset:
+                        raise AttributeError
                 except AttributeError:
                     raise AttributeError(f"Argument '{field}' is required")
             setattr(self, field, value)
