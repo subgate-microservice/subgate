@@ -111,6 +111,12 @@ async def handle_request_validation_error(_request: Request, exc: ValidationErro
     )
 
 
+async def main():
+    await run_preparations()
+    conf = uvicorn.Config(app, host=config.HOST, port=config.PORT)
+    server = uvicorn.Server(conf)
+    await server.serve()
+
+
 if __name__ == "__main__":
-    # asyncio.run(run_preparations())
-    uvicorn.run(app, host=config.HOST, port=config.PORT)
+    asyncio.run(main())
