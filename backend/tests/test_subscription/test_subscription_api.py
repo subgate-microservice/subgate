@@ -78,6 +78,26 @@ class TestCreate:
         if expected_status_code < 400:
             assert len(event_handler.events) == 1
 
+    @pytest.mark.asyncio
+    async def test_create_second_subscription_when_another_one_exist(self, current_user, event_handler):
+        user, token, expected_status_code = current_user
+        headers = get_headers(current_user)
+
+        # First
+        plan = Plan("Simple", 100, "USD", user.id, Period.Monthly)
+        sub1 = Subscription.from_plan(plan, "AnyID")
+        payload1 = SubscriptionCreate.from_subscription(sub1).model_dump(mode="json")
+        await post_request(f"/subscription/", headers, expected_status_code, json=payload1)
+
+        # Second
+        plan = Plan("Superior", 100, "USD", user.id, Period.Monthly, level=20)
+        sub2 = Subscription.from_plan(plan, "AnyID")
+        payload2 = SubscriptionCreate.from_subscription(sub2).model_dump(mode="json")
+        await post_request(f"/subscription/", headers, expected_status_code, json=payload2)
+
+        if expected_status_code < 400:
+            assert len(event_handler.events) == 3
+
 
 class TestStatusManagement:
     @pytest.mark.asyncio
