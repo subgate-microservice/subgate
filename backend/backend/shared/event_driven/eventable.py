@@ -96,10 +96,15 @@ class Property:
     def __set__(self, instance: EventNode, value: Any):
         if self.frozen and hasattr(instance, self.private_name):
             raise AttributeError(f"Cannot modify frozen property {self.private_name}")
-        value = self.mapper(value)
 
         # Здесь надо руками. Через setattr не работает (начинает отслеживать лишние поля)
+        old_value = getattr(instance, self.private_name, _Unset)
+        if isinstance(old_value, EventNode):
+            instance._remove_child(old_value)
+
+        value = self.mapper(value)
         instance.__dict__[self.private_name] = value
+
         if isinstance(value, EventNode):
             instance._add_child(value)
 
