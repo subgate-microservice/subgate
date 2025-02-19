@@ -10,8 +10,9 @@ from backend.subscription.domain.subscription_repo import SubscriptionSby
 
 
 class SubManager:
-    def __init__(self, uow_factory: UnitOfWorkFactory):
+    def __init__(self, uow_factory: UnitOfWorkFactory, bulk_limit=100):
         self._uow_factory = uow_factory
+        self._bulk_limit = bulk_limit
 
     @staticmethod
     async def _processing_expired_sub(sub: Subscription, uow: UnitOfWork):
@@ -40,31 +41,40 @@ class SubManager:
         await update_subscription_new(sub, uow)
 
     async def manage_expired_subscriptions(self):
-        async with self._uow_factory.create_uow() as uow:
-            sby = SubscriptionSby(
-                statuses={SubscriptionStatus.Active},
-                expiration_date_lt=get_current_datetime(),
-                limit=100,
-            )
-            expired_subscriptions = await uow.subscription_repo().get_selected(sby)
-            logger.info(f"{len(expired_subscriptions)} active subscriptions needed to change status into expired")
-            for sub in expired_subscriptions:
-                processor: Callable = self._processing_autorenew_sub if sub.autorenew else self._processing_expired_sub
-                await processor(sub, uow)
+        while True:
+            async with self._uow_factory.create_uow() as uow:
+                sby = SubscriptionSby(
+                    statuses={SubscriptionStatus.Active},
+                    expiration_date_lt=get_current_datetime(),
+                    limit=self._bulk_limit,
+                )
+                expired_subscriptions = await uow.subscription_repo().get_selected(sby)
+                if len(expired_subscriptions) == 0:
+                    break
 
-            await uow.commit()
+                logger.info(f"{len(expired_subscriptions)} active subscriptions needed to change status into expired")
+                for sub in expired_subscriptions:
+                    processor: Callable = self._processing_autorenew_sub if sub.autorenew else self._processing_expired_sub
+                    await processor(sub, uow)
+
+                await uow.commit()
 
     async def manage_usages(self):
-        async with self._uow_factory.create_uow() as uow:
-            targets = await uow.subscription_repo().get_selected(
-                SubscriptionSby(
-                    usage_renew_date_lt=get_current_datetime()
+        while True:
+            async with self._uow_factory.create_uow() as uow:
+                targets = await uow.subscription_repo().get_selected(
+                    SubscriptionSby(
+                        usage_renew_date_lt=get_current_datetime(),
+                        limit=self._bulk_limit,
+                    )
                 )
-            )
-            logger.info(f"{len(targets)} subscriptions needed to renew usages")
-            for target in targets:
-                for usage in target.usages:
-                    if usage.need_to_renew:
-                        usage.renew()
-                await update_subscription_new(target, uow)
-            await uow.commit()
+                if len(targets) == 0:
+                    break
+
+                logger.info(f"{len(targets)} subscriptions needed to renew usages")
+                for target in targets:
+                    for usage in target.usages:
+                        if usage.need_to_renew:
+                            usage.renew()
+                    await update_subscription_new(target, uow)
+                await uow.commit()

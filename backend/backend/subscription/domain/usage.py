@@ -53,3 +53,4 @@ class Usage(Eventable):
 
     def renew(self):
         self.used_units = 0
+        self.last_renew = get_current_datetime()
