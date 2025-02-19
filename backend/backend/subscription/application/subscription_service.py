@@ -6,21 +6,21 @@ from backend.subscription.domain.subscription import (
 from backend.subscription.domain.subscription_services import SubscriptionUpdatesEventGenerator, SubscriptionEventParser
 
 
-async def create_subscription(item: Subscription, uow: UnitOfWork) -> None:
+async def create_subscription(new_sub: Subscription, uow: UnitOfWork) -> None:
     current_sub = await uow.subscription_repo().get_subscriber_active_one(
-        subscriber_id=item.subscriber_id, auth_id=item.auth_id,
+        subscriber_id=new_sub.subscriber_id, auth_id=new_sub.auth_id,
     )
 
     if current_sub:
         # Если создаваемая подписка старше текущей, то ставим на паузу текущую подписку
-        if item.plan_info.level > current_sub.plan_info.level:
+        if new_sub.plan_info.level > current_sub.plan_info.level:
             current_sub.pause()
             await save_updated_subscription(current_sub, uow)
         # Если создаваемая подписка идентична или младше текущей, то ставим создаваемую подписку на паузу
         else:
-            item.pause()
+            new_sub.pause()
 
-    await uow.subscription_repo().add_one(item)
+    await uow.subscription_repo().add_one(new_sub)
 
 
 async def update_subscription_from_another(old_sub: Subscription, new_sub: Subscription, uow: UnitOfWork) -> None:
