@@ -78,8 +78,11 @@ class Property:
     def __get__(self, instance, owner):
         if instance is None:
             return self
-        default_value = self.default_factory() if self.default_factory != _Unset else self.default
-        return getattr(instance, self.private_name, default_value)
+        if hasattr(instance, self.private_name):
+            return getattr(instance, self.private_name)
+        else:
+            default_value = self.default_factory() if self.default_factory != _Unset else self.default
+            return default_value
 
     def __set__(self, instance: EventNode, value: Any):
         if self.frozen and hasattr(instance, self.private_name):
