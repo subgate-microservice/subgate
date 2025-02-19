@@ -150,7 +150,7 @@ async def update_subscription(
     async with container.unit_of_work_factory().create_uow() as uow:
         old_version = await uow.subscription_repo().get_one_by_id(subscription_update.id)
         new_version = subscription_update.to_subscription(auth_user.id, old_version.created_at)
-        await services.update_subscription(old_version, new_version, uow)
+        await services.update_subscription_from_another(old_version, new_version, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
     return "Ok"
@@ -167,7 +167,7 @@ async def increase_usage(
     async with container.unit_of_work_factory().create_uow() as uow:
         target = await uow.subscription_repo().get_one_by_id(sub_id)
         target.usages.get(code).increase(value)
-        await services.update_subscription_new(target, uow)
+        await services.save_updated_subscription(target, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
     return "Ok"
@@ -185,7 +185,7 @@ async def add_usages(
         for usage in usages:
             target_sub.usages.add(usage.to_usage())
 
-        await services.update_subscription_new(target_sub, uow)
+        await services.save_updated_subscription(target_sub, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
     return "Ok"
@@ -202,7 +202,7 @@ async def remove_usages(
         target_sub = await uow.subscription_repo().get_one_by_id(sub_id)
         for code in codes:
             target_sub.usages.remove(code)
-        await services.update_subscription_new(target_sub, uow)
+        await services.save_updated_subscription(target_sub, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
         return "Ok"
@@ -219,7 +219,7 @@ async def update_usages(
         target_sub = await uow.subscription_repo().get_one_by_id(sub_id)
         for usage in usages:
             target_sub.usages.update(usage.to_usage())
-        await services.update_subscription_new(target_sub, uow)
+        await services.save_updated_subscription(target_sub, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
     return "Ok"
@@ -235,7 +235,7 @@ async def update_plan(
     async with container.unit_of_work_factory().create_uow() as uow:
         target_sub = await uow.subscription_repo().get_one_by_id(sub_id)
         target_sub.plan_info = plan_info_schema.to_plan_info()
-        await services.update_subscription_new(target_sub, uow)
+        await services.save_updated_subscription(target_sub, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
     return "Ok"
@@ -250,7 +250,7 @@ async def pause_subscription(
     async with container.unit_of_work_factory().create_uow() as uow:
         target_sub = await uow.subscription_repo().get_one_by_id(sub_id)
         target_sub.pause()
-        await services.update_subscription_new(target_sub, uow)
+        await services.save_updated_subscription(target_sub, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
     return "Ok"
@@ -265,7 +265,7 @@ async def resume_subscription(
     async with container.unit_of_work_factory().create_uow() as uow:
         target_sub = await uow.subscription_repo().get_one_by_id(sub_id)
         target_sub.resume()
-        await services.update_subscription_new(target_sub, uow)
+        await services.save_updated_subscription(target_sub, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
     return "Ok"
@@ -281,7 +281,7 @@ async def renew_subscription(
     async with container.unit_of_work_factory().create_uow() as uow:
         target_sub = await uow.subscription_repo().get_one_by_id(sub_id)
         target_sub.renew(from_date)
-        await services.update_subscription_new(target_sub, uow)
+        await services.save_updated_subscription(target_sub, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
     return "Ok"
@@ -298,7 +298,7 @@ async def add_discounts(
         target_sub = await uow.subscription_repo().get_one_by_id(sub_id)
         for disc in discounts:
             target_sub.discounts.add(disc.to_discount())
-        await services.update_subscription_new(target_sub, uow)
+        await services.save_updated_subscription(target_sub, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
     return "Ok"
@@ -315,7 +315,7 @@ async def remove_discounts(
         target_sub = await uow.subscription_repo().get_one_by_id(sub_id)
         for code in codes:
             target_sub.discounts.remove(code)
-        await services.update_subscription_new(target_sub, uow)
+        await services.save_updated_subscription(target_sub, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
     return "Ok"
@@ -332,7 +332,7 @@ async def update_discounts(
         target_sub = await uow.subscription_repo().get_one_by_id(sub_id)
         for disc in discounts:
             target_sub.discounts.update(disc.to_discount())
-        await services.update_subscription_new(target_sub, uow)
+        await services.save_updated_subscription(target_sub, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
     return "Ok"

@@ -4,7 +4,7 @@ from loguru import logger
 
 from backend.shared.unit_of_work.uow import UnitOfWorkFactory, UnitOfWork
 from backend.shared.utils import get_current_datetime
-from backend.subscription.application.subscription_service import update_subscription_new
+from backend.subscription.application.subscription_service import save_updated_subscription
 from backend.subscription.domain.subscription import SubscriptionStatus, Subscription
 from backend.subscription.domain.subscription_repo import SubscriptionSby
 
@@ -18,7 +18,7 @@ class SubManager:
     async def _processing_expired_sub(sub: Subscription, uow: UnitOfWork):
         try:
             sub.expire()
-            await update_subscription_new(sub, uow)
+            await save_updated_subscription(sub, uow)
             # Если есть подписка на паузе, то возобновляем
             sby = SubscriptionSby(
                 statuses={SubscriptionStatus.Paused},
@@ -30,15 +30,16 @@ class SubManager:
             other_subscriber_subs = await uow.subscription_repo().get_selected(sby)
             for other_sub in other_subscriber_subs:
                 other_sub.resume()
-                await update_subscription_new(other_sub, uow)
+                await save_updated_subscription(other_sub, uow)
         except Exception as err:
             logger.exception(err)
 
     @staticmethod
     async def _processing_autorenew_sub(sub: Subscription, uow: UnitOfWork):
         sub.expire()
+        sub.parse_events()
         sub.renew()
-        await update_subscription_new(sub, uow)
+        await save_updated_subscription(sub, uow)
 
     async def manage_expired_subscriptions(self):
         while True:
@@ -76,5 +77,5 @@ class SubManager:
                     for usage in target.usages:
                         if usage.need_to_renew:
                             usage.renew()
-                    await update_subscription_new(target, uow)
+                    await save_updated_subscription(target, uow)
                 await uow.commit()
