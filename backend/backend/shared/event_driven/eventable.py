@@ -54,7 +54,7 @@ class EventNode:
         return events
 
     def __setattr__(self, key: str, new_value: Any):
-        old_value = self.__dict__.get(key, None)
+        old_value = getattr(self, key, _Unset)
         if isinstance(old_value, EventNode):
             self._remove_child(old_value)
 
@@ -97,7 +97,11 @@ class Property:
         if self.frozen and hasattr(instance, self.private_name):
             raise AttributeError(f"Cannot modify frozen property {self.private_name}")
         value = self.mapper(value)
-        setattr(instance, self.private_name, value)
+
+        # Здесь надо руками. Через setattr не работает (начинает отслеживать лишние поля)
+        instance.__dict__[self.private_name] = value
+        if isinstance(value, EventNode):
+            instance._add_child(value)
 
 
 class PrivateProperty(Property):
@@ -132,12 +136,10 @@ class Eventable(EventNode):
                     if isinstance(prop, PrivateProperty) and prop.excluded:
                         raise AttributeError(f"Field '{field}' excluded from init")
             else:
-                try:
-                    value = getattr(self, field)
-                    if value == _Unset:
-                        raise AttributeError
-                except AttributeError:
+                value = getattr(self, field, _Unset)
+                if value == _Unset:
                     raise AttributeError(f"Argument '{field}' is required")
+
             setattr(self, field, value)
 
         if len(kwargs):
@@ -149,7 +151,7 @@ class Eventable(EventNode):
         super().__setattr__(key, value)
 
     def __setattr__(self, key, value):
-        old_value = self.__dict__.get(key, None)
+        old_value = getattr(self, key, _Unset)
         super().__setattr__(key, value)
         if self._is_trackable():
             self.push_event(FieldUpdated(entity=self, old_value=old_value, new_value=value, field=key))
