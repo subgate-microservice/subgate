@@ -35,15 +35,14 @@ class EventNode:
     def __init__(self):
         self._event_store = EventStore()
         self._children: dict[Hashable, "EventNode"] = {}
-        self._id = id(self)
 
     def _add_child(self, child: "EventNode"):
-        if child._id == self._id:
-            raise Exception(f"Circular error: {self._id}")
-        self._children[child._id] = child
+        if child is self:
+            raise Exception(f"Circular error: {id(self)}")
+        self._children[id(child)] = child
 
     def _remove_child(self, child: "EventNode"):
-        self._children.pop(child._id, None)
+        self._children.pop(id(child), None)
 
     def push_event(self, event: Event):
         self._event_store.push_event(event)
@@ -53,6 +52,16 @@ class EventNode:
         for child in self._children.values():
             events.extend(child.parse_events())
         return events
+
+    def __setattr__(self, key: str, new_value: Any):
+        old_value = self.__dict__.get(key, None)
+        if isinstance(old_value, EventNode):
+            self._remove_child(old_value)
+
+        super().__setattr__(key, new_value)
+
+        if isinstance(new_value, EventNode):
+            self._add_child(new_value)
 
 
 class Property:
@@ -88,9 +97,7 @@ class Property:
         if self.frozen and hasattr(instance, self.private_name):
             raise AttributeError(f"Cannot modify frozen property {self.private_name}")
         value = self.mapper(value)
-        instance.__dict__[self.private_name] = value
-        if isinstance(value, EventNode):
-            instance._add_child(value)
+        setattr(instance, self.private_name, value)
 
 
 class PrivateProperty(Property):
@@ -142,14 +149,8 @@ class Eventable(EventNode):
         super().__setattr__(key, value)
 
     def __setattr__(self, key, value):
-        old_value = getattr(self, key, None)
-        if isinstance(old_value, EventNode):
-            self._remove_child(old_value)
-
+        old_value = self.__dict__.get(key, None)
         super().__setattr__(key, value)
-
-        if isinstance(value, EventNode):
-            self._add_child(value)
         if self._is_trackable():
             self.push_event(FieldUpdated(entity=self, old_value=old_value, new_value=value, field=key))
 
