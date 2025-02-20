@@ -2,7 +2,7 @@ import datetime
 from abc import abstractmethod
 from typing import Any, Protocol, Mapping, Type
 from typing import Iterable, Hashable
-from uuid import uuid4, UUID
+from uuid import UUID
 
 from sqlalchemy import Table, TypeDecorator, DateTime
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -52,7 +52,7 @@ class SQLMapper:
 
 
 class HasId(Protocol):
-    id: Hashable
+    id: UUID
 
 
 class SqlBaseRepo:
@@ -73,13 +73,12 @@ class SqlBaseRepo:
         data = self.mapper.entity_to_mapping(item)
         self._logs.append(
             Log(
-                action_id=uuid4(),
                 collection_name=self.table.name,
                 action="insert",
                 action_data=data,
-                rollback_data=None,
                 created_at=get_current_datetime(),
                 transaction_id=self._transaction_id,
+                model_id=item.id,
             )
         )
 
@@ -88,30 +87,27 @@ class SqlBaseRepo:
             await self.add_one(item)
 
     async def update_one(self, item: HasId) -> None:
-        old_item = self.mapper.entity_to_mapping(await self.get_one_by_id(item.id))
         new_item = self.mapper.entity_to_mapping(item)
         self._logs.append(
             Log(
-                action_id=uuid4(),
                 collection_name=self.table.name,
                 action="update",
                 action_data=new_item,
-                rollback_data=old_item,
                 created_at=get_current_datetime(),
                 transaction_id=self._transaction_id,
+                model_id=item.id,
             )
         )
 
     async def delete_one(self, item: HasId) -> None:
         self._logs.append(
             Log(
-                action_id=uuid4(),
                 collection_name=self.table.name,
                 action="delete",
-                action_data={"id": item.id},
-                rollback_data=self.mapper.entity_to_mapping(item),
+                action_data=None,
                 created_at=get_current_datetime(),
                 transaction_id=self._transaction_id,
+                model_id=item.id,
             )
         )
 

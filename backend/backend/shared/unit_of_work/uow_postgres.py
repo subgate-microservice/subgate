@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, AsyncEngine
 from backend.auth.domain.apikey_repo import ApikeyRepo
 from backend.auth.infra.apikey.apikey_repo_sql import SqlApikeyRepo
 from backend.shared.event_driven.base_event import Event
-from backend.shared.unit_of_work.change_log import SqlLogRepo
+from backend.shared.unit_of_work.change_log import SqlLogRepo, convert_logs
 from backend.shared.unit_of_work.sql_statement_parser import SqlStatementBuilder
 from backend.shared.unit_of_work.uow import UnitOfWorkFactory, UnitOfWork
 from backend.subscription.domain.exceptions import ActiveStatusConflict
@@ -36,7 +36,7 @@ class NewUow(UnitOfWork):
         self._session_factory = session_factory
         self._session: Optional[AsyncSession] = None
         self._repos = {}
-        self._log_repo = None
+        self._log_repo: Optional[SqlLogRepo] = None
         self._events = []
 
     async def __aenter__(self) -> Self:
@@ -88,14 +88,18 @@ class NewUow(UnitOfWork):
 
     async def rollback(self):
         try:
-            logs = await self._log_repo.get_logs_by_transaction_id(self._transaction_id)
-            statements = SqlStatementBuilder().load_logs(logs).parse_rollback_statements()
+            current_logs = await self._log_repo.get_logs_by_transaction_id(self._transaction_id)
+
+            model_ids = [x.model_id for x in current_logs]
+            previous_logs = await self._log_repo.get_previous_logs(model_ids, self._transaction_id)
+            rollback_logs = convert_logs(current_logs, previous_logs, self._transaction_id)
+
+            statements = SqlStatementBuilder().load_logs(rollback_logs).parse_rollback_statements()
 
             for stmt, data in statements:
                 await self._session.execute(stmt, data) if data else await self._session.execute(stmt)
 
-            logs = [x.to_rollback_log() for x in logs]
-            await self._log_repo.add_many_logs(logs)
+            await self._log_repo.add_many_logs(rollback_logs)
 
             await self._session.commit()
         except Exception as err:

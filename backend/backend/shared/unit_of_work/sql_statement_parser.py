@@ -4,7 +4,6 @@ from sqlalchemy import Table, Insert, Update, bindparam, Delete
 
 from backend.auth.infra.apikey.apikey_repo_sql import apikey_table
 from backend.shared.unit_of_work.change_log import Log
-from backend.shared.utils import get_current_datetime
 from backend.subscription.infra.plan_repo_sql import plan_table
 from backend.subscription.infra.subscription_repo_sql import subscription_table
 from backend.webhook.infra.telegram_repo_sql import telegram_table
@@ -46,14 +45,12 @@ class SqlStatementBuilder:
         self._action_handlers = {
             "insert": self._handle_insert,
             "update": self._handle_update,
-            "safe_delete": self._handle_safe_delete,
             "delete": self._handle_delete,
         }
         self._rollback_handlers = {
-            "insert": self._handle_insert_rollback,
-            "update": self._handle_update_rollback,
-            "safe_delete": self._handle_safe_delete_rollback,
-            "delete": self._handle_delete_rollback,
+            "rollback_insert": self._handle_insert_rollback,
+            "rollback_update": self._handle_update_rollback,
+            "rollback_delete": self._handle_delete_rollback,
         }
 
     def load_logs(self, logs: Iterable[Log]) -> Self:
@@ -93,27 +90,24 @@ class SqlStatementBuilder:
     def _handle_delete(self, tablename: str, logs: list[Log]):
         if logs:
             table = get_table(tablename)
-            filter_conditions = build_filter_conditions(logs, "action_data")
-            stmt = table.delete().where(*filter_conditions)
+            ids = [log.model_id for log in logs]
+            stmt = table.delete().where(table.c["id"].in_(ids))
             self._statements.append((stmt, None))
-
-    def _handle_safe_delete(self, tablename: str, logs: list[Log]):
-        raise NotImplemented
 
     def _handle_insert_rollback(self, tablename: str, logs: list[Log]):
         if logs:
             table = get_table(tablename)
-            ids = [log.action_data["id"] for log in logs]
+            ids = [log.model_id for log in logs]
             stmt = table.delete().where(table.c["id"].in_(ids))
             self._statements.append((stmt, None))
 
     def _handle_update_rollback(self, tablename: str, logs: list[Log]):
         if logs:
             table = get_table(tablename)
-            params = {col: col for col in logs[0].rollback_data.keys() if col != "id"}
+            params = {col: col for col in logs[0].action_data.keys() if col != "id"}
 
             values = [
-                {**log.rollback_data, "_id": log.rollback_data.get("id")}
+                {**log.action_data, "_id": log.model_id}
                 for log in logs
             ]
 
@@ -124,11 +118,8 @@ class SqlStatementBuilder:
         if logs:
             table = get_table(tablename)
             stmt = table.insert()
-            data = [x.rollback_data for x in logs]
+            data = [x.action_data for x in logs]
             self._statements.append((stmt, data))
-
-    def _handle_safe_delete_rollback(self, tablename: str, logs: list[Log]):
-        raise NotImplemented
 
     def _process_logs(self, handler_resolver: Callable[[str], Callable[[str, list[Log]], None]]):
         self._group_logs()

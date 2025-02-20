@@ -1,7 +1,7 @@
 from typing import Literal, NamedTuple, Iterable, Any, Self, Optional, cast, Mapping
 
 from pydantic import AwareDatetime, TypeAdapter
-from sqlalchemy import Table, Column, UUID, String, DateTime, BigInteger
+from sqlalchemy import Table, Column, UUID, String, DateTime, BigInteger, select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.shared.database import metadata
@@ -24,9 +24,8 @@ adapter = TypeAdapter(Optional[dict])
 class Log(NamedTuple):
     transaction_id: UUID
     action: Action
-    action_id: UUID
+    model_id: UUID
     action_data: Optional[dict[str, Any]]
-    rollback_data: Optional[dict[str, Any]]
     collection_name: str
     created_at: AwareDatetime
 
@@ -37,17 +36,6 @@ class Log(NamedTuple):
     def fields(self):
         return self._fields
 
-    def to_rollback_log(self) -> Self:
-        # Избегаем двойного rollback
-        if self.action[0] == "r":
-            raise NotImplemented
-        return self._replace(
-            action=cast(Action, "rollback_" + self.action),
-            action_data=self.rollback_data,
-            rollback_data=None,
-            created_at=get_current_datetime(),
-        )
-
 
 log_table = Table(
     "log_table",
@@ -55,21 +43,19 @@ log_table = Table(
     Column("pk", BigInteger, autoincrement=True, primary_key=True),
     Column('action', String, nullable=False),
     Column('transaction_id', UUID, nullable=False),
-    Column('action_id', UUID),
+    Column('model_id', UUID),
     Column('action_data', String, nullable=False),
-    Column('rollback_data', String, nullable=True),
     Column('collection_name', String, nullable=False),
     Column('created_at', DateTime(timezone=True)), )
 
 
 class SqlLogMapper:
     @staticmethod
-    def entity_to_mapping(entity: Any) -> dict:
+    def entity_to_mapping(entity: Log) -> dict:
         return {
             "action": entity.action,
-            "action_id": entity.action_id,
+            "model_id": entity.model_id,
             "action_data": adapter.dump_json(entity.action_data).decode(),
-            "rollback_data": adapter.dump_json(entity.rollback_data).decode(),
             "collection_name": entity.collection_name,
             "created_at": entity.created_at,
             "transaction_id": entity.transaction_id,
@@ -79,9 +65,8 @@ class SqlLogMapper:
     def mapping_to_entity(mapping: Mapping) -> Any:
         return Log(
             action=mapping["action"],
-            action_id=mapping["action_id"],
+            model_id=mapping["model_id"],
             action_data=adapter.validate_json(mapping["action_data"]),
-            rollback_data=adapter.validate_json(mapping["rollback_data"]),
             collection_name=mapping["collection_name"],
             created_at=mapping["created_at"],
             transaction_id=mapping["transaction_id"],
@@ -109,3 +94,72 @@ class SqlLogRepo:
         mappings = (await self._session.execute(stmt)).mappings()
         logs = [self._mapper.mapping_to_entity(mapping) for mapping in mappings]
         return logs
+
+    async def get_previous_logs(self, model_ids: Iterable[UUID], current_trs_id: UUID) -> list[Log]:
+        subquery = (
+            select(
+                log_table,
+                func.row_number()
+                .over(partition_by=log_table.c["model_id"], order_by=log_table.c["pk"].desc())
+                .label("rn")
+            )
+            .where(
+                log_table.c["model_id"].in_(model_ids),
+                log_table.c["transaction_id"] != current_trs_id,
+            )
+            .subquery()
+        )
+
+        stmt = select(subquery).where(subquery.c.rn == 1)
+
+        # Выполнение запроса
+        result = await self._session.execute(stmt)
+        logs = [self._mapper.mapping_to_entity(x) for x in result.mappings()]
+        return logs
+
+
+Tablename = str
+RollbackAction = Action
+LastState = dict
+ModelID = UUID
+RollbackTable = dict[Tablename, dict[RollbackAction, dict[ModelID, LastState]]]
+
+
+def _mapping(current_logs: list[Log], previous_logs: list[Log]) -> RollbackTable:
+    result: RollbackTable = {}
+    last_states: dict[ModelID, LastState] = {log.model_id: log.action_data for log in previous_logs}
+
+    for current_log in current_logs:
+        if current_log.action[0] == "r":
+            raise ValueError
+        model_id = current_log.model_id
+        rollback_action = cast(RollbackAction, "rollback_" + current_log.action)
+        last_state = last_states[model_id] if current_log.action != "insert" else None
+        tablename = current_log.collection_name
+        result.setdefault(tablename, {}).setdefault(rollback_action, {})[model_id] = last_state
+
+    return result
+
+
+def convert_logs(
+        current_logs: list[Log],
+        previous_logs: list[Log],
+        transaction_id: UUID
+) -> list[Log]:
+    result = []
+    rollback_table = _mapping(current_logs, previous_logs)
+    for tablename in rollback_table:
+        for rollback_action in rollback_table[tablename]:
+            for model_id in rollback_table[tablename][rollback_action]:
+                last_state = rollback_table[tablename][rollback_action][model_id]
+                result.append(
+                    Log(
+                        transaction_id=transaction_id,
+                        action=rollback_action,
+                        model_id=model_id,
+                        action_data=last_state,
+                        collection_name=tablename,
+                        created_at=get_current_datetime(),
+                    )
+                )
+    return result
