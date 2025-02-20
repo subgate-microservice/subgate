@@ -22,18 +22,15 @@ class PlanCreated(Event):
     currency: str
     billing_cycle: Period
     auth_id: AuthId
-    created_at: AwareDatetime
 
 
 class PlanDeleted(Event):
     id: PlanId
     auth_id: AuthId
-    deleted_at: AwareDatetime
 
 
 class PlanUpdated(Event):
     id: PlanId
-    updated_at: AwareDatetime
     updated_fields: tuple[str]
     auth_id: AuthId
 

@@ -11,94 +11,85 @@ SubId = UUID
 
 
 class SubscriptionCreated(Event):
-    subscription_id: SubId
+    id: SubId
+    subscriber_id: str
     price: float
     currency: str
     billing_cycle: Period
-    usage_codes: tuple[str, ...]
-    discount_codes: tuple[str, ...]
     auth_id: AuthId
 
 
-class SubscriptionDeleted(Event):
-    subscription_id: SubId
+class SubscriptionDeleted(SubscriptionCreated):
+    pass
+
+
+class SubscriptionUpdated(Event):
+    id: SubId
+    subscriber_id: SubId
+    changed_fields: tuple[str, ...]
     auth_id: AuthId
 
 
 class SubscriptionPaused(Event):
-    subscription_id: SubId
+    id: SubId
+    subscriber_id: str
     paused_from: AwareDatetime
     auth_id: AuthId
 
 
 class SubscriptionResumed(Event):
-    subscription_id: SubId
+    id: SubId
+    subscriber_id: str
+    last_billing: AwareDatetime
     auth_id: AuthId
 
 
 class SubscriptionRenewed(Event):
-    subscription_id: SubId
+    id: SubId
+    subscriber_id: str
     last_billing: AwareDatetime
     auth_id: AuthId
 
 
 class SubscriptionExpired(Event):
-    subscription_id: SubId
+    id: SubId
+    subscriber_id: str
     auth_id: AuthId
 
 
 class SubscriptionUsageAdded(Event):
     subscription_id: SubId
-    code: str
-    unit: str
-    available_units: float
-    auth_id: AuthId
-
-
-class SubscriptionUsageRemoved(Event):
-    subscription_id: SubId
-    code: str
-    auth_id: AuthId
-
-
-class SubscriptionUsageUpdated(Event):
-    subscription_id: SubId
     title: str
     code: str
     unit: str
     available_units: float
+    renew_cycle: Period
     used_units: float
-    delta: float
+    last_renew: AwareDatetime
     auth_id: AuthId
+
+
+class SubscriptionUsageUpdated(SubscriptionUsageAdded):
+    delta: float
+
+
+class SubscriptionUsageRemoved(SubscriptionUsageAdded):
+    pass
 
 
 class SubscriptionDiscountAdded(Event):
     subscription_id: SubId
     title: str
     code: str
+    description: Optional[str]
     size: float
     valid_until: AwareDatetime
-    description: Optional[str]
     auth_id: AuthId
 
 
-class SubscriptionDiscountRemoved(Event):
-    subscription_id: SubId
-    code: str
-    auth_id: AuthId
+class SubscriptionDiscountRemoved(SubscriptionDiscountAdded):
+    pass
 
 
-class SubscriptionDiscountUpdated(Event):
-    subscription_id: SubId
-    title: str
-    code: str
-    size: float
-    valid_until: AwareDatetime
-    description: Optional[str]
-    auth_id: AuthId
-
-
-class SubscriptionUpdated(Event):
-    subscription_id: SubId
-    changed_fields: tuple[str, ...]
-    auth_id: AuthId
+class SubscriptionDiscountUpdated(SubscriptionDiscountAdded):
+    pass
