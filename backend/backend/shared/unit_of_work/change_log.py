@@ -25,7 +25,7 @@ class Log(NamedTuple):
     transaction_id: UUID
     action: Action
     model_id: UUID
-    action_data: Optional[dict[str, Any]]
+    model_state: Optional[dict[str, Any]]
     collection_name: str
     created_at: AwareDatetime
 
@@ -44,7 +44,7 @@ log_table = Table(
     Column('action', String, nullable=False),
     Column('transaction_id', UUID, nullable=False),
     Column('model_id', UUID),
-    Column('action_data', String, nullable=False),
+    Column('model_state', String, nullable=False),
     Column('collection_name', String, nullable=False),
     Column('created_at', DateTime(timezone=True)), )
 
@@ -55,7 +55,7 @@ class SqlLogMapper:
         return {
             "action": entity.action,
             "model_id": entity.model_id,
-            "action_data": adapter.dump_json(entity.action_data).decode(),
+            "model_state": adapter.dump_json(entity.model_state).decode(),
             "collection_name": entity.collection_name,
             "created_at": entity.created_at,
             "transaction_id": entity.transaction_id,
@@ -66,7 +66,7 @@ class SqlLogMapper:
         return Log(
             action=mapping["action"],
             model_id=mapping["model_id"],
-            action_data=adapter.validate_json(mapping["action_data"]),
+            model_state=adapter.validate_json(mapping["model_state"]),
             collection_name=mapping["collection_name"],
             created_at=mapping["created_at"],
             transaction_id=mapping["transaction_id"],
@@ -127,7 +127,7 @@ RollbackTable = dict[Tablename, dict[RollbackAction, dict[ModelID, LastState]]]
 
 def _mapping(current_logs: list[Log], previous_logs: list[Log]) -> RollbackTable:
     result: RollbackTable = {}
-    last_states: dict[ModelID, LastState] = {log.model_id: log.action_data for log in previous_logs}
+    last_states: dict[ModelID, LastState] = {log.model_id: log.model_state for log in previous_logs}
 
     for current_log in current_logs:
         if current_log.action[0] == "r":
@@ -157,7 +157,7 @@ def convert_logs(
                         transaction_id=transaction_id,
                         action=rollback_action,
                         model_id=model_id,
-                        action_data=last_state,
+                        model_state=last_state,
                         collection_name=tablename,
                         created_at=get_current_datetime(),
                     )

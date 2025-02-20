@@ -75,7 +75,7 @@ class SqlBaseRepo:
             Log(
                 collection_name=self.table.name,
                 action="insert",
-                action_data=data,
+                model_state=data,
                 created_at=get_current_datetime(),
                 transaction_id=self._transaction_id,
                 model_id=item.id,
@@ -92,7 +92,7 @@ class SqlBaseRepo:
             Log(
                 collection_name=self.table.name,
                 action="update",
-                action_data=new_item,
+                model_state=new_item,
                 created_at=get_current_datetime(),
                 transaction_id=self._transaction_id,
                 model_id=item.id,
@@ -104,7 +104,7 @@ class SqlBaseRepo:
             Log(
                 collection_name=self.table.name,
                 action="delete",
-                action_data=None,
+                model_state=None,
                 created_at=get_current_datetime(),
                 transaction_id=self._transaction_id,
                 model_id=item.id,

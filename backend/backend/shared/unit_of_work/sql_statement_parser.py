@@ -71,16 +71,16 @@ class SqlStatementBuilder:
     def _handle_insert(self, tablename: str, logs: list[Log]):
         if logs:
             stmt = get_table(tablename).insert()
-            data = [log.action_data for log in logs]
+            data = [log.model_state for log in logs]
             self._statements.append((stmt, data))
 
     def _handle_update(self, tablename: str, logs: list[Log]):
         if logs:
             table = get_table(tablename)
-            params = {col: col for col in logs[0].action_data.keys() if col != "id"}
+            params = {col: col for col in logs[0].model_state.keys() if col != "id"}
 
             values = [
-                {**log.action_data, "_id": log.action_data.get("id")}
+                {**log.model_state, "_id": log.model_state.get("id")}
                 for log in logs
             ]
 
@@ -104,10 +104,10 @@ class SqlStatementBuilder:
     def _handle_update_rollback(self, tablename: str, logs: list[Log]):
         if logs:
             table = get_table(tablename)
-            params = {col: col for col in logs[0].action_data.keys() if col != "id"}
+            params = {col: col for col in logs[0].model_state.keys() if col != "id"}
 
             values = [
-                {**log.action_data, "_id": log.model_id}
+                {**log.model_state, "_id": log.model_id}
                 for log in logs
             ]
 
@@ -118,7 +118,7 @@ class SqlStatementBuilder:
         if logs:
             table = get_table(tablename)
             stmt = table.insert()
-            data = [x.action_data for x in logs]
+            data = [x.model_state for x in logs]
             self._statements.append((stmt, data))
 
     def _process_logs(self, handler_resolver: Callable[[str], Callable[[str, list[Log]], None]]):
