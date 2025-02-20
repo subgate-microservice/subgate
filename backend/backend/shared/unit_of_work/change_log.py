@@ -139,7 +139,7 @@ class LogConverter:
                 raise ValueError(f"All logs must have the same transaction_id")
 
     def _build_rollback_table(self) -> RollbackTable:
-        rollback_table: dict[str, dict[Action, dict[ModelID, LastState]]] = defaultdict(lambda: defaultdict(dict))
+        rollback_table = defaultdict(lambda: defaultdict(dict))
 
         for log in self._current_logs:
             rollback_action = cast(Action, f"rollback_{log.action}")
