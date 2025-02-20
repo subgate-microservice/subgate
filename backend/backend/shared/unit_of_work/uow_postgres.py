@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, AsyncEngine
 from backend.auth.domain.apikey_repo import ApikeyRepo
 from backend.auth.infra.apikey.apikey_repo_sql import SqlApikeyRepo
 from backend.shared.event_driven.base_event import Event
-from backend.shared.unit_of_work.change_log import SqlLogRepo, convert_logs
+from backend.shared.unit_of_work.change_log import SqlLogRepo, LogConverter
 from backend.shared.unit_of_work.sql_statement_parser import SqlStatementBuilder
 from backend.shared.unit_of_work.uow import UnitOfWorkFactory, UnitOfWork
 from backend.subscription.domain.exceptions import ActiveStatusConflict
@@ -92,7 +92,7 @@ class NewUow(UnitOfWork):
 
             model_ids = [x.model_id for x in current_logs]
             previous_logs = await self._log_repo.get_previous_logs(model_ids, self._transaction_id)
-            rollback_logs = convert_logs(current_logs, previous_logs, self._transaction_id)
+            rollback_logs = LogConverter(current_logs, previous_logs, self._transaction_id).convert()
 
             statements = SqlStatementBuilder().load_logs(rollback_logs).parse_rollback_statements()
 

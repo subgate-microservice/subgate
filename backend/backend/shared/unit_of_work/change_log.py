@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import Literal, NamedTuple, Iterable, Any, Self, Optional, cast, Mapping
 
 from pydantic import AwareDatetime, TypeAdapter
@@ -119,47 +120,48 @@ class SqlLogRepo:
 
 
 Tablename = str
-RollbackAction = Action
 LastState = dict
 ModelID = UUID
-RollbackTable = dict[Tablename, dict[RollbackAction, dict[ModelID, LastState]]]
+RollbackTable = dict[Tablename, dict[Action, dict[ModelID, LastState]]]
 
 
-def _mapping(current_logs: list[Log], previous_logs: list[Log]) -> RollbackTable:
-    result: RollbackTable = {}
-    last_states: dict[ModelID, LastState] = {log.model_id: log.model_state for log in previous_logs}
+class LogConverter:
+    def __init__(self, current_logs: list[Log], previous_logs: list[Log], transaction_id: UUID):
+        self._current_logs = current_logs
+        self._previous_logs = {log.model_id: log.model_state for log in previous_logs}
+        self._transaction_id = transaction_id
 
-    for current_log in current_logs:
-        if current_log.action[0] == "r":
-            raise ValueError
-        model_id = current_log.model_id
-        rollback_action = cast(RollbackAction, "rollback_" + current_log.action)
-        last_state = last_states[model_id] if current_log.action != "insert" else None
-        tablename = current_log.collection_name
-        result.setdefault(tablename, {}).setdefault(rollback_action, {})[model_id] = last_state
+    def _validate_logs(self):
+        for log in self._current_logs:
+            if log.action.startswith("r"):
+                raise ValueError("Current logs should not contain rollback actions.")
+            if log.transaction_id != self._transaction_id:
+                raise ValueError(f"All logs must have the same transaction_id")
 
-    return result
+    def _build_rollback_table(self) -> RollbackTable:
+        rollback_table: dict[str, dict[Action, dict[ModelID, LastState]]] = defaultdict(lambda: defaultdict(dict))
 
+        for log in self._current_logs:
+            rollback_action = cast(Action, f"rollback_{log.action}")
+            last_state = self._previous_logs.get(log.model_id) if log.action != "insert" else None
+            rollback_table[log.collection_name][rollback_action][log.model_id] = last_state
 
-def convert_logs(
-        current_logs: list[Log],
-        previous_logs: list[Log],
-        transaction_id: UUID
-) -> list[Log]:
-    result = []
-    rollback_table = _mapping(current_logs, previous_logs)
-    for tablename in rollback_table:
-        for rollback_action in rollback_table[tablename]:
-            for model_id in rollback_table[tablename][rollback_action]:
-                last_state = rollback_table[tablename][rollback_action][model_id]
-                result.append(
-                    Log(
-                        transaction_id=transaction_id,
-                        action=rollback_action,
-                        model_id=model_id,
-                        model_state=last_state,
-                        collection_name=tablename,
-                        created_at=get_current_datetime(),
-                    )
-                )
-    return result
+        return rollback_table
+
+    def convert(self) -> list[Log]:
+        self._validate_logs()
+        rollback_table = self._build_rollback_table()
+
+        return [
+            Log(
+                transaction_id=self._transaction_id,
+                action=rollback_action,
+                model_id=model_id,
+                model_state=last_state,
+                collection_name=tablename,
+                created_at=get_current_datetime(),
+            )
+            for tablename, actions in rollback_table.items()
+            for rollback_action, models in actions.items()
+            for model_id, last_state in models.items()
+        ]
