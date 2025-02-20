@@ -143,7 +143,7 @@ class LogConverter:
 
         for log in self._current_logs:
             rollback_action = cast(Action, f"rollback_{log.action}")
-            last_state = self._previous_logs.get(log.model_id) if log.action != "insert" else None
+            last_state = self._previous_logs[log.model_id] if log.action != "insert" else None
             rollback_table[log.collection_name][rollback_action][log.model_id] = last_state
 
         return rollback_table
