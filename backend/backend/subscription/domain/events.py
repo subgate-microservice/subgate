@@ -4,15 +4,38 @@ from uuid import UUID
 from pydantic import AwareDatetime
 
 from backend.auth.domain.auth_user import AuthId
+from backend.shared.enums import UnionValue
 from backend.shared.event_driven.base_event import Event
 from backend.subscription.domain.cycle import Period
+from backend.subscription.domain.subscription import SubscriptionStatus
 
 SubId = UUID
+PlanId = UUID
+
+
+class PlanCreated(Event):
+    id: PlanId
+    title: str
+    price: float
+    currency: str
+    billing_cycle: Period
+    auth_id: AuthId
+
+
+class PlanDeleted(PlanCreated):
+    pass
+
+
+class PlanUpdated(Event):
+    id: PlanId
+    changes: dict[str, UnionValue]
+    auth_id: AuthId
 
 
 class SubscriptionCreated(Event):
     id: SubId
     subscriber_id: str
+    status: SubscriptionStatus
     price: float
     currency: str
     billing_cycle: Period
@@ -26,34 +49,28 @@ class SubscriptionDeleted(SubscriptionCreated):
 class SubscriptionUpdated(Event):
     id: SubId
     subscriber_id: SubId
-    changed_fields: tuple[str, ...]
+    changes: dict[str, UnionValue]
     auth_id: AuthId
 
 
 class SubscriptionPaused(Event):
     id: SubId
     subscriber_id: str
-    paused_from: AwareDatetime
     auth_id: AuthId
 
 
-class SubscriptionResumed(Event):
-    id: SubId
-    subscriber_id: str
-    last_billing: AwareDatetime
-    auth_id: AuthId
+class SubscriptionResumed(SubscriptionPaused):
+    pass
+
+
+class SubscriptionExpired(SubscriptionPaused):
+    pass
 
 
 class SubscriptionRenewed(Event):
     id: SubId
     subscriber_id: str
     last_billing: AwareDatetime
-    auth_id: AuthId
-
-
-class SubscriptionExpired(Event):
-    id: SubId
-    subscriber_id: str
     auth_id: AuthId
 
 
@@ -69,7 +86,10 @@ class SubscriptionUsageAdded(Event):
     auth_id: AuthId
 
 
-class SubscriptionUsageUpdated(SubscriptionUsageAdded):
+class SubscriptionUsageUpdated(Event):
+    subscription_id: SubId
+    code: str
+    changes: dict[str, UnionValue]
     delta: float
 
 
@@ -91,5 +111,7 @@ class SubscriptionDiscountRemoved(SubscriptionDiscountAdded):
     pass
 
 
-class SubscriptionDiscountUpdated(SubscriptionDiscountAdded):
-    pass
+class SubscriptionDiscountUpdated(Event):
+    subscription_id: SubId
+    code: str
+    changes: dict[str, UnionValue]

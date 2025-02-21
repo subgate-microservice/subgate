@@ -1,38 +1,16 @@
 from copy import copy
 from typing import Any, Optional, Self
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 from pydantic import AwareDatetime
 
 from backend.auth.domain.auth_user import AuthId
-from backend.shared.event_driven.base_event import Event
 from backend.shared.event_driven.eventable import Eventable, EventableSet, Property
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.discount import Discount
+from backend.subscription.domain.events import PlanId, PlanUpdated, PlanDeleted, PlanCreated
 from backend.subscription.domain.usage import UsageRate
-
-PlanId = UUID
-
-
-class PlanCreated(Event):
-    id: PlanId
-    title: str
-    price: float
-    currency: str
-    billing_cycle: Period
-    auth_id: AuthId
-
-
-class PlanDeleted(Event):
-    id: PlanId
-    auth_id: AuthId
-
-
-class PlanUpdated(Event):
-    id: PlanId
-    updated_fields: tuple[str]
-    auth_id: AuthId
 
 
 class Plan(Eventable):
