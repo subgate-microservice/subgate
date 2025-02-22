@@ -7,6 +7,7 @@ from pydantic import Field, AwareDatetime
 
 from backend.shared.base_models import MyBase
 from backend.shared.enums import Lock
+from backend.shared.event_driven.base_event import Event
 from backend.shared.utils import get_current_datetime
 
 
@@ -15,9 +16,25 @@ class SentErrorInfo(MyBase):
     detail: str
 
 
+class TelegramData(MyBase):
+    type: str = "event"
+    event_code: str
+    occurred_at: AwareDatetime
+    payload: dict
+
+    @classmethod
+    def from_event(cls, event: Event):
+        return cls(
+            type="event",
+            event_code=event.get_event_code(),
+            occurred_at=event.occurred_at,
+            payload=event.model_dump(mode="json", exclude={"auth_id"})
+        )
+
+
 class Telegram(MyBase):
     url: str
-    data: dict
+    data: TelegramData
     status: Literal["unprocessed", "success_sent", "failed_sent",] = "unprocessed"
     id: UUID = Field(default_factory=uuid4)
     retries: int = 0
