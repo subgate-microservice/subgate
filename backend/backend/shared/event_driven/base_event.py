@@ -1,3 +1,4 @@
+import re
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, AwareDatetime, Field
@@ -9,12 +10,12 @@ class Event(BaseModel):
     occurred_at: AwareDatetime = Field(default_factory=get_current_datetime)
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    @property
-    def event_code(self):
-        return self.__class__.__name__
+    @classmethod
+    def get_event_code(cls):
+        return re.sub(r'(?<!^)(?=[A-Z])', '_', cls.__name__).lower()
 
     def __str__(self):
-        return f"{self.event_code}"
+        return f"{self.get_event_code()}"
 
 
 class FieldUpdated[T](Event):

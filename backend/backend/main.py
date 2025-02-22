@@ -12,7 +12,7 @@ from backend.auth.adapters.apikey_router import apikey_router
 from backend.auth.adapters.fastapi_user_routers import include_fastapi_users_routers
 from backend.auth.infra.apikey.apikey__auth_closure_factory import NotAuthenticated
 from backend.shared.exceptions import ItemNotExist, ItemAlreadyExist, ValidationError
-from backend.startup_service import run_preparations
+from backend.startup_service import run_preparations, run_workers
 from backend.subscription.adapters.plan_api import plan_router
 from backend.subscription.adapters.subscription_api import subscription_router
 from backend.subscription.domain.exceptions import ActiveStatusConflict
@@ -113,6 +113,7 @@ async def handle_request_validation_error(_request: Request, exc: ValidationErro
 
 async def main():
     await run_preparations()
+    run_workers()
     conf = uvicorn.Config(app, host=config.HOST, port=config.PORT)
     server = uvicorn.Server(conf)
     await server.serve()

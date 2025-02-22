@@ -25,7 +25,7 @@ class Bus:
             self._subscribers.pop(event_type)
 
     async def publish(self, event: Event, context: Context) -> None:
-        subscribers = self._subscribers.get(event.__class__, set())
+        subscribers = self._subscribers.get(event.get_event_code(), set())
         for sub in subscribers:
             await sub(event, context)
 

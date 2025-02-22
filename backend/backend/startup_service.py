@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi_users.exceptions import UserNotExists
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from loguru import logger
@@ -50,7 +52,7 @@ async def _subscribe_events_to_eventbus():
     logger.info("Subscribe events to eventbus")
     bus = get_container().eventbus()
     for event in EVENTS:
-        bus.subscribe(event.event_code, subscription_handlers.handle_subscription_event)
+        bus.subscribe(event.get_event_code(), subscription_handlers.handle_subscription_event)
 
 
 async def _create_database():
@@ -63,3 +65,9 @@ async def run_preparations():
     auth_user = await _create_auth_user_if_not_exist(config.USER_EMAIL, config.USER_PASSWORD)
     await _create_apikey_if_not_exist(auth_user, config.USER_APIKEY_TITLE, config.USER_APIKEY)
     await _subscribe_events_to_eventbus()
+
+
+def run_workers():
+    telegraph = container.telegraph()
+    task = asyncio.create_task(telegraph.run_worker())
+    task.set_name("TelegraphWorker")

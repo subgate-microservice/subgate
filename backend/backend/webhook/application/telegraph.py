@@ -9,11 +9,14 @@ from backend.webhook.domain.telegram import SentErrorInfo, Telegram
 
 
 async def safe_request(method: str, url: str, **kwargs) -> Optional[SentErrorInfo]:
-    async with aiohttp.ClientSession() as session:
-        async with session.request(method, url, **kwargs) as response:
-            if response.status >= 400:
-                return SentErrorInfo(status_code=response.status, detail="Request error")
-            return None
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.request(method, url, **kwargs) as response:
+                if response.status >= 400:
+                    return SentErrorInfo(status_code=response.status, detail="Request error")
+                return None
+    except Exception as err:
+        return SentErrorInfo(status_code=500, detail=str(err))
 
 
 async def safe_commit(uow: UnitOfWork, msg: Telegram):
@@ -21,7 +24,7 @@ async def safe_commit(uow: UnitOfWork, msg: Telegram):
         await uow.telegram_repo().update_one(msg)
         await uow.commit()
     except Exception as err:
-        logger.exception(err)
+        logger.error(err)
 
 
 class Telegraph:
@@ -50,7 +53,7 @@ class Telegraph:
                     messages = await uow.telegram_repo().get_messages_for_send()
                     logger.info(f"Need to send {len(messages)} telegrams")
                     for msg in messages:
-                        error_info = await safe_request("POST", msg.url, data=msg.data)
+                        error_info = await safe_request("POST", msg.url, json=msg.data)
                         updated_msg = msg.failed_sent(error_info) if error_info else msg.success_sent()
                         await safe_commit(uow, updated_msg)
             except Exception as err:

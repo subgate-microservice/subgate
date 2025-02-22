@@ -17,7 +17,7 @@ telegram_table = Table(
     metadata,
     Column("id", UUID, primary_key=True, default=str(uuid.uuid4())),
     Column("url", String, nullable=False),
-    Column("data", String, nullable=False),
+    Column("data", JSONB, nullable=False),
     Column("status", String, nullable=False),
     Column("retries", Integer, nullable=False),
     Column("max_retries", Integer, nullable=False),
@@ -67,9 +67,6 @@ class SqlTelegramRepo(TelegramRepo):
     def __init__(self, session: AsyncSession, transaction_id: UUID):
         self._base_repo = SqlBaseRepo(session, SqlTelegramMapper(telegram_table), telegram_table, transaction_id)
 
-    async def create_indexes(self):
-        pass
-
     async def get_all(self, lock: Lock = "write") -> list[Telegram]:
         table = self._base_repo.table
         stmt = (
@@ -87,7 +84,7 @@ class SqlTelegramRepo(TelegramRepo):
             .select()
             .with_for_update()
             .where(
-                table.c["next_retry_at"] < get_current_datetime(),
+                table.c["next_retry_at"] <= get_current_datetime(),
                 table.c["next_retry_at"].isnot(None),
             )
             .limit(limit)

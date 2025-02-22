@@ -17,7 +17,7 @@ class SentErrorInfo(MyBase):
 
 class Telegram(MyBase):
     url: str
-    data: str
+    data: dict
     status: Literal["unprocessed", "success_sent", "failed_sent",] = "unprocessed"
     id: UUID = Field(default_factory=uuid4)
     retries: int = 0
@@ -26,7 +26,7 @@ class Telegram(MyBase):
     created_at: AwareDatetime = Field(default_factory=get_current_datetime)
     updated_at: AwareDatetime = Field(default_factory=get_current_datetime)
     sent_at: AwareDatetime = Field(default_factory=get_current_datetime)
-    next_retry_at: Optional[AwareDatetime] = None
+    next_retry_at: Optional[AwareDatetime] = Field(default_factory=get_current_datetime)
 
     def _get_next_retry(self) -> Optional[AwareDatetime]:
         if self.retries + 1 >= self.max_retries:

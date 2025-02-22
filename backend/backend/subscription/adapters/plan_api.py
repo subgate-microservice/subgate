@@ -26,6 +26,7 @@ async def create_one(
         await create_plan(plan, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
+    container.telegraph().wake_worker()
     return "Ok"
 
 

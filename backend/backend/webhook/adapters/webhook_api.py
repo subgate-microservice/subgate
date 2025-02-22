@@ -1,4 +1,5 @@
 from typing import Optional
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import Field, AwareDatetime
@@ -18,6 +19,7 @@ webhook_router = APIRouter(
 
 
 class WebhookCreate(MyBase):
+    id: WebhookId = Field(default_factory=uuid4)
     event_code: str = Field()
     target_url: str = Field()
     created_at: AwareDatetime = Field(default_factory=get_current_datetime, )
