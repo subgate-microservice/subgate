@@ -8,7 +8,7 @@ from backend.bootstrap import Bootstrap, get_container, auth_closure
 from backend.subscription.adapters.schemas import (
     SubscriptionCreate, SubscriptionUpdate, SubscriptionRetrieve,
     UsageSchema, PlanInfoSchema, DiscountSchema)
-from backend.subscription.application import subscription_service as services
+from backend.subscription.application import subscription_usecases as services
 from backend.subscription.domain.enums import SubscriptionStatus
 from backend.subscription.domain.events import SubId
 from backend.subscription.domain.subscription_repo import SubscriptionSby

@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query
 from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container, Bootstrap, auth_closure
 from backend.subscription.adapters.schemas import PlanCreate, PlanUpdate, PlanRetrieve
-from backend.subscription.application.plan_service import create_plan, save_updated_plan, delete_plan
+from backend.subscription.application.plan_usecases import create_plan, save_updated_plan, delete_plan
 from backend.subscription.domain.plan import PlanId, PlanUpdater
 from backend.subscription.domain.plan_repo import PlanSby
 

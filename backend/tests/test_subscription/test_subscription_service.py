@@ -3,7 +3,7 @@ import pytest_asyncio
 
 from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container
-from backend.subscription.application.subscription_service import create_subscription, save_updated_subscription
+from backend.subscription.application.subscription_usecases import create_subscription, save_updated_subscription
 from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.exceptions import ActiveStatusConflict
 from backend.subscription.domain.plan import Plan
