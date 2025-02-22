@@ -114,7 +114,7 @@ class Subscription(Eventable):
             raise ValueError("Cannot resume the subscription with 'Expired' status")
 
         self._status = SubscriptionStatus.Active
-        self.billing_info.saved_days = (get_current_datetime() - self.paused_from).days
+        self.billing_info.saved_days += (get_current_datetime() - self.paused_from).days
         self._paused_from = None
 
         self.push_event(
