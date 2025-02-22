@@ -10,8 +10,7 @@ from backend.subscription.adapters.schemas import (
     UsageSchema, PlanInfoSchema, DiscountSchema)
 from backend.subscription.application import subscription_service as services
 from backend.subscription.domain.events import SubId
-from backend.subscription.domain.subscription import (
-    SubscriptionStatus, )
+from backend.subscription.domain.enums import SubscriptionStatus
 from backend.subscription.domain.subscription_repo import SubscriptionSby
 
 subscription_router = APIRouter(

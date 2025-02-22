@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import pytest
 
 from backend.bootstrap import get_container
@@ -6,12 +8,13 @@ from backend.shared.utils import get_current_datetime
 from backend.subscription.adapters.schemas import SubscriptionCreate, SubscriptionUpdate, UsageSchema, DiscountSchema
 from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.discount import Discount
+from backend.subscription.domain.enums import SubscriptionStatus
 from backend.subscription.domain.events import SubscriptionPaused, SubscriptionResumed, SubscriptionRenewed, \
     SubscriptionUsageAdded, SubscriptionUsageRemoved, SubscriptionUsageUpdated, SubscriptionDiscountAdded, \
     SubscriptionDiscountRemoved, SubscriptionDiscountUpdated, SubscriptionUpdated
 from backend.subscription.domain.plan import Plan
 from backend.subscription.domain.subscription import (
-    SubscriptionStatus, Subscription, )
+    Subscription, )
 from backend.subscription.domain.usage import Usage
 from tests.conftest import current_user, get_async_client
 from tests.fakes import (event_handler, simple_sub, paused_sub, expired_sub, sub_with_discounts, sub_with_usages,
@@ -57,6 +60,8 @@ def check_event(event_handler, expected_event: Event):
         if key == "changed_fields":
             return set(value)
         if key == "paused_from":
+            return value.replace(second=0, microsecond=0)
+        if isinstance(value, datetime):
             return value.replace(second=0, microsecond=0)
 
     expected = {k: mapper(k, v) for k, v in expected_event.model_dump().items()}
@@ -111,10 +116,16 @@ class TestStatusManagement:
         # Check events
         if expected_status_code < 400:
             expected_sub_updated = SubscriptionUpdated(
-                subscription_id=simple_sub.id, changed_fields={"paused_from", "status"}, auth_id=simple_sub.auth_id,
+                id=simple_sub.id,
+                subscriber_id=simple_sub.subscriber_id,
+                auth_id=simple_sub.auth_id,
+                changes={
+                    "paused_from": get_current_datetime(),
+                    "status": SubscriptionStatus.Paused,
+                },
             )
             expected_sub_paused = SubscriptionPaused(
-                subscription_id=simple_sub.id, paused_from=get_current_datetime(), auth_id=simple_sub.auth_id,
+                id=simple_sub.id, subscriber_id=simple_sub.subscriber_id, auth_id=simple_sub.auth_id,
             )
             assert len(event_handler.events) == 2
             check_event(event_handler, expected_sub_updated)
@@ -124,7 +135,6 @@ class TestStatusManagement:
     async def test_resume_subscription(self, current_user, paused_sub, event_handler):
         user, token, expected_status_code = current_user
         headers = get_headers(current_user)
-
         paused_sub.resume()
         await full_update_sub_request(paused_sub, headers, expected_status_code)
 
@@ -133,13 +143,14 @@ class TestStatusManagement:
             sub_resumed, sub_updated = event_handler.get(SubscriptionResumed), event_handler.get(SubscriptionUpdated)
             assert sub_resumed is not None
             assert sub_updated is not None
-            assert set(sub_updated.changed_fields) == {"paused_from", "status"}
+            assert sub_updated.changes == {
+                "paused_from": None,
+                "status": SubscriptionStatus.Active,
+                "billing_info.saved_days": 0,
+            }
 
     @pytest.mark.asyncio
     async def test_renew_paused_subscription(self, current_user, paused_sub, event_handler):
-        # Important!
-        # Renew paused subscription is the same that resume paused subscription
-
         user, token, expected_status_code = current_user
         headers = get_headers(current_user)
 

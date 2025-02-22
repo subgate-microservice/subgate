@@ -4,7 +4,8 @@ from typing import Optional
 import aiohttp
 
 from backend.subscription.domain.plan import Plan, PlanId
-from backend.subscription.domain.subscription import Subscription, SubscriptionStatus
+from backend.subscription.domain.subscription import Subscription
+from backend.subscription.domain.enums import SubscriptionStatus
 from backend.subscription.domain.events import SubId
 
 

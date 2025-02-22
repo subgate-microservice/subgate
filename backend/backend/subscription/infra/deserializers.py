@@ -105,6 +105,7 @@ def deserialize_billing_info(billing_info: Mapping) -> BillingInfo:
         currency=billing_info["currency"],
         billing_cycle=billing_cycle,
         last_billing=last_billing,
+        saved_days=billing_info["saved_days"],
     )
 
 

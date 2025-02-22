@@ -5,7 +5,8 @@ from loguru import logger
 from backend.shared.unit_of_work.uow import UnitOfWorkFactory, UnitOfWork
 from backend.shared.utils import get_current_datetime
 from backend.subscription.application.subscription_service import save_updated_subscription
-from backend.subscription.domain.subscription import SubscriptionStatus, Subscription
+from backend.subscription.domain.subscription import Subscription
+from backend.subscription.domain.enums import SubscriptionStatus
 from backend.subscription.domain.subscription_repo import SubscriptionSby
 
 

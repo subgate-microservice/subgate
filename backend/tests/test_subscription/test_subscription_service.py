@@ -7,7 +7,8 @@ from backend.subscription.application.subscription_service import create_subscri
 from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.exceptions import ActiveStatusConflict
 from backend.subscription.domain.plan import Plan
-from backend.subscription.domain.subscription import SubscriptionStatus, Subscription
+from backend.subscription.domain.subscription import Subscription
+from backend.subscription.domain.enums import SubscriptionStatus
 from backend.subscription.domain.subscription_repo import SubscriptionSby
 from tests.fakes import simple_sub
 

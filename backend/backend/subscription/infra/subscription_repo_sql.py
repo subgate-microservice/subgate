@@ -15,7 +15,8 @@ from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper, Aw
 from backend.shared.unit_of_work.change_log import Log
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.cycle import Period
-from backend.subscription.domain.subscription import Subscription, SubscriptionStatus, BillingInfo, PlanInfo
+from backend.subscription.domain.subscription import Subscription, BillingInfo, PlanInfo
+from backend.subscription.domain.enums import SubscriptionStatus
 from backend.subscription.domain.events import SubId
 from backend.subscription.domain.subscription_repo import SubscriptionSby, SubscriptionRepo
 from backend.subscription.infra.deserializers import deserialize_uuid, deserialize_datetime, deserialize_usage, \
@@ -36,6 +37,7 @@ subscription_table = Table(
     Column("bi_currency", String, nullable=False),
     Column("bi_billing_cycle", String, nullable=False),
     Column("bi_last_billing", AwareDateTime, nullable=False),
+    Column("bi_saved_days", Integer, nullable=False),
     Column("auth_id", UUID, nullable=False),
     Column("status", String, nullable=False),
     Column("paused_from", AwareDateTime(timezone=True), nullable=True),
@@ -88,6 +90,7 @@ class SubscriptionSqlMapper(SQLMapper):
             currency=data["bi_currency"],
             billing_cycle=Period(data["bi_billing_cycle"]),
             last_billing=deserialize_datetime(data["bi_last_billing"]),
+            saved_days=data["bi_saved_days"],
         )
         usages = [deserialize_usage(x) for x in data["usages"]]
         discounts = [deserialize_discount(x) for x in data["discounts"]]

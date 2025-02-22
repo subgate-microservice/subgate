@@ -1,6 +1,6 @@
-from typing import Literal
+from typing import Literal, Union
 
 from pydantic import AwareDatetime
 
 Lock = Literal["read", "write", "none"]
-UnionValue = [int, float, bool, str, AwareDatetime]
+UnionValue = Union[int, float, bool, str, AwareDatetime]

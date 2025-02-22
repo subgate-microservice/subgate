@@ -9,7 +9,8 @@ from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.discount import Discount
 from backend.subscription.domain.plan import Plan, PlanId
-from backend.subscription.domain.subscription import Subscription, SubscriptionStatus, PlanInfo, BillingInfo
+from backend.subscription.domain.subscription import Subscription, PlanInfo, BillingInfo
+from backend.subscription.domain.enums import SubscriptionStatus
 from backend.subscription.domain.events import SubId
 from backend.subscription.domain.usage import UsageRate, Usage
 

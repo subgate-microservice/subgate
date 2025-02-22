@@ -3,7 +3,7 @@ from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.events import SubscriptionDeleted, SubscriptionCreated
 from backend.subscription.domain.subscription import (
     Subscription, )
-from backend.subscription.domain.subscription_services import SubscriptionUpdatesEventGenerator, SubscriptionEventParser
+from backend.subscription.domain.subscription_services import SubscriptionEventParser, SubscriptionUpdater
 
 
 async def create_subscription(new_sub: Subscription, uow: UnitOfWork) -> None:
@@ -21,23 +21,22 @@ async def create_subscription(new_sub: Subscription, uow: UnitOfWork) -> None:
             new_sub.pause()
     uow.push_event(
         SubscriptionCreated(
-            subscription_id=new_sub.id,
+            id=new_sub.id,
+            subscriber_id=new_sub.subscriber_id,
+            status=new_sub.status,
             price=new_sub.billing_info.price,
             currency=new_sub.billing_info.currency,
             billing_cycle=new_sub.billing_info.billing_cycle,
-            usage_codes=tuple(x.code for x in new_sub.usages),
-            discount_codes=tuple(x.code for x in new_sub.discounts),
-            auth_id=new_sub.auth_id,
+            auth_id=new_sub.auth_id
+
         )
     )
     await uow.subscription_repo().add_one(new_sub)
 
 
-async def update_subscription_from_another(old_sub: Subscription, new_sub: Subscription, uow: UnitOfWork) -> None:
-    await uow.subscription_repo().update_one(new_sub)
-    events = SubscriptionUpdatesEventGenerator(old_sub, new_sub).generate_events()
-    for ev in events:
-        uow.push_event(ev)
+async def update_subscription_from_another(target_sub: Subscription, new_sub: Subscription, uow: UnitOfWork) -> None:
+    SubscriptionUpdater(target_sub).update(new_sub)
+    await save_updated_subscription(target_sub, uow)
 
 
 async def save_updated_subscription(target: Subscription, uow: UnitOfWork) -> None:

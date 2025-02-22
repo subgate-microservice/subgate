@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Any
 from uuid import UUID
 
 from pydantic import AwareDatetime
@@ -7,7 +7,7 @@ from backend.auth.domain.auth_user import AuthId
 from backend.shared.enums import UnionValue
 from backend.shared.event_driven.base_event import Event
 from backend.subscription.domain.cycle import Period
-from backend.subscription.domain.subscription import SubscriptionStatus
+from backend.subscription.domain.enums import SubscriptionStatus
 
 SubId = UUID
 PlanId = UUID
@@ -48,8 +48,8 @@ class SubscriptionDeleted(SubscriptionCreated):
 
 class SubscriptionUpdated(Event):
     id: SubId
-    subscriber_id: SubId
-    changes: dict[str, UnionValue]
+    subscriber_id: str
+    changes: dict[str, Any]
     auth_id: AuthId
 
 
@@ -60,7 +60,7 @@ class SubscriptionPaused(Event):
 
 
 class SubscriptionResumed(SubscriptionPaused):
-    pass
+    saved_days: int
 
 
 class SubscriptionExpired(SubscriptionPaused):
