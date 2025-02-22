@@ -16,7 +16,7 @@ class SentErrorInfo(MyBase):
     detail: str
 
 
-class TelegramData(MyBase):
+class Payload(MyBase):
     type: str = "event"
     event_code: str
     occurred_at: AwareDatetime
@@ -28,13 +28,13 @@ class TelegramData(MyBase):
             type="event",
             event_code=event.get_event_code(),
             occurred_at=event.occurred_at,
-            payload=event.model_dump(mode="json", exclude={"auth_id"})
+            payload=event.model_dump(mode="json", exclude={"auth_id", "occurred_at"})
         )
 
 
 class Telegram(MyBase):
     url: str
-    data: TelegramData
+    data: Payload
     status: Literal["unprocessed", "success_sent", "failed_sent",] = "unprocessed"
     id: UUID = Field(default_factory=uuid4)
     retries: int = 0

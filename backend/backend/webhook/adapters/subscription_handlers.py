@@ -7,7 +7,7 @@ from backend.bootstrap import get_container
 from backend.shared.event_driven.base_event import Event
 from backend.shared.event_driven.bus import Context
 from backend.webhook.application.telegraph import Telegram
-from backend.webhook.domain.telegram import TelegramData
+from backend.webhook.domain.telegram import Payload
 from backend.webhook.domain.webhook_repo import WebhookSby
 
 container = get_container()
@@ -29,6 +29,6 @@ async def handle_subscription_event(event: Event, context: Context):
     webhooks = await webhook_repo.get_selected(sby)
 
     # Создаем TelegraphMessage для каждого Webhook
-    data = TelegramData.from_event(event)
+    data = Payload.from_event(event)
     telegrams = [Telegram(url=hook.target_url, data=data) for hook in webhooks]
     await context.uow.telegram_repo().add_many(telegrams)

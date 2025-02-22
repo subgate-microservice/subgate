@@ -62,7 +62,7 @@ class Telegraph:
                         updated_msg = msg.failed_sent(error_info) if error_info else msg.success_sent()
                         await safe_commit(uow, updated_msg)
             except Exception as err:
-                logger.exception(err)
+                logger.error(err)
             finally:
                 try:
                     await asyncio.wait_for(self._wake_event.wait(), timeout=self._sleep_time)
