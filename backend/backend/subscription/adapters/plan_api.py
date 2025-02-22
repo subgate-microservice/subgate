@@ -5,8 +5,8 @@ from fastapi import APIRouter, Depends, Query
 from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container, Bootstrap, auth_closure
 from backend.subscription.adapters.schemas import PlanCreate, PlanUpdate, PlanRetrieve
-from backend.subscription.application.plan_service import create_plan, update_plan, delete_plan
-from backend.subscription.domain.plan import PlanId
+from backend.subscription.application.plan_service import create_plan, save_updated_plan, delete_plan
+from backend.subscription.domain.plan import PlanId, PlanUpdater
 from backend.subscription.domain.plan_repo import PlanSby
 
 plan_router = APIRouter(
@@ -75,7 +75,8 @@ async def update_one(
     async with container.unit_of_work_factory().create_uow() as uow:
         old_version = await uow.plan_repo().get_one_by_id(plan_update.id)
         new_version = plan_update.to_plan(auth_user.id, old_version.created_at)
-        await update_plan(old_version, new_version, uow)
+        PlanUpdater(old_version, new_version).update()
+        await save_updated_plan(old_version, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
         return "Ok"

@@ -1,5 +1,4 @@
 from backend.shared.unit_of_work.uow import UnitOfWork
-from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.events import SubscriptionDeleted, SubscriptionCreated
 from backend.subscription.domain.subscription import (
     Subscription, )
@@ -48,5 +47,13 @@ async def save_updated_subscription(target: Subscription, uow: UnitOfWork) -> No
 
 async def delete_subscription(target: Subscription, uow: UnitOfWork) -> None:
     await uow.subscription_repo().delete_many([target])
-    event = SubscriptionDeleted(subscription_id=target.id, auth_id=target.auth_id, occurred_at=get_current_datetime())
+    event = SubscriptionDeleted(
+        id=target.id,
+        subscriber_id=target.subscriber_id,
+        status=target.status,
+        price=target.billing_info.price,
+        currency=target.billing_info.currency,
+        billing_cycle=target.billing_info.billing_cycle,
+        auth_id=target.auth_id
+    )
     uow.push_event(event)
