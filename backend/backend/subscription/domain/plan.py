@@ -85,8 +85,10 @@ class Plan(Eventable):
         instance = cls(title, price, currency, auth_id, billing_cycle, description, level, features, usage_rates,
                        discounts,
                        fields, id)
+        instance._unset_track_flag()
         instance._created_at = created_at
         instance._updated_at = updated_at
+        instance._set_track_flag()
         return instance
 
     def copy(self):

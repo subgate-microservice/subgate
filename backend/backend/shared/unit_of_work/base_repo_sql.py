@@ -168,6 +168,7 @@ class SqlBaseRepo:
 class AwareDateTime(TypeDecorator):
     """Преобразует ISO 8601 строки в datetime.datetime при вставке в БД"""
     impl = DateTime(timezone=True)
+    cache_ok = True
 
     def process_bind_param(self, value, dialect):
         """Преобразует входящее значение перед записью в БД"""

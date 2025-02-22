@@ -1,6 +1,7 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
+from loguru import logger
 
 from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container, Bootstrap, auth_closure
@@ -80,7 +81,8 @@ async def update_one(
         await save_updated_plan(old_version, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
-        return "Ok"
+    container.telegraph().wake_worker()
+    return "Ok"
 
 
 @plan_router.delete("/{plan_id}")
@@ -94,7 +96,8 @@ async def delete_one(
         await delete_plan(target_plan, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
-        return "Ok"
+    container.telegraph().wake_worker()
+    return "Ok"
 
 
 @plan_router.delete("/")
@@ -109,4 +112,5 @@ async def delete_selected(
             await delete_plan(target, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
-        return "Ok"
+    container.telegraph().wake_worker()
+    return "Ok"
