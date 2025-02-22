@@ -153,7 +153,7 @@ class TestStatusManagement:
         user, token, expected_status_code = current_user
         headers = get_headers(current_user)
 
-        renew_from = get_current_datetime() + timedelta(2)
+        renew_from = get_current_datetime() + timedelta(milliseconds=1)
         paused_sub.renew(renew_from)
         await full_update_sub_request(paused_sub, headers, expected_status_code)
 

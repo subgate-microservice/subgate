@@ -240,13 +240,13 @@ class SubscriptionUpdater:
         old_status, new_status = self.target.status, self.new_data.status
         last_billing_changed = self.target.billing_info.last_billing != self.new_data.billing_info.last_billing
 
-        if old_status == new_status:
-            return
-
         if last_billing_changed:
             if new_status != SubscriptionStatus.Active:
                 raise Exception(f"Status must be 'Active' when you renewing the subscription")
             self.target.renew(self.new_data.billing_info.last_billing)
+            return
+
+        if old_status == new_status:
             return
 
         logger.debug(f'{old_status, new_status}')
