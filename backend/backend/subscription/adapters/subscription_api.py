@@ -9,8 +9,8 @@ from backend.subscription.adapters.schemas import (
     SubscriptionCreate, SubscriptionUpdate, SubscriptionRetrieve,
     UsageSchema, PlanInfoSchema, DiscountSchema)
 from backend.subscription.application import subscription_service as services
-from backend.subscription.domain.events import SubId
 from backend.subscription.domain.enums import SubscriptionStatus
+from backend.subscription.domain.events import SubId
 from backend.subscription.domain.subscription_repo import SubscriptionSby
 
 subscription_router = APIRouter(
@@ -150,7 +150,9 @@ async def update_subscription(
     # todo permission service
     async with container.unit_of_work_factory().create_uow() as uow:
         old_version = await uow.subscription_repo().get_one_by_id(subscription_update.id)
-        new_version = subscription_update.to_subscription(auth_user.id, old_version.created_at)
+        new_version = subscription_update.to_subscription(
+            auth_user.id, old_version.created_at, old_version.billing_info.saved_days
+        )
         await services.update_subscription_from_another(old_version, new_version, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()

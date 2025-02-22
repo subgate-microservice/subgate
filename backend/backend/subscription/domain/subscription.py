@@ -32,7 +32,7 @@ class BillingInfo(Eventable):
     currency: str
     billing_cycle: Period
     last_billing: AwareDatetime
-    saved_days: int = 0
+    saved_days: int
 
 
 class Subscription(Eventable):
@@ -132,14 +132,15 @@ class Subscription(Eventable):
         self.billing_info.saved_days = 0
 
         self.push_event(
-            SubscriptionRenewed(subscription_id=self.id, auth_id=self.auth_id, last_billing=from_date)
+            SubscriptionRenewed(id=self.id, subscriber_id=self.subscriber_id, auth_id=self.auth_id,
+                                last_billing=from_date)
         )
 
     def expire(self) -> None:
         self._status = SubscriptionStatus.Expired
         self.billing_info.saved_days = 0
         self.push_event(
-            SubscriptionExpired(subscription_id=self.id, auth_id=self.auth_id)
+            SubscriptionExpired(id=self.id, subscriber_id=self.subscriber_id, auth_id=self.auth_id)
         )
 
     @property

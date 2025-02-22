@@ -6,6 +6,7 @@ from pydantic import AwareDatetime
 
 from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.discount import Discount
+from backend.subscription.domain.enums import SubscriptionStatus
 from backend.subscription.domain.plan import Plan
 from backend.subscription.domain.subscription import PlanInfo, BillingInfo, Subscription
 from backend.subscription.domain.usage import UsageRate, Usage
@@ -119,9 +120,10 @@ def deserialize_subscription(sub: Mapping) -> Subscription:
     plan_info = deserialize_plan_info(sub["plan_info"])
     billing_info = deserialize_billing_info(sub["billing_info"])
     auth_id = deserialize_uuid(sub["auth_id"])
+    status = SubscriptionStatus(sub["status"])
     return Subscription.create_unsafe(
         id=id_,
-        status=sub["status"],
+        status=status,
         paused_from=paused_from,
         created_at=created_at,
         updated_at=updated_at,

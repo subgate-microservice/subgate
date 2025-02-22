@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytest
 
@@ -132,7 +132,7 @@ class TestStatusManagement:
             check_event(event_handler, expected_sub_paused)
 
     @pytest.mark.asyncio
-    async def test_resume_subscription(self, current_user, paused_sub, event_handler):
+    async def test_resume_paused_subscription(self, current_user, paused_sub, event_handler):
         user, token, expected_status_code = current_user
         headers = get_headers(current_user)
         paused_sub.resume()
@@ -146,7 +146,6 @@ class TestStatusManagement:
             assert sub_updated.changes == {
                 "paused_from": None,
                 "status": SubscriptionStatus.Active,
-                "billing_info.saved_days": 0,
             }
 
     @pytest.mark.asyncio
@@ -154,17 +153,20 @@ class TestStatusManagement:
         user, token, expected_status_code = current_user
         headers = get_headers(current_user)
 
-        paused_sub._status = SubscriptionStatus.Active
-        paused_sub._paused_from = None
-        paused_sub.billing_info.last_billing = get_current_datetime()
+        renew_from = get_current_datetime() + timedelta(2)
+        paused_sub.renew(renew_from)
         await full_update_sub_request(paused_sub, headers, expected_status_code)
 
         # Check events
         if expected_status_code < 400:
-            sub_resumed, sub_updated = event_handler.get(SubscriptionResumed), event_handler.get(SubscriptionUpdated)
-            assert sub_resumed is not None
+            sub_renewed, sub_updated = event_handler.get(SubscriptionRenewed), event_handler.get(SubscriptionUpdated)
+            assert sub_renewed is not None
             assert sub_updated is not None
-            assert set(sub_updated.changed_fields) == {"paused_from", "status"}
+            assert sub_updated.changes == {
+                "paused_from": None,
+                "status": SubscriptionStatus.Active,
+                "billing_info.last_billing": renew_from,
+            }
 
     @pytest.mark.asyncio
     async def test_renew_expired_subscription(self, current_user, expired_sub, event_handler):
@@ -179,7 +181,10 @@ class TestStatusManagement:
             sub_renewed, sub_updated = event_handler.get(SubscriptionRenewed), event_handler.get(SubscriptionUpdated)
             assert sub_renewed is not None
             assert sub_updated is not None
-            assert set(sub_updated.changed_fields) == {"status", "billing_info.last_billing"}
+            assert sub_updated.changes == {
+                "status": SubscriptionStatus.Active,
+                "billing_info.last_billing": get_current_datetime(),
+            }
 
 
 class TestUsageManagement:
@@ -197,7 +202,7 @@ class TestUsageManagement:
         if expected_status_code < 400:
             sub_updated, usage_added = event_handler.get(SubscriptionUpdated), event_handler.get(SubscriptionUsageAdded)
             assert sub_updated is not None
-            assert set(sub_updated.changed_fields) == {"usages.first:added"}
+            assert sub_updated.changes == {"usages.first": "action:added"}
             assert usage_added is not None
             assert usage_added.code == "first"
 
@@ -213,10 +218,11 @@ class TestUsageManagement:
         if expected_status_code < 400:
             sub_updated, u_updated = event_handler.get(SubscriptionUpdated), event_handler.get(SubscriptionUsageUpdated)
             assert sub_updated is not None
-            assert set(sub_updated.changed_fields) == {"usages.first:updated"}
+            assert sub_updated.changes == {"usages.first": "action:updated"}
             assert u_updated is not None
             assert u_updated.code == "first"
-            assert u_updated.used_units == 150
+            assert u_updated.changes == {"used_units": 150}
+            assert u_updated.delta == 150
 
     @pytest.mark.asyncio
     async def test_remove_usage(self, current_user, sub_with_usages, event_handler):
@@ -230,7 +236,7 @@ class TestUsageManagement:
         if expected_status_code < 400:
             sub_updated, u_removed = event_handler.get(SubscriptionUpdated), event_handler.get(SubscriptionUsageRemoved)
             assert sub_updated is not None
-            assert set(sub_updated.changed_fields) == {"usages.first:removed"}
+            assert sub_updated.changes == {"usages.first": "action:removed"}
             assert u_removed is not None
             assert u_removed.code == "first"
 
@@ -251,7 +257,7 @@ class TestDiscountManagement:
         if expected_status_code < 400:
             sub_updated, d_added = event_handler.get(SubscriptionUpdated), event_handler.get(SubscriptionDiscountAdded)
             assert sub_updated is not None
-            assert set(sub_updated.changed_fields) == {"discounts.second:added"}
+            assert sub_updated.changes == {"discounts.second": "action:added"}
             assert d_added is not None
             assert d_added.code == "second"
 
@@ -268,7 +274,7 @@ class TestDiscountManagement:
             sub_updated, d_removed = event_handler.get(SubscriptionUpdated), event_handler.get(
                 SubscriptionDiscountRemoved)
             assert sub_updated is not None
-            assert set(sub_updated.changed_fields) == {"discounts.first:removed"}
+            assert sub_updated.changes == {"discounts.first": "action:removed"}
             assert d_removed is not None
             assert d_removed.code == "first"
 
@@ -277,7 +283,7 @@ class TestDiscountManagement:
         user, token, expected_status_code = current_user
         headers = get_headers(current_user)
 
-        sub_with_discounts.discounts.get("first").title = "Hello world!"
+        sub_with_discounts.discounts.get("first").title = "Hello, World!"
         await full_update_sub_request(sub_with_discounts, headers, expected_status_code)
 
         # Check events
@@ -285,9 +291,9 @@ class TestDiscountManagement:
             sub_updated, d_updated = event_handler.get(SubscriptionUpdated), event_handler.get(
                 SubscriptionDiscountUpdated)
             assert sub_updated is not None
-            assert set(sub_updated.changed_fields) == {"discounts.first:updated"}
+            assert sub_updated.changes == {"discounts.first": "action:updated"}
             assert d_updated is not None
-            assert d_updated.title == "Hello world!"
+            assert d_updated.changes == {"title": "Hello, World!"}
 
 
 class TestOtherFieldsManagement:
@@ -306,8 +312,12 @@ class TestOtherFieldsManagement:
         if expected_status_code < 400:
             sub_updated = event_handler.get(SubscriptionUpdated)
             assert sub_updated is not None
-            assert set(sub_updated.changed_fields) == {"plan_info.title", "plan_info.level", "plan_info.features",
-                                                       "plan_info.description", }
+            assert sub_updated.changes == {
+                "plan_info.title": "Updated title",
+                "plan_info.level": 755,
+                "plan_info.features": "Updated features",
+                "plan_info.description": "Updated description",
+            }
 
     @pytest.mark.asyncio
     async def test_update_billing_info(self, current_user, simple_sub, event_handler):
@@ -324,8 +334,12 @@ class TestOtherFieldsManagement:
         if expected_status_code < 400:
             sub_updated = event_handler.get(SubscriptionUpdated)
             assert sub_updated is not None
-            assert set(sub_updated.changed_fields) == {"billing_info.price", "billing_info.currency",
-                                                       "billing_info.billing_cycle", "billing_info.last_billing", }
+            assert sub_updated.changes == {
+                "billing_info.price": 99,
+                "billing_info.currency": "EUR",
+                "billing_info.billing_cycle": Period.Semiannual,
+                "billing_info.last_billing": simple_sub.billing_info.last_billing,
+            }
 
     @pytest.mark.asyncio
     async def test_update_fields(self, current_user, simple_sub, event_handler):
@@ -339,7 +353,10 @@ class TestOtherFieldsManagement:
         if expected_status_code < 400:
             sub_updated = event_handler.get(SubscriptionUpdated)
             assert sub_updated is not None
-            assert set(sub_updated.changed_fields) == {"fields", }
+            assert sub_updated.changes == {
+                "fields":
+                    {"Hello": 1, "World": 2},
+            }
 
     @pytest.mark.asyncio
     async def test_update_fields_inner_values(self, current_user, sub_with_fields, event_handler):
@@ -353,7 +370,7 @@ class TestOtherFieldsManagement:
         if expected_status_code < 400:
             sub_updated = event_handler.get(SubscriptionUpdated)
             assert sub_updated is not None
-            assert set(sub_updated.changed_fields) == {"fields", }
+            assert sub_updated.changes == {"fields": sub_with_fields.fields}
 
     @pytest.mark.asyncio
     async def test_update_autorenew(self, current_user, sub_with_fields, event_handler):
@@ -370,7 +387,7 @@ class TestOtherFieldsManagement:
         if response.status_code < 400:
             sub_updated = event_handler.get(SubscriptionUpdated)
             assert sub_updated is not None
-            assert set(sub_updated.changed_fields) == {"autorenew"}
+            assert sub_updated.changes == {"autorenew": True}
 
     @pytest.mark.asyncio
     async def test_update_subscriber_id(self, current_user, simple_sub, event_handler):
@@ -384,7 +401,7 @@ class TestOtherFieldsManagement:
         if expected_status_code < 400:
             sub_updated = event_handler.get(SubscriptionUpdated)
             assert sub_updated is not None
-            assert set(sub_updated.changed_fields) == {"subscriber_id"}
+            assert sub_updated.changes == {"subscriber_id": "UpdatedID"}
 
 
 class TestSpecificStatusAPI:
@@ -402,7 +419,10 @@ class TestSpecificStatusAPI:
             assert len(event_handler.events) == 2
             sub_updated, sub_paused = event_handler.get(SubscriptionUpdated), event_handler.get(SubscriptionPaused)
             assert sub_updated is not None
-            assert set(sub_updated.changed_fields) == {"status", "paused_from"}
+            assert sub_updated.changes == {
+                "status": SubscriptionStatus.Paused,
+                "paused_from": get_current_datetime(),
+            }
 
 
 class TestSpecificUsageAPI:
@@ -423,7 +443,9 @@ class TestSpecificUsageAPI:
             assert len(event_handler.events) == 2
             sub_updated, u_added = event_handler.get(SubscriptionUpdated), event_handler.get(SubscriptionUsageAdded)
             assert sub_updated is not None
-            assert set(sub_updated.changed_fields) == {"usages.first:added"}
+            assert sub_updated.changes == {
+                "usages.first": "action:added",
+            }
 
     @pytest.mark.asyncio
     async def test_update_usages_endpoint(self, current_user, sub_with_usages, event_handler):
@@ -444,7 +466,9 @@ class TestSpecificUsageAPI:
             assert len(event_handler.events) == 2
             sub_updated, u_updated = event_handler.get(SubscriptionUpdated), event_handler.get(SubscriptionUsageUpdated)
             assert sub_updated is not None
-            assert set(sub_updated.changed_fields) == {f"usages.{updated.code}:updated"}
+            assert sub_updated.changes == {
+                f"usages.{updated.code}": "action:updated",
+            }
 
     @pytest.mark.asyncio
     async def test_remove_usages_endpoint(self, current_user, sub_with_usages, event_handler):
@@ -464,7 +488,9 @@ class TestSpecificUsageAPI:
             assert len(event_handler.events) == 2
             sub_updated, u_removed = event_handler.get(SubscriptionUpdated), event_handler.get(SubscriptionUsageRemoved)
             assert sub_updated is not None
-            assert set(sub_updated.changed_fields) == {f"usages.{remove_code}:removed"}
+            assert sub_updated.changes == {
+                f"usages.{remove_code}": "action:removed",
+            }
 
 
 class TestSpecificDiscountAPI:
@@ -486,7 +512,9 @@ class TestSpecificDiscountAPI:
             assert len(event_handler.events) == 2
             sub_updated, d_added = event_handler.get(SubscriptionUpdated), event_handler.get(SubscriptionDiscountAdded)
             assert sub_updated is not None
-            assert set(sub_updated.changed_fields) == {f"discounts.{discounts[0].code}:added"}
+            assert sub_updated.changes == {
+                f"discounts.{discounts[0].code}": "action:added",
+            }
 
     @pytest.mark.asyncio
     async def test_remove_discounts_endpoint(self, current_user, sub_with_discounts, event_handler):
@@ -499,12 +527,9 @@ class TestSpecificDiscountAPI:
 
         if expected_status_code < 400:
             assert len(event_handler.events) == 2
-            removed = SubscriptionDiscountRemoved(subscription_id=sub_id, code="first", auth_id=user.id)
-            updated = SubscriptionUpdated(
-                subscription_id=sub_id, changed_fields={"discounts.first:removed"}, auth_id=user.id,
-            )
-            check_event(event_handler, removed)
-            check_event(event_handler, updated)
+            removed, updated = event_handler.get(SubscriptionDiscountRemoved), event_handler.get(SubscriptionUpdated)
+            assert removed.code == "first"
+            assert updated.changes == {"discounts.first": "action:removed"}
 
     @pytest.mark.asyncio
     async def test_update_discounts_endpoint(self, current_user, sub_with_discounts, event_handler):
@@ -519,11 +544,7 @@ class TestSpecificDiscountAPI:
 
         if expected_status_code < 400:
             assert len(event_handler.events) == 2
-            updated = SubscriptionUpdated(
-                subscription_id=sub_id, changed_fields={"discounts.first:updated"}, auth_id=user.id,
-            )
-            discount_updated = SubscriptionDiscountUpdated(
-                subscription_id=sub_id, title="UPDATED", code="first", size=target.size, valid_until=target.valid_until,
-                description=target.description, auth_id=user.id)
-            check_event(event_handler, updated)
-            check_event(event_handler, discount_updated)
+            d_updated, s_updated = event_handler.get(SubscriptionDiscountUpdated), event_handler.get(
+                SubscriptionUpdated)
+            assert s_updated.changes == {"discounts.first": "action:updated"}
+            assert d_updated.changes == {"title": "UPDATED"}

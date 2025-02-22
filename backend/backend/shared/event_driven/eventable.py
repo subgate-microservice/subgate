@@ -158,7 +158,7 @@ class Eventable(EventNode):
     def __setattr__(self, key, value):
         old_value = getattr(self, key, _Unset)
         super().__setattr__(key, value)
-        if self._is_trackable():
+        if old_value != value and self._is_trackable():
             self.push_event(FieldUpdated(entity=self, old_value=old_value, new_value=value, field=key))
 
     def _set_track_flag(self):

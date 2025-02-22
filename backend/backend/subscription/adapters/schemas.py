@@ -8,10 +8,10 @@ from backend.shared.base_models import MyBase
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.discount import Discount
-from backend.subscription.domain.plan import Plan, PlanId
-from backend.subscription.domain.subscription import Subscription, PlanInfo, BillingInfo
 from backend.subscription.domain.enums import SubscriptionStatus
 from backend.subscription.domain.events import SubId
+from backend.subscription.domain.plan import Plan, PlanId
+from backend.subscription.domain.subscription import Subscription, PlanInfo, BillingInfo
 from backend.subscription.domain.usage import UsageRate, Usage
 
 
@@ -191,9 +191,9 @@ class BillingInfoSchema(MyBase):
         return cls(price=billing_info.price, currency=billing_info.currency,
                    billing_cycle=billing_info.billing_cycle, last_billing=billing_info.last_billing)
 
-    def to_billing_info(self) -> BillingInfo:
+    def to_billing_info(self, saved_days: int) -> BillingInfo:
         return BillingInfo(price=self.price, currency=self.currency, billing_cycle=self.billing_cycle,
-                           last_billing=self.last_billing)
+                           last_billing=self.last_billing, saved_days=saved_days)
 
 
 class SubscriptionCreate(MyBase):
@@ -232,7 +232,7 @@ class SubscriptionCreate(MyBase):
         usages = [x.to_usage() for x in self.usages]
         discounts = [x.to_discount() for x in self.discounts]
         plan_info = self.plan_info.to_plan_info()
-        billing_info = self.billing_info.to_billing_info()
+        billing_info = self.billing_info.to_billing_info(saved_days=0)
         return Subscription.create_unsafe(
             id=self.id,
             subscriber_id=self.subscriber_id,
@@ -281,12 +281,12 @@ class SubscriptionUpdate(MyBase):
             fields=sub.fields,
         )
 
-    def to_subscription(self, auth_id: AuthId, created_at: AwareDatetime) -> Subscription:
+    def to_subscription(self, auth_id: AuthId, created_at: AwareDatetime, saved_days: int) -> Subscription:
         usages = [x.to_usage() for x in self.usages]
         discounts = [x.to_discount() for x in self.discounts]
         updated_at = get_current_datetime()
         plan_info = self.plan_info.to_plan_info()
-        billing_info = self.billing_info.to_billing_info()
+        billing_info = self.billing_info.to_billing_info(saved_days=saved_days)
         return Subscription.create_unsafe(
             id=self.id,
             subscriber_id=self.subscriber_id,
