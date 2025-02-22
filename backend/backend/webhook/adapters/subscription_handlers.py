@@ -19,8 +19,6 @@ async def request(method: str, url: str, **kwargs):
 
 
 async def handle_subscription_event(event: Event, context: Context):
-    # Превращаем Event в закодированную строку
-    logger.debug("handle_subscription_event")
     auth_user_id = event.auth_id
     data_for_send = {
         "type": "event",
