@@ -17,12 +17,14 @@ class Bus:
         self._subscribers: dict[Type[Event], set[Subscriber]] = {}
 
     def subscribe(self, event_type: Type[Event], subscriber: Subscriber) -> None:
-        self._subscribers.setdefault(event_type, set()).add(subscriber)
+        code = event_type.get_event_code()
+        self._subscribers.setdefault(code, set()).add(subscriber)
 
     def unsubscribe(self, event_type: Type[Event], subscriber: Subscriber) -> None:
-        self._subscribers[event_type].remove(subscriber)
-        if not self._subscribers[event_type]:
-            self._subscribers.pop(event_type)
+        code = event_type.get_event_code()
+        self._subscribers[code].remove(subscriber)
+        if not self._subscribers[code]:
+            self._subscribers.pop(code)
 
     async def publish(self, event: Event, context: Context) -> None:
         subscribers = self._subscribers.get(event.get_event_code(), set())

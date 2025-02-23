@@ -52,7 +52,7 @@ async def _subscribe_events_to_eventbus():
     logger.info("Subscribe events to eventbus")
     bus = get_container().eventbus()
     for event in EVENTS:
-        bus.subscribe(event.get_event_code(), subscription_handlers.handle_subscription_event)
+        bus.subscribe(event, subscription_handlers.handle_subscription_event)
 
 
 async def _create_database():

@@ -209,7 +209,6 @@ class EventableSet[T](EventNode):
 
         self._items[key] = value
         if push_event:
-            logger.debug("added")
             self.push_event(ItemAdded(item=value))
             if isinstance(value, EventNode):
                 self._add_child(value)

@@ -31,6 +31,7 @@ async def create_subscription(
         await services.create_subscription(subscription, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
+    container.telegraph().wake_worker()
     return "Ok"
 
 
@@ -105,6 +106,7 @@ async def delete_one_by_id(
         await services.delete_subscription(target, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
+    container.telegraph().wake_worker()
     return "Ok"
 
 
@@ -138,6 +140,7 @@ async def delete_selected(
             await services.delete_subscription(target, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
+    container.telegraph().wake_worker()
     return "Ok"
 
 
@@ -156,6 +159,7 @@ async def update_subscription(
         await services.update_subscription_from_another(old_version, new_version, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
+    container.telegraph().wake_worker()
     return "Ok"
 
 
@@ -173,6 +177,7 @@ async def increase_usage(
         await services.save_updated_subscription(target, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
+    container.telegraph().wake_worker()
     return "Ok"
 
 
@@ -190,6 +195,7 @@ async def add_usages(
         await services.save_updated_subscription(target_sub, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
+    container.telegraph().wake_worker()
     return "Ok"
 
 
@@ -207,6 +213,7 @@ async def remove_usages(
         await services.save_updated_subscription(target_sub, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
+    container.telegraph().wake_worker()
     return "Ok"
 
 
@@ -224,6 +231,7 @@ async def update_usages(
         await services.save_updated_subscription(target_sub, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
+    container.telegraph().wake_worker()
     return "Ok"
 
 
@@ -240,6 +248,7 @@ async def update_plan(
         await services.save_updated_subscription(target_sub, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
+    container.telegraph().wake_worker()
     return "Ok"
 
 
@@ -255,6 +264,7 @@ async def pause_subscription(
         await services.save_updated_subscription(target_sub, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
+    container.telegraph().wake_worker()
     return "Ok"
 
 
@@ -270,6 +280,7 @@ async def resume_subscription(
         await services.save_updated_subscription(target_sub, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
+    container.telegraph().wake_worker()
     return "Ok"
 
 
@@ -286,6 +297,7 @@ async def renew_subscription(
         await services.save_updated_subscription(target_sub, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
+    container.telegraph().wake_worker()
     return "Ok"
 
 
@@ -303,6 +315,7 @@ async def add_discounts(
         await services.save_updated_subscription(target_sub, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
+    container.telegraph().wake_worker()
     return "Ok"
 
 
@@ -320,6 +333,7 @@ async def remove_discounts(
         await services.save_updated_subscription(target_sub, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
+    container.telegraph().wake_worker()
     return "Ok"
 
 
@@ -337,4 +351,5 @@ async def update_discounts(
         await services.save_updated_subscription(target_sub, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
+    container.telegraph().wake_worker()
     return "Ok"

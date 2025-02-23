@@ -91,6 +91,7 @@ class SubscriptionUsageUpdated(Event):
     code: str
     changes: dict[str, UnionValue]
     delta: float
+    auth_id: AuthId
 
 
 class SubscriptionUsageRemoved(SubscriptionUsageAdded):
@@ -115,3 +116,4 @@ class SubscriptionDiscountUpdated(Event):
     subscription_id: SubId
     code: str
     changes: dict[str, UnionValue]
+    auth_id: AuthId

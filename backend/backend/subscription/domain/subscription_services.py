@@ -119,7 +119,8 @@ class SubscriptionEventParser:
                     changes=find_changes(event.old_item, event.new_item),
                     delta=event.new_item.used_units - event.old_item.used_units,
                     occurred_at=event.occurred_at,
-                )
+                    auth_id=self.subscription.auth_id,
+            )
             )
         elif isinstance(event.new_item, Discount):
             self.updated_fields[f"discounts.{event.new_item.code}"] = "action:updated"
@@ -129,6 +130,7 @@ class SubscriptionEventParser:
                     code=event.new_item.code,
                     changes=find_changes(event.old_item, event.new_item),
                     occurred_at=event.occurred_at,
+                    auth_id=self.subscription.auth_id,
                 )
             )
 
