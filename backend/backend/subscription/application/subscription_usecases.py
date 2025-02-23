@@ -1,5 +1,5 @@
 from backend.shared.unit_of_work.uow import UnitOfWork
-from backend.subscription.domain.events import SubscriptionDeleted, SubscriptionCreated
+from backend.subscription.domain.events import SubDeleted, SubCreated
 from backend.subscription.domain.subscription import (
     Subscription, )
 from backend.subscription.domain.subscription_services import SubscriptionEventParser, SubscriptionUpdater
@@ -19,7 +19,7 @@ async def create_subscription(new_sub: Subscription, uow: UnitOfWork) -> None:
         else:
             new_sub.pause()
     uow.push_event(
-        SubscriptionCreated(
+        SubCreated(
             id=new_sub.id,
             subscriber_id=new_sub.subscriber_id,
             status=new_sub.status,
@@ -47,7 +47,7 @@ async def save_updated_subscription(target: Subscription, uow: UnitOfWork) -> No
 
 async def delete_subscription(target: Subscription, uow: UnitOfWork) -> None:
     await uow.subscription_repo().delete_many([target])
-    event = SubscriptionDeleted(
+    event = SubDeleted(
         id=target.id,
         subscriber_id=target.subscriber_id,
         status=target.status,

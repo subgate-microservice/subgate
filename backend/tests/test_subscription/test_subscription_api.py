@@ -9,9 +9,9 @@ from backend.subscription.adapters.schemas import SubscriptionCreate, Subscripti
 from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.discount import Discount
 from backend.subscription.domain.enums import SubscriptionStatus
-from backend.subscription.domain.events import SubscriptionPaused, SubscriptionResumed, SubscriptionRenewed, \
-    SubscriptionUsageAdded, SubscriptionUsageRemoved, SubscriptionUsageUpdated, SubscriptionDiscountAdded, \
-    SubscriptionDiscountRemoved, SubscriptionDiscountUpdated, SubscriptionUpdated, SubscriptionExpired
+from backend.subscription.domain.events import SubPaused, SubResumed, SubRenewed, \
+    SubUsageAdded, SubUsageRemoved, SubUsageUpdated, SubDiscountAdded, \
+    SubDiscountRemoved, SubDiscountUpdated, SubUpdated, SubExpired
 from backend.subscription.domain.plan import Plan
 from backend.subscription.domain.subscription import (
     Subscription, )
@@ -115,7 +115,7 @@ class TestStatusManagement:
 
         # Check events
         if expected_status_code < 400:
-            expected_sub_updated = SubscriptionUpdated(
+            expected_sub_updated = SubUpdated(
                 id=simple_sub.id,
                 subscriber_id=simple_sub.subscriber_id,
                 auth_id=simple_sub.auth_id,
@@ -124,7 +124,7 @@ class TestStatusManagement:
                     "status": SubscriptionStatus.Paused,
                 },
             )
-            expected_sub_paused = SubscriptionPaused(
+            expected_sub_paused = SubPaused(
                 id=simple_sub.id, subscriber_id=simple_sub.subscriber_id, auth_id=simple_sub.auth_id,
             )
             assert len(event_handler.events) == 2
@@ -140,7 +140,7 @@ class TestStatusManagement:
 
         # Check events
         if expected_status_code < 400:
-            sub_resumed, sub_updated = event_handler.get(SubscriptionResumed), event_handler.get(SubscriptionUpdated)
+            sub_resumed, sub_updated = event_handler.get(SubResumed), event_handler.get(SubUpdated)
             assert sub_resumed is not None
             assert sub_updated is not None
             assert sub_updated.changes == {
@@ -159,7 +159,7 @@ class TestStatusManagement:
 
         # Check events
         if expected_status_code < 400:
-            sub_renewed, sub_updated = event_handler.get(SubscriptionRenewed), event_handler.get(SubscriptionUpdated)
+            sub_renewed, sub_updated = event_handler.get(SubRenewed), event_handler.get(SubUpdated)
             assert sub_renewed is not None
             assert sub_updated is not None
             assert sub_updated.changes == {
@@ -178,7 +178,7 @@ class TestStatusManagement:
 
         # Check events
         if expected_status_code < 400:
-            sub_renewed, sub_updated = event_handler.get(SubscriptionRenewed), event_handler.get(SubscriptionUpdated)
+            sub_renewed, sub_updated = event_handler.get(SubRenewed), event_handler.get(SubUpdated)
             assert sub_renewed is not None
             assert sub_updated is not None
             assert sub_updated.changes == {
@@ -196,7 +196,7 @@ class TestStatusManagement:
 
         # Check events
         if expected_status_code < 400:
-            sub_expired, sub_updated = event_handler.get(SubscriptionExpired), event_handler.get(SubscriptionUpdated)
+            sub_expired, sub_updated = event_handler.get(SubExpired), event_handler.get(SubUpdated)
             assert sub_expired is not None
             assert sub_updated is not None
             assert sub_updated.changes == {
@@ -217,7 +217,7 @@ class TestUsageManagement:
 
         # Check events
         if expected_status_code < 400:
-            sub_updated, usage_added = event_handler.get(SubscriptionUpdated), event_handler.get(SubscriptionUsageAdded)
+            sub_updated, usage_added = event_handler.get(SubUpdated), event_handler.get(SubUsageAdded)
             assert sub_updated is not None
             assert sub_updated.changes == {"usages.first": "action:added"}
             assert usage_added is not None
@@ -233,7 +233,7 @@ class TestUsageManagement:
 
         # Check events
         if expected_status_code < 400:
-            sub_updated, u_updated = event_handler.get(SubscriptionUpdated), event_handler.get(SubscriptionUsageUpdated)
+            sub_updated, u_updated = event_handler.get(SubUpdated), event_handler.get(SubUsageUpdated)
             assert sub_updated is not None
             assert sub_updated.changes == {"usages.first": "action:updated"}
             assert u_updated is not None
@@ -251,7 +251,7 @@ class TestUsageManagement:
 
         # Check events
         if expected_status_code < 400:
-            sub_updated, u_removed = event_handler.get(SubscriptionUpdated), event_handler.get(SubscriptionUsageRemoved)
+            sub_updated, u_removed = event_handler.get(SubUpdated), event_handler.get(SubUsageRemoved)
             assert sub_updated is not None
             assert sub_updated.changes == {"usages.first": "action:removed"}
             assert u_removed is not None
@@ -272,7 +272,7 @@ class TestDiscountManagement:
 
         # Check events
         if expected_status_code < 400:
-            sub_updated, d_added = event_handler.get(SubscriptionUpdated), event_handler.get(SubscriptionDiscountAdded)
+            sub_updated, d_added = event_handler.get(SubUpdated), event_handler.get(SubDiscountAdded)
             assert sub_updated is not None
             assert sub_updated.changes == {"discounts.second": "action:added"}
             assert d_added is not None
@@ -288,8 +288,8 @@ class TestDiscountManagement:
 
         # Check events
         if expected_status_code < 400:
-            sub_updated, d_removed = event_handler.get(SubscriptionUpdated), event_handler.get(
-                SubscriptionDiscountRemoved)
+            sub_updated, d_removed = event_handler.get(SubUpdated), event_handler.get(
+                SubDiscountRemoved)
             assert sub_updated is not None
             assert sub_updated.changes == {"discounts.first": "action:removed"}
             assert d_removed is not None
@@ -305,8 +305,8 @@ class TestDiscountManagement:
 
         # Check events
         if expected_status_code < 400:
-            sub_updated, d_updated = event_handler.get(SubscriptionUpdated), event_handler.get(
-                SubscriptionDiscountUpdated)
+            sub_updated, d_updated = event_handler.get(SubUpdated), event_handler.get(
+                SubDiscountUpdated)
             assert sub_updated is not None
             assert sub_updated.changes == {"discounts.first": "action:updated"}
             assert d_updated is not None
@@ -327,7 +327,7 @@ class TestOtherFieldsManagement:
 
         # Check events
         if expected_status_code < 400:
-            sub_updated = event_handler.get(SubscriptionUpdated)
+            sub_updated = event_handler.get(SubUpdated)
             assert sub_updated is not None
             assert sub_updated.changes == {
                 "plan_info.title": "Updated title",
@@ -349,7 +349,7 @@ class TestOtherFieldsManagement:
 
         # Check events
         if expected_status_code < 400:
-            sub_updated = event_handler.get(SubscriptionUpdated)
+            sub_updated = event_handler.get(SubUpdated)
             assert sub_updated is not None
             assert sub_updated.changes == {
                 "billing_info.price": 99,
@@ -368,7 +368,7 @@ class TestOtherFieldsManagement:
 
         # Check events
         if expected_status_code < 400:
-            sub_updated = event_handler.get(SubscriptionUpdated)
+            sub_updated = event_handler.get(SubUpdated)
             assert sub_updated is not None
             assert sub_updated.changes == {
                 "fields":
@@ -385,7 +385,7 @@ class TestOtherFieldsManagement:
 
         # Check events
         if expected_status_code < 400:
-            sub_updated = event_handler.get(SubscriptionUpdated)
+            sub_updated = event_handler.get(SubUpdated)
             assert sub_updated is not None
             assert sub_updated.changes == {"fields": sub_with_fields.fields}
 
@@ -402,7 +402,7 @@ class TestOtherFieldsManagement:
 
         # Check events
         if response.status_code < 400:
-            sub_updated = event_handler.get(SubscriptionUpdated)
+            sub_updated = event_handler.get(SubUpdated)
             assert sub_updated is not None
             assert sub_updated.changes == {"autorenew": True}
 
@@ -416,7 +416,7 @@ class TestOtherFieldsManagement:
 
         # Check events
         if expected_status_code < 400:
-            sub_updated = event_handler.get(SubscriptionUpdated)
+            sub_updated = event_handler.get(SubUpdated)
             assert sub_updated is not None
             assert sub_updated.changes == {"subscriber_id": "UpdatedID"}
 
@@ -434,7 +434,7 @@ class TestSpecificStatusAPI:
         # Check events
         if response.status_code < 400:
             assert len(event_handler.events) == 2
-            sub_updated, sub_paused = event_handler.get(SubscriptionUpdated), event_handler.get(SubscriptionPaused)
+            sub_updated, sub_paused = event_handler.get(SubUpdated), event_handler.get(SubPaused)
             assert sub_updated is not None
             assert sub_updated.changes == {
                 "status": SubscriptionStatus.Paused,
@@ -458,7 +458,7 @@ class TestSpecificUsageAPI:
         # Check events
         if response.status_code < 400:
             assert len(event_handler.events) == 2
-            sub_updated, u_added = event_handler.get(SubscriptionUpdated), event_handler.get(SubscriptionUsageAdded)
+            sub_updated, u_added = event_handler.get(SubUpdated), event_handler.get(SubUsageAdded)
             assert sub_updated is not None
             assert sub_updated.changes == {
                 "usages.first": "action:added",
@@ -481,7 +481,7 @@ class TestSpecificUsageAPI:
         # Check events
         if response.status_code < 400:
             assert len(event_handler.events) == 2
-            sub_updated, u_updated = event_handler.get(SubscriptionUpdated), event_handler.get(SubscriptionUsageUpdated)
+            sub_updated, u_updated = event_handler.get(SubUpdated), event_handler.get(SubUsageUpdated)
             assert sub_updated is not None
             assert sub_updated.changes == {
                 f"usages.{updated.code}": "action:updated",
@@ -503,7 +503,7 @@ class TestSpecificUsageAPI:
         # Check events
         if response.status_code < 400:
             assert len(event_handler.events) == 2
-            sub_updated, u_removed = event_handler.get(SubscriptionUpdated), event_handler.get(SubscriptionUsageRemoved)
+            sub_updated, u_removed = event_handler.get(SubUpdated), event_handler.get(SubUsageRemoved)
             assert sub_updated is not None
             assert sub_updated.changes == {
                 f"usages.{remove_code}": "action:removed",
@@ -527,7 +527,7 @@ class TestSpecificDiscountAPI:
         # Check events
         if response.status_code < 400:
             assert len(event_handler.events) == 2
-            sub_updated, d_added = event_handler.get(SubscriptionUpdated), event_handler.get(SubscriptionDiscountAdded)
+            sub_updated, d_added = event_handler.get(SubUpdated), event_handler.get(SubDiscountAdded)
             assert sub_updated is not None
             assert sub_updated.changes == {
                 f"discounts.{discounts[0].code}": "action:added",
@@ -544,7 +544,7 @@ class TestSpecificDiscountAPI:
 
         if expected_status_code < 400:
             assert len(event_handler.events) == 2
-            removed, updated = event_handler.get(SubscriptionDiscountRemoved), event_handler.get(SubscriptionUpdated)
+            removed, updated = event_handler.get(SubDiscountRemoved), event_handler.get(SubUpdated)
             assert removed.code == "first"
             assert updated.changes == {"discounts.first": "action:removed"}
 
@@ -561,7 +561,7 @@ class TestSpecificDiscountAPI:
 
         if expected_status_code < 400:
             assert len(event_handler.events) == 2
-            d_updated, s_updated = event_handler.get(SubscriptionDiscountUpdated), event_handler.get(
-                SubscriptionUpdated)
+            d_updated, s_updated = event_handler.get(SubDiscountUpdated), event_handler.get(
+                SubUpdated)
             assert s_updated.changes == {"discounts.first": "action:updated"}
             assert d_updated.changes == {"title": "UPDATED"}

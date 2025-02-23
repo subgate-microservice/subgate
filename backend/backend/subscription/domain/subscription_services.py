@@ -7,9 +7,9 @@ from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.discount import Discount
 from backend.subscription.domain.enums import SubscriptionStatus
 from backend.subscription.domain.events import (
-    SubscriptionUpdated, SubscriptionUsageAdded, SubscriptionDiscountAdded,
-    SubscriptionUsageUpdated, SubscriptionDiscountUpdated,
-    SubscriptionUsageRemoved, SubscriptionDiscountRemoved)
+    SubUpdated, SubUsageAdded, SubDiscountAdded,
+    SubUsageUpdated, SubDiscountUpdated,
+    SubUsageRemoved, SubDiscountRemoved)
 from backend.subscription.domain.subscription import Subscription, BillingInfo, PlanInfo
 from backend.subscription.domain.usage import Usage
 
@@ -35,7 +35,7 @@ class SubscriptionEventParser:
 
         if self.updated_fields:
             self.result.append(
-                SubscriptionUpdated(
+                SubUpdated(
                     id=self.subscription.id,
                     subscriber_id=self.subscription.subscriber_id,
                     changes=self.updated_fields,
@@ -81,7 +81,7 @@ class SubscriptionEventParser:
         if isinstance(event.item, Usage):
             self.updated_fields[f"usages.{event.item.code}"] = "action:added"
             self.result.append(
-                SubscriptionUsageAdded(
+                SubUsageAdded(
                     subscription_id=self.subscription.id,
                     title=event.item.title,
                     code=event.item.code,
@@ -97,7 +97,7 @@ class SubscriptionEventParser:
         elif isinstance(event.item, Discount):
             self.updated_fields[f"discounts.{event.item.code}"] = "action:added"
             self.result.append(
-                SubscriptionDiscountAdded(
+                SubDiscountAdded(
                     subscription_id=self.subscription.id,
                     title=event.item.title,
                     code=event.item.code,
@@ -113,7 +113,7 @@ class SubscriptionEventParser:
         if isinstance(event.new_item, Usage):
             self.updated_fields[f"usages.{event.new_item.code}"] = "action:updated"
             self.result.append(
-                SubscriptionUsageUpdated(
+                SubUsageUpdated(
                     subscription_id=self.subscription.id,
                     code=event.new_item.code,
                     changes=find_changes(event.old_item, event.new_item),
@@ -125,7 +125,7 @@ class SubscriptionEventParser:
         elif isinstance(event.new_item, Discount):
             self.updated_fields[f"discounts.{event.new_item.code}"] = "action:updated"
             self.result.append(
-                SubscriptionDiscountUpdated(
+                SubDiscountUpdated(
                     subscription_id=self.subscription.id,
                     code=event.new_item.code,
                     changes=find_changes(event.old_item, event.new_item),
@@ -138,7 +138,7 @@ class SubscriptionEventParser:
         if isinstance(event.item, Usage):
             self.updated_fields[f"usages.{event.item.code}"] = "action:removed"
             self.result.append(
-                SubscriptionUsageRemoved(
+                SubUsageRemoved(
                     subscription_id=self.subscription.id,
                     title=event.item.title,
                     code=event.item.code,
@@ -154,7 +154,7 @@ class SubscriptionEventParser:
         elif isinstance(event.item, Discount):
             self.updated_fields[f"discounts.{event.item.code}"] = "action:removed"
             self.result.append(
-                SubscriptionDiscountRemoved(
+                SubDiscountRemoved(
                     subscription_id=self.subscription.id,
                     title=event.item.title,
                     code=event.item.code,

@@ -12,8 +12,8 @@ from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.discount import Discount
 from backend.subscription.domain.enums import SubscriptionStatus
 from backend.subscription.domain.events import (
-    SubscriptionPaused, SubscriptionResumed, SubscriptionRenewed,
-    SubscriptionExpired, SubId)
+    SubPaused, SubResumed, SubRenewed,
+    SubExpired, SubId)
 from backend.subscription.domain.item_manager import ItemManager
 from backend.subscription.domain.plan import PlanId, Plan
 from backend.subscription.domain.usage import Usage
@@ -104,7 +104,7 @@ class Subscription(Eventable):
         self._status = SubscriptionStatus.Paused
         self._paused_from = get_current_datetime()
         self.push_event(
-            SubscriptionPaused(id=self.id, subscriber_id=self.subscriber_id, auth_id=self.auth_id)
+            SubPaused(id=self.id, subscriber_id=self.subscriber_id, auth_id=self.auth_id)
         )
 
     def resume(self) -> None:
@@ -118,8 +118,8 @@ class Subscription(Eventable):
         self._paused_from = None
 
         self.push_event(
-            SubscriptionResumed(id=self.id, subscriber_id=self.subscriber_id, auth_id=self.auth_id,
-                                saved_days=self.billing_info.saved_days)
+            SubResumed(id=self.id, subscriber_id=self.subscriber_id, auth_id=self.auth_id,
+                       saved_days=self.billing_info.saved_days)
         )
 
     def renew(self, from_date: AwareDatetime = None) -> None:
@@ -132,15 +132,15 @@ class Subscription(Eventable):
         self.billing_info.saved_days = 0
 
         self.push_event(
-            SubscriptionRenewed(id=self.id, subscriber_id=self.subscriber_id, auth_id=self.auth_id,
-                                last_billing=from_date)
+            SubRenewed(id=self.id, subscriber_id=self.subscriber_id, auth_id=self.auth_id,
+                       last_billing=from_date)
         )
 
     def expire(self) -> None:
         self._status = SubscriptionStatus.Expired
         self.billing_info.saved_days = 0
         self.push_event(
-            SubscriptionExpired(id=self.id, subscriber_id=self.subscriber_id, auth_id=self.auth_id)
+            SubExpired(id=self.id, subscriber_id=self.subscriber_id, auth_id=self.auth_id)
         )
 
     @property

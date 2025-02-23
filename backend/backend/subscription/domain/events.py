@@ -32,7 +32,7 @@ class PlanUpdated(Event):
     auth_id: AuthId
 
 
-class SubscriptionCreated(Event):
+class SubCreated(Event):
     id: SubId
     subscriber_id: str
     status: SubscriptionStatus
@@ -42,39 +42,39 @@ class SubscriptionCreated(Event):
     auth_id: AuthId
 
 
-class SubscriptionDeleted(SubscriptionCreated):
+class SubDeleted(SubCreated):
     pass
 
 
-class SubscriptionUpdated(Event):
+class SubUpdated(Event):
     id: SubId
     subscriber_id: str
     changes: dict[str, Any]
     auth_id: AuthId
 
 
-class SubscriptionPaused(Event):
+class SubPaused(Event):
     id: SubId
     subscriber_id: str
     auth_id: AuthId
 
 
-class SubscriptionResumed(SubscriptionPaused):
+class SubResumed(SubPaused):
     saved_days: int
 
 
-class SubscriptionExpired(SubscriptionPaused):
+class SubExpired(SubPaused):
     pass
 
 
-class SubscriptionRenewed(Event):
+class SubRenewed(Event):
     id: SubId
     subscriber_id: str
     last_billing: AwareDatetime
     auth_id: AuthId
 
 
-class SubscriptionUsageAdded(Event):
+class SubUsageAdded(Event):
     subscription_id: SubId
     title: str
     code: str
@@ -86,7 +86,7 @@ class SubscriptionUsageAdded(Event):
     auth_id: AuthId
 
 
-class SubscriptionUsageUpdated(Event):
+class SubUsageUpdated(Event):
     subscription_id: SubId
     code: str
     changes: dict[str, UnionValue]
@@ -94,11 +94,11 @@ class SubscriptionUsageUpdated(Event):
     auth_id: AuthId
 
 
-class SubscriptionUsageRemoved(SubscriptionUsageAdded):
+class SubUsageRemoved(SubUsageAdded):
     pass
 
 
-class SubscriptionDiscountAdded(Event):
+class SubDiscountAdded(Event):
     subscription_id: SubId
     title: str
     code: str
@@ -108,11 +108,11 @@ class SubscriptionDiscountAdded(Event):
     auth_id: AuthId
 
 
-class SubscriptionDiscountRemoved(SubscriptionDiscountAdded):
+class SubDiscountRemoved(SubDiscountAdded):
     pass
 
 
-class SubscriptionDiscountUpdated(Event):
+class SubDiscountUpdated(Event):
     subscription_id: SubId
     code: str
     changes: dict[str, UnionValue]
