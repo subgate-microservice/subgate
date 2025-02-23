@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from typing import Optional, Self, Literal, Iterable
-from uuid import UUID, uuid4
+from uuid import uuid4, UUID
 
 from pydantic import Field, AwareDatetime
 
@@ -33,10 +33,11 @@ class Payload(MyBase):
 
 
 class Telegram(MyBase):
+    id: int = -1
     url: str
     data: Payload
+    partkey: UUID = Field(default_factory=uuid4)
     status: Literal["unprocessed", "success_sent", "failed_sent",] = "unprocessed"
-    id: UUID = Field(default_factory=uuid4)
     retries: int = 0
     max_retries: int = 13
     error_info: Optional[SentErrorInfo] = None
@@ -84,6 +85,10 @@ class TelegramRepo(ABC):
 
     @abstractmethod
     async def update_one(self, item: Telegram) -> None:
+        pass
+
+    @abstractmethod
+    async def update_many(self, items: Iterable[Telegram]) -> None:
         pass
 
     @abstractmethod

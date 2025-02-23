@@ -1,10 +1,9 @@
-import uuid
 from typing import Iterable, Mapping, Type, Any
 
-from sqlalchemy import Column, String, Table
+from sqlalchemy import Column, String, Table, bindparam
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql.sqltypes import UUID, Integer
+from sqlalchemy.sql.sqltypes import UUID, Integer, BigInteger
 
 from backend.shared.database import metadata
 from backend.shared.enums import Lock
@@ -15,7 +14,7 @@ from backend.webhook.domain.telegram import Telegram, TelegramRepo
 telegram_table = Table(
     "telegram",
     metadata,
-    Column("id", UUID, primary_key=True, default=str(uuid.uuid4())),
+    Column("id", BigInteger, primary_key=True, autoincrement=True),
     Column("url", String, nullable=False),
     Column("data", JSONB, nullable=False),
     Column("status", String, nullable=False),
@@ -26,6 +25,7 @@ telegram_table = Table(
     Column("next_retry_at", AwareDateTime(timezone=True), nullable=True),
     Column("created_at", AwareDateTime(timezone=True), nullable=False),
     Column("updated_at", AwareDateTime(timezone=True), nullable=False),
+    Column("partkey", UUID, nullable=False),
 )
 
 
@@ -34,7 +34,7 @@ class SqlTelegramMapper(SQLMapper):
         return Telegram
 
     def entity_to_mapping(self, entity: Telegram) -> dict:
-        result = entity.model_dump(mode="json")
+        result = entity.model_dump(mode="json", exclude={"id"})
         result["sent_at"] = entity.sent_at
         result["next_retry_at"] = entity.next_retry_at
         result["created_at"] = entity.created_at
@@ -56,15 +56,13 @@ class SqlTelegramMapper(SQLMapper):
             next_retry_at=data["next_retry_at"],
         )
 
-    def entity_to_orm_model(self, entity: Telegram):
-        raise NotImplemented
-
     def sby_to_filter(self, sby):
         raise NotImplemented
 
 
 class SqlTelegramRepo(TelegramRepo):
     def __init__(self, session: AsyncSession, transaction_id: UUID):
+        self._session = session
         self._base_repo = SqlBaseRepo(session, SqlTelegramMapper(telegram_table), telegram_table, transaction_id)
 
     async def get_all(self, lock: Lock = "write") -> list[Telegram]:
@@ -88,28 +86,69 @@ class SqlTelegramRepo(TelegramRepo):
                 table.c["next_retry_at"].isnot(None),
             )
             .limit(limit)
-            .order_by(table.c["created_at"])
+            .order_by(table.c["id"])
         )
         result = await self._base_repo.session.execute(stmt)
         records = result.mappings()
         return [self._base_repo.mapper.mapping_to_entity(x) for x in records]
 
     async def add_one(self, item: Telegram) -> None:
-        await self._base_repo.add_one(item)
+        stmt = telegram_table.insert()
+        data = self._base_repo.mapper.entity_to_mapping(item)
+        await self._session.execute(stmt, data)
 
     async def add_many(self, items: Iterable[Telegram]) -> None:
-        for item in items:
-            await self.add_one(item)
+        if items:
+            stmt = telegram_table.insert()
+            data = [self._base_repo.mapper.entity_to_mapping(item) for item in items]
+            await self._session.execute(stmt, data)
 
     async def update_one(self, item: Telegram) -> None:
-        await self._base_repo.update_one(item)
+        stmt = (
+            telegram_table
+            .update()
+            .where(telegram_table.c["id"] == item.id)
+        )
+        data = self._base_repo.mapper.entity_to_mapping(item)
+        await self._session.execute(stmt, data)
+
+    async def update_many(self, items: Iterable[Telegram]) -> None:
+        if items:
+            data = [self._base_repo.mapper.entity_to_mapping(x) for x in items]
+            for mapping in data:
+                mapping["_id"] = mapping.pop("id")
+
+            params = {
+                col: col
+                for col in data[0].keys()
+                if col != "id"
+            }
+
+            stmt = (
+                telegram_table
+                .update()
+                .where(telegram_table.c["id"] == bindparam("_id"))
+                .values(params)
+            )
+            await self._session.execute(stmt)
 
     async def delete_one(self, item: Telegram) -> None:
-        await self._base_repo.delete_one(item)
+        stmt = (
+            telegram_table
+            .delete()
+            .where(telegram_table.c["id"] == item.id)
+        )
+        await self._session.execute(stmt)
 
     async def delete_many(self, items: Iterable[Telegram]) -> None:
-        for item in items:
-            await self.delete_one(item)
+        if items:
+            ids = [x.id for x in items]
+            stmt = (
+                telegram_table
+                .delete()
+                .where(telegram_table.c["id"].in_(ids))
+            )
+            await self._session.execute(stmt)
 
     def parse_logs(self):
         return self._base_repo.parse_logs()
