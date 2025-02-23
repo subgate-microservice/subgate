@@ -1,7 +1,6 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
-from loguru import logger
 
 from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container, Bootstrap, auth_closure
@@ -102,11 +101,12 @@ async def delete_one(
 
 @plan_router.delete("/")
 async def delete_selected(
-        sby: PlanSby,
+        ids: Optional[set[PlanId]] = Query(None),
         auth_user: AuthUser = Depends(auth_closure),
         container: Bootstrap = Depends(get_container),
 ) -> str:
     async with container.unit_of_work_factory().create_uow() as uow:
+        sby = PlanSby(ids=ids, auth_ids={auth_user.id})
         targets = await uow.plan_repo().get_selected(sby)
         for target in targets:
             await delete_plan(target, uow)

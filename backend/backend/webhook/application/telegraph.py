@@ -1,27 +1,41 @@
 import asyncio
 from typing import Optional
 
-import aiohttp
+import httpx
 from loguru import logger
 
 from backend.shared.unit_of_work.uow import UnitOfWorkFactory, UnitOfWork
 from backend.webhook.domain.telegram import SentErrorInfo, Telegram
 
 
-async def safe_request(method: str, url: str, **kwargs) -> Optional[SentErrorInfo]:
-    error = None
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.request(method, url, **kwargs) as response:
-                if response.status >= 400:
-                    error = SentErrorInfo(status_code=response.status, detail="Request error")
-    except Exception as err:
-        error = SentErrorInfo(status_code=500, detail=str(err))
+class RequestClient:
+    def __init__(self):
+        self.client = httpx.AsyncClient()
 
-    if error:
-        logger.error(error)
+    async def safe_request(self, telegram: Telegram) -> Optional[SentErrorInfo]:
+        payload = telegram.data.model_dump(mode="json")
+        error = None
+        try:
+            response = await self.client.request("POST", telegram.url, json=payload)
+            if response.status_code >= 400:
+                error = SentErrorInfo(
+                    status_code=response.status_code,
+                    detail="request_error",
+                )
+        except Exception as err:
+            error = SentErrorInfo(
+                status_code=500,
+                detail=str(err),
+            )
 
-    return error
+        if error:
+            msg = (
+                f"SendError(telegram_id={telegram.id}, status={error.status_code},"
+                f" retry_count={telegram.retries}, detail={error.detail})"
+            )
+            logger.error(msg)
+
+        return error
 
 
 async def safe_commit(uow: UnitOfWork, msg: Telegram):
@@ -38,6 +52,7 @@ class Telegraph:
         self._STOP_FLAG = False
         self._wake_event = asyncio.Event()  # Событие для пробуждения
         self._sleep_time = sleep_time
+        self._client = RequestClient()
 
     def stop_worker(self):
         self._STOP_FLAG = True
@@ -58,9 +73,10 @@ class Telegraph:
                     messages = await uow.telegram_repo().get_messages_for_send()
                     logger.info(f"Need to send {len(messages)} telegrams")
                     for msg in messages:
-                        error_info = await safe_request("POST", msg.url, json=msg.data.model_dump(mode="json"))
+                        error_info = await self._client.safe_request(msg)
                         updated_msg = msg.failed_sent(error_info) if error_info else msg.success_sent()
-                        await safe_commit(uow, updated_msg)
+                        await uow.telegram_repo().update_one(updated_msg)
+                    await uow.commit()
             except Exception as err:
                 logger.error(err)
             finally:
