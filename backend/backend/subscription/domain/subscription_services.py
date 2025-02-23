@@ -251,7 +251,6 @@ class SubscriptionUpdater:
         if old_status == new_status:
             return
 
-        logger.debug(f'{old_status, new_status}')
         match (old_status, new_status):
 
             case (SubscriptionStatus.Paused, SubscriptionStatus.Active):

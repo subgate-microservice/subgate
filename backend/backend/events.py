@@ -4,6 +4,7 @@ from backend.subscription.domain.events import (
     SubscriptionPaused,
     SubscriptionResumed,
     SubscriptionRenewed,
+    SubscriptionExpired,
     SubscriptionUsageAdded,
     SubscriptionUsageRemoved,
     SubscriptionUsageUpdated,
@@ -29,6 +30,7 @@ EVENTS = [
     SubscriptionPaused,
     SubscriptionResumed,
     SubscriptionRenewed,
+    SubscriptionExpired,
 
     SubscriptionUsageAdded,
     SubscriptionUsageUpdated,

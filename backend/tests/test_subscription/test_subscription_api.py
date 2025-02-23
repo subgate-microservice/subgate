@@ -11,7 +11,7 @@ from backend.subscription.domain.discount import Discount
 from backend.subscription.domain.enums import SubscriptionStatus
 from backend.subscription.domain.events import SubscriptionPaused, SubscriptionResumed, SubscriptionRenewed, \
     SubscriptionUsageAdded, SubscriptionUsageRemoved, SubscriptionUsageUpdated, SubscriptionDiscountAdded, \
-    SubscriptionDiscountRemoved, SubscriptionDiscountUpdated, SubscriptionUpdated
+    SubscriptionDiscountRemoved, SubscriptionDiscountUpdated, SubscriptionUpdated, SubscriptionExpired
 from backend.subscription.domain.plan import Plan
 from backend.subscription.domain.subscription import (
     Subscription, )
@@ -184,6 +184,23 @@ class TestStatusManagement:
             assert sub_updated.changes == {
                 "status": SubscriptionStatus.Active,
                 "billing_info.last_billing": get_current_datetime(),
+            }
+
+    @pytest.mark.asyncio
+    async def test_expire_subscription(self, current_user, simple_sub, event_handler):
+        user, token, expected_status_code = current_user
+        headers = get_headers(current_user)
+
+        simple_sub.expire()
+        await full_update_sub_request(simple_sub, headers, expected_status_code)
+
+        # Check events
+        if expected_status_code < 400:
+            sub_expired, sub_updated = event_handler.get(SubscriptionExpired), event_handler.get(SubscriptionUpdated)
+            assert sub_expired is not None
+            assert sub_updated is not None
+            assert sub_updated.changes == {
+                "status": SubscriptionStatus.Expired,
             }
 
 
