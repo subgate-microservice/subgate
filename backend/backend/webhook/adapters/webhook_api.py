@@ -20,19 +20,19 @@ webhook_router = APIRouter(
 
 class WebhookCreate(MyBase):
     id: WebhookId = Field(default_factory=uuid4)
-    event_code: str = Field()
-    target_url: str = Field()
+    event_code: str
+    target_url: str
     created_at: AwareDatetime = Field(default_factory=get_current_datetime, )
 
 
 class WebhookUpdate(WebhookCreate):
     id: WebhookId
-    event_code: str = Field()
-    target_url: str = Field()
-    created_at: AwareDatetime = Field()
+    event_code: str
+    target_url: str
 
-    def to_webhook(self, auth_id: AuthId):
-        return Webhook(auth_id=auth_id, **self.model_dump())
+    def to_webhook(self, auth_id: AuthId, created_at: AwareDatetime):
+        return Webhook(auth_id=auth_id, id=self.id, event_code=self.event_code, target_url=self.target_url,
+                       created_at=created_at, updated_at=get_current_datetime())
 
 
 @webhook_router.post("/")
@@ -40,13 +40,13 @@ async def create_one(
         webhook: WebhookCreate,
         auth_user: AuthUser = Depends(auth_closure),
         container: Bootstrap = Depends(get_container),
-) -> Webhook:
+) -> str:
     async with container.unit_of_work_factory().create_uow() as uow:
         webhook = Webhook(**webhook.model_dump(), auth_id=auth_user.id)
         create_webhook_usecase = usecases.CreateWebhook(uow)
         await create_webhook_usecase.execute(webhook)
         await uow.commit()
-        return webhook
+    return "Ok"
 
 
 @webhook_router.get("/{webhook_id}")
@@ -88,11 +88,12 @@ async def update_one(
         container: Bootstrap = Depends(get_container),
 ) -> str:
     async with container.unit_of_work_factory().create_uow() as uow:
-        webhook = webhook.to_webhook(auth_user.id)
+        target = await uow.webhook_repo().get_one_by_id(webhook.id)
+        webhook = webhook.to_webhook(auth_user.id, target.created_at)
         usecase = usecases.UpdateWebhook(uow)
         await usecase.execute(webhook)
         await uow.commit()
-        return "Ok"
+    return "Ok"
 
 
 @webhook_router.delete("/{webhook_id}")
@@ -104,7 +105,7 @@ async def delete_one_by_id(
     async with container.unit_of_work_factory().create_uow() as uow:
         await usecases.DeleteWebhookById(uow).execute(webhook_id)
         await uow.commit()
-        return "Ok"
+    return "Ok"
 
 
 @webhook_router.delete("/")
@@ -117,4 +118,4 @@ async def delete_selected(
         sby.auth_ids = {auth_user.id}
         await usecases.DeleteSelectedWebhooks(uow).execute(sby)
         await uow.commit()
-        return "Ok"
+    return "Ok"
