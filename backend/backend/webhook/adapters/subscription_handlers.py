@@ -26,7 +26,8 @@ async def handle_subscription_event(event: Event, context: Context):
     webhooks = await webhook_repo.get_selected(sby)
 
     # Создаем TelegraphMessage для каждого Webhook
-    data = Payload.from_event(event)
-    partkey = str(event.id) if hasattr(event, "id") else str(event.subscription_id)
-    telegrams = [Telegram(url=hook.target_url, data=data, partkey=partkey) for hook in webhooks]
-    await context.uow.telegram_repo().add_many(telegrams)
+    if webhooks:
+        data = Payload.from_event(event)
+        partkey = str(event.id) if hasattr(event, "id") else str(event.subscription_id)
+        telegrams = [Telegram(url=hook.target_url, data=data, partkey=partkey) for hook in webhooks]
+        await context.uow.telegram_repo().add_many(telegrams)

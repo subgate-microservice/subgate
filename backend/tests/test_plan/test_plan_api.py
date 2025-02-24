@@ -8,7 +8,8 @@ from backend.subscription.adapters.plan_api import PlanCreate
 from backend.subscription.adapters.schemas import PlanUpdate
 from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.discount import Discount
-from backend.subscription.domain.plan import Plan, PlanCreated, PlanUpdated
+from backend.subscription.domain.events import PlanCreated, PlanUpdated
+from backend.subscription.domain.plan import Plan
 from backend.subscription.domain.usage import UsageRate
 from tests.conftest import current_user, get_async_client
 
