@@ -78,7 +78,7 @@ class SqlDeliveryTaskRepo(DeliveryTaskRepo):
         records = result.mappings()
         return [self._mapper.mapping_to_entity(x) for x in records]
 
-    async def get_messages_for_send(self, limit=500, lock: Lock = "write") -> list[DeliveryTask]:
+    async def get_deliveries_for_send(self, limit=500, lock: Lock = "write") -> list[DeliveryTask]:
         stmt = (
             delivery_task_table
             .select()

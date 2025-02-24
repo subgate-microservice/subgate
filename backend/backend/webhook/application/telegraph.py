@@ -84,7 +84,7 @@ class Telegraph:
 
             try:
                 async with self._uow_factory.create_uow() as uow:
-                    deliveries = await uow.delivery_task_repo().get_messages_for_send()
+                    deliveries = await uow.delivery_task_repo().get_deliveries_for_send()
                     logger.info(f"Need to send {len(deliveries)} deliveries")
 
                     updated_deliveries = []

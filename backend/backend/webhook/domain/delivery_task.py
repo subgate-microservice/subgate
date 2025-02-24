@@ -100,5 +100,5 @@ class DeliveryTaskRepo(ABC):
         pass
 
     @abstractmethod
-    async def get_messages_for_send(self, limit=500, lock: Lock = "write") -> list[DeliveryTask]:
+    async def get_deliveries_for_send(self, limit=500, lock: Lock = "write") -> list[DeliveryTask]:
         pass
