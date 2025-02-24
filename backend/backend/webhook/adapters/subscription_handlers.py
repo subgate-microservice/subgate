@@ -3,8 +3,8 @@ import aiohttp
 from backend.bootstrap import get_container
 from backend.shared.event_driven.base_event import Event
 from backend.shared.event_driven.bus import Context
-from backend.webhook.application.telegraph import Telegram
-from backend.webhook.domain.telegram import Payload
+from backend.webhook.application.telegraph import DeliveryTask
+from backend.webhook.domain.delivery_task import Payload
 from backend.webhook.domain.webhook_repo import WebhookSby
 
 container = get_container()
@@ -29,5 +29,5 @@ async def handle_event(event: Event, context: Context):
     if webhooks:
         data = Payload.from_event(event)
         partkey = str(event.id) if hasattr(event, "id") else str(event.subscription_id)
-        telegrams = [Telegram(url=hook.target_url, data=data, partkey=partkey) for hook in webhooks]
-        await context.uow.telegram_repo().add_many(telegrams)
+        deliveries = [DeliveryTask(url=hook.target_url, data=data, partkey=partkey) for hook in webhooks]
+        await context.uow.delivery_task_repo().add_many(deliveries)

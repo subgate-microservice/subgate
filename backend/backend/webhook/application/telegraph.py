@@ -5,18 +5,18 @@ import httpx
 from loguru import logger
 
 from backend.shared.unit_of_work.uow import UnitOfWorkFactory, UnitOfWork
-from backend.webhook.domain.telegram import SentErrorInfo, Telegram
+from backend.webhook.domain.delivery_task import SentErrorInfo, DeliveryTask
 
 
 class RequestClient:
     def __init__(self):
         self.client = httpx.AsyncClient()
 
-    async def safe_request(self, telegram: Telegram) -> Telegram:
-        payload = telegram.data.model_dump(mode="json")
+    async def safe_request(self, delivery: DeliveryTask) -> DeliveryTask:
+        payload = delivery.data.model_dump(mode="json")
         error = None
         try:
-            response = await self.client.request("POST", telegram.url, json=payload)
+            response = await self.client.request("POST", delivery.url, json=payload)
             if response.status_code >= 400:
                 error = SentErrorInfo(
                     status_code=response.status_code,
@@ -30,25 +30,25 @@ class RequestClient:
 
         if error:
             msg = (
-                f"SendError(telegram_id={telegram.id}, status={error.status_code},"
-                f" retry_count={telegram.retries}, detail={error.detail})"
+                f"SendError(delivery_id={delivery.id}, status={error.status_code},"
+                f" retry_count={delivery.retries}, detail={error.detail})"
             )
             logger.error(msg)
 
-        return telegram.failed_sent(error) if error else telegram.success_sent()
+        return delivery.failed_sent(error) if error else delivery.success_sent()
 
 
-async def safe_commit(uow: UnitOfWork, msg: Telegram):
+async def safe_commit(uow: UnitOfWork, msg: DeliveryTask):
     try:
-        await uow.telegram_repo().update_one(msg)
+        await uow.delivery_task_repo().update_one(msg)
         await uow.commit()
     except Exception as err:
         logger.error(err)
 
 
-def group_telegrams(telegrams: list[Telegram]) -> dict[str, list[Telegram]]:
+def group_deliveries(deliveries: list[DeliveryTask]) -> dict[str, list[DeliveryTask]]:
     result = defaultdict(list)
-    for tlg in telegrams:
+    for tlg in deliveries:
         result[tlg.partkey].append(tlg)
     return result
 
@@ -68,12 +68,12 @@ class Telegraph:
     def wake_worker(self):
         self._wake_event.set()
 
-    async def _partkey_worker(self, telegrams: list[Telegram]) -> list[Telegram]:
-        updated_telegrams = []
-        for tlg in telegrams:
-            updated = await self._client.safe_request(tlg)
-            updated_telegrams.append(updated)
-        return updated_telegrams
+    async def _partkey_worker(self, deliveries: list[DeliveryTask]) -> list[DeliveryTask]:
+        updated_deliveries = []
+        for delivery in deliveries:
+            updated = await self._client.safe_request(delivery)
+            updated_deliveries.append(updated)
+        return updated_deliveries
 
     async def run_worker(self):
         self._STOP_FLAG = False
@@ -84,17 +84,17 @@ class Telegraph:
 
             try:
                 async with self._uow_factory.create_uow() as uow:
-                    telegrams = await uow.telegram_repo().get_messages_for_send()
-                    logger.info(f"Need to send {len(telegrams)} telegrams")
+                    deliveries = await uow.delivery_task_repo().get_messages_for_send()
+                    logger.info(f"Need to send {len(deliveries)} deliveries")
 
-                    updated_telegrams = []
+                    updated_deliveries = []
                     tasks = []
-                    for partkey, grouped_telegrams in group_telegrams(telegrams).items():
-                        task = asyncio.create_task(self._partkey_worker(grouped_telegrams))
-                        task.add_done_callback(lambda x: updated_telegrams.extend(x.result()))
+                    for partkey, grouped_deliveries in group_deliveries(deliveries).items():
+                        task = asyncio.create_task(self._partkey_worker(grouped_deliveries))
+                        task.add_done_callback(lambda x: updated_deliveries.extend(x.result()))
                         tasks.append(task)
                     await asyncio.gather(*tasks)
-                    await uow.telegram_repo().update_many(updated_telegrams)
+                    await uow.delivery_task_repo().update_many(updated_deliveries)
                     await uow.commit()
             except Exception as err:
                 logger.error(err)

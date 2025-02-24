@@ -6,7 +6,7 @@ from backend.auth.infra.apikey.apikey_repo_sql import apikey_table
 from backend.shared.unit_of_work.change_log import Log
 from backend.subscription.infra.plan_repo_sql import plan_table
 from backend.subscription.infra.subscription_repo_sql import subscription_table
-from backend.webhook.infra.telegram_repo_sql import telegram_table
+from backend.webhook.infra.delivery_task_repo_sql import delivery_task_table
 from backend.webhook.infra.webhook_repo_sql import webhook_table
 
 
@@ -17,8 +17,8 @@ def get_table(tablename: str) -> Table:
         return webhook_table
     if tablename == subscription_table.name:
         return subscription_table
-    if tablename == telegram_table.name:
-        return telegram_table
+    if tablename == delivery_task_table.name:
+        return delivery_task_table
     if tablename == apikey_table.name:
         return apikey_table
     raise ValueError(tablename)

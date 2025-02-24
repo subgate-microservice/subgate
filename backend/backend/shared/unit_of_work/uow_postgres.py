@@ -15,9 +15,9 @@ from backend.subscription.domain.plan_repo import PlanRepo
 from backend.subscription.domain.subscription_repo import SubscriptionRepo
 from backend.subscription.infra.plan_repo_sql import SqlPlanRepo
 from backend.subscription.infra.subscription_repo_sql import SqlSubscriptionRepo
-from backend.webhook.domain.telegram import TelegramRepo
+from backend.webhook.domain.delivery_task import DeliveryTaskRepo
 from backend.webhook.domain.webhook_repo import WebhookRepo
-from backend.webhook.infra.telegram_repo_sql import SqlTelegramRepo
+from backend.webhook.infra.delivery_task_repo_sql import SqlDeliveryTaskRepo
 from backend.webhook.infra.webhook_repo_sql import SqlWebhookRepo
 
 
@@ -47,7 +47,7 @@ class NewUow(UnitOfWork):
             "plan_repo": SqlPlanRepo(self._session, self._transaction_id),
             "webhook_repo": SqlWebhookRepo(self._session, self._transaction_id),
             "subscription_repo": SqlSubscriptionRepo(self._session, self._transaction_id),
-            "telegram_repo": SqlTelegramRepo(self._session, self._transaction_id),
+            "delivery_task_repo": SqlDeliveryTaskRepo(self._session, self._transaction_id),
             "apikey_repo": SqlApikeyRepo(self._session, self._transaction_id),
         }
         return self
@@ -119,8 +119,8 @@ class NewUow(UnitOfWork):
     def apikey_repo(self) -> ApikeyRepo:
         return self._repos["apikey_repo"]
 
-    def telegram_repo(self) -> TelegramRepo:
-        return self._repos["telegram_repo"]
+    def delivery_task_repo(self) -> DeliveryTaskRepo:
+        return self._repos["delivery_task_repo"]
 
 
 class SqlUowFactory(UnitOfWorkFactory):

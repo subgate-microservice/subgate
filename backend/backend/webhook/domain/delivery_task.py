@@ -32,7 +32,7 @@ class Payload(MyBase):
         )
 
 
-class Telegram(MyBase):
+class DeliveryTask(MyBase):
     id: int = -1
     url: str
     data: Payload
@@ -74,31 +74,31 @@ class Telegram(MyBase):
         })
 
 
-class TelegramRepo(ABC):
+class DeliveryTaskRepo(ABC):
     @abstractmethod
-    async def add_one(self, item: Telegram) -> None:
+    async def add_one(self, item: DeliveryTask) -> None:
         pass
 
     @abstractmethod
-    async def add_many(self, items: Iterable[Telegram]) -> None:
+    async def add_many(self, items: Iterable[DeliveryTask]) -> None:
         pass
 
     @abstractmethod
-    async def update_one(self, item: Telegram) -> None:
+    async def update_one(self, item: DeliveryTask) -> None:
         pass
 
     @abstractmethod
-    async def update_many(self, items: Iterable[Telegram]) -> None:
+    async def update_many(self, items: Iterable[DeliveryTask]) -> None:
         pass
 
     @abstractmethod
-    async def delete_one(self, item: Telegram) -> None:
+    async def delete_one(self, item: DeliveryTask) -> None:
         pass
 
     @abstractmethod
-    async def get_all(self, lock: Lock = "write") -> list[Telegram]:
+    async def get_all(self, lock: Lock = "write") -> list[DeliveryTask]:
         pass
 
     @abstractmethod
-    async def get_messages_for_send(self, limit=500, lock: Lock = "write") -> list[Telegram]:
+    async def get_messages_for_send(self, limit=500, lock: Lock = "write") -> list[DeliveryTask]:
         pass

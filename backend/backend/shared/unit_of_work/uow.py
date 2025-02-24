@@ -5,7 +5,7 @@ from backend.auth.domain.apikey_repo import ApikeyRepo
 from backend.shared.event_driven.base_event import Event
 from backend.subscription.domain.plan_repo import PlanRepo
 from backend.subscription.domain.subscription_repo import SubscriptionRepo
-from backend.webhook.domain.telegram import TelegramRepo
+from backend.webhook.domain.delivery_task import DeliveryTaskRepo
 from backend.webhook.domain.webhook_repo import WebhookRepo
 
 
@@ -43,7 +43,7 @@ class UnitOfWork(ABC):
         pass
 
     @abstractmethod
-    def telegram_repo(self) -> TelegramRepo:
+    def delivery_task_repo(self) -> DeliveryTaskRepo:
         pass
 
     @abstractmethod

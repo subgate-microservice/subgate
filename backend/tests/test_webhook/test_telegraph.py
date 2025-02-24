@@ -10,7 +10,7 @@ from backend.bootstrap import get_container
 from backend.shared.unit_of_work.uow import UnitOfWork
 from backend.shared.utils import get_current_datetime
 from backend.webhook.application.telegraph import Telegraph, safe_commit
-from backend.webhook.domain.telegram import Telegram, SentErrorInfo
+from backend.webhook.domain.delivery_task import DeliveryTask, SentErrorInfo
 
 container = get_container()
 
@@ -31,7 +31,7 @@ async def mocked_request_with_mix_error_and_success(*_args, **kwargs):
     return SentErrorInfo(status_code=404, detail="Not found") if number % 2 == 0 else None
 
 
-async def mocked_safe_commit(uow: UnitOfWork, msg: Telegram):
+async def mocked_safe_commit(uow: UnitOfWork, msg: DeliveryTask):
     if int(msg.data) != 3:
         await safe_commit(uow, msg)
     else:
@@ -42,7 +42,7 @@ async def mocked_safe_commit(uow: UnitOfWork, msg: Telegram):
 async def messages():
     messages = []
     for i in range(10):
-        msg = Telegram(
+        msg = DeliveryTask(
             url="correct_url",
             data=f"{i}",
             next_retry_at=get_current_datetime() - timedelta(seconds=1),
@@ -51,7 +51,7 @@ async def messages():
         messages.append(msg)
 
     async with container.unit_of_work_factory().create_uow() as uow:
-        await uow.telegram_repo().add_many(messages)
+        await uow.delivery_task_repo().add_many(messages)
         await uow.commit()
     yield messages
 
@@ -68,7 +68,7 @@ async def test_send_messages_with_success(messages):
 
         # Проверяем статусы сообщений
         async with container.unit_of_work_factory().create_uow() as uow:
-            real = await uow.telegram_repo().get_all()
+            real = await uow.delivery_task_repo().get_all()
             assert len(real) == len(messages) and len(real) > 0
             for msg in real:
                 assert msg.status == "success_sent"
@@ -95,7 +95,7 @@ async def test_send_messages_with_error(messages):
 
         # Проверяем статусы сообщений
         async with container.unit_of_work_factory().create_uow() as uow:
-            real = await uow.telegram_repo().get_all()
+            real = await uow.delivery_task_repo().get_all()
             assert len(real) == len(messages) and len(real) > 0
             for msg in real:
                 assert msg.status == "failed_sent"
@@ -117,7 +117,7 @@ async def test_send_messages_with_success_and_error(messages):
 
         # Проверяем статусы сообщений
         async with container.unit_of_work_factory().create_uow() as uow:
-            real = await uow.telegram_repo().get_all()
+            real = await uow.delivery_task_repo().get_all()
             assert len(real) == len(messages) and len(real) > 0
             success = [x for x in messages if x.status == "success_sent"]
             failed = [x for x in messages if x.status == "failed_sent"]
@@ -151,7 +151,7 @@ async def test_logic_when_save_data_in_database_failed(messages):
 
         # Проверяем статусы сообщений (сообщение 3 в базу не сохранилось)
         async with container.unit_of_work_factory().create_uow() as uow:
-            real = await uow.telegram_repo().get_all()
+            real = await uow.delivery_task_repo().get_all()
             assert len(real) == len(messages) and len(real) > 0
             for msg in real:
                 if msg.data == "3":
