@@ -41,36 +41,33 @@ class DeliveryTask(MyBase):
     retries: int = 0
     max_retries: int = 13
     error_info: Optional[SentErrorInfo] = None
+    last_retry_at: Optional[AwareDatetime] = None
     created_at: AwareDatetime = Field(default_factory=get_current_datetime)
-    updated_at: AwareDatetime = Field(default_factory=get_current_datetime)
-    sent_at: AwareDatetime = Field(default_factory=get_current_datetime)
-    next_retry_at: Optional[AwareDatetime] = Field(default_factory=get_current_datetime)
 
-    def _get_next_retry(self) -> Optional[AwareDatetime]:
+    @property
+    def next_retry_at(self) -> Optional[AwareDatetime]:
         if self.retries + 1 >= self.max_retries:
             return None
-        return get_current_datetime() + timedelta(seconds=1)
+        if self.status == "success_sent":
+            return None
+        if self.status == "unprocessed":
+            return get_current_datetime()
+        return self.last_retry_at + timedelta(seconds=self.retries)
 
     def failed_sent(self, error_info: SentErrorInfo) -> Self:
-        next_retry_at = self._get_next_retry()
-
         return self.model_copy(update={
             "status": "failed_sent",
             "retries": self.retries + 1,
-            "next_retry_at": next_retry_at,
             "error_info": error_info,
-            "sent_at": get_current_datetime(),
-            "updated_at": get_current_datetime(),
+            "last_retry_at": get_current_datetime(),
         })
 
     def success_sent(self) -> Self:
         return self.model_copy(update={
             "status": "success_sent",
             "retries": self.retries + 1,
-            "next_retry_at": None,
             "error_info": None,
-            "sent_at": get_current_datetime(),
-            "updated_at": get_current_datetime(),
+            "last_retry_at": get_current_datetime(),
         })
 
 

@@ -21,10 +21,9 @@ delivery_task_table = Table(
     Column("retries", Integer, nullable=False),
     Column("max_retries", Integer, nullable=False),
     Column("error_info", JSONB, nullable=True),
-    Column("sent_at", AwareDateTime(timezone=True), nullable=False),
+    Column("last_retry_at", AwareDateTime(timezone=True), nullable=True),
     Column("next_retry_at", AwareDateTime(timezone=True), nullable=True),
     Column("created_at", AwareDateTime(timezone=True), nullable=False),
-    Column("updated_at", AwareDateTime(timezone=True), nullable=False),
     Column("partkey", String, nullable=False),
 )
 
@@ -37,10 +36,9 @@ class SqlDeliveryTaskMapper(SQLMapper):
         result = entity.model_dump(mode="json")
         if result["id"] == -1:
             result.pop("id")
-        result["sent_at"] = entity.sent_at
+        result["last_retry_at"] = entity.last_retry_at
         result["next_retry_at"] = entity.next_retry_at
         result["created_at"] = entity.created_at
-        result["updated_at"] = entity.updated_at
         return result
 
     def mapping_to_entity(self, data: Mapping) -> DeliveryTask:
@@ -53,9 +51,7 @@ class SqlDeliveryTaskMapper(SQLMapper):
             max_retries=data["max_retries"],
             error_info=data["error_info"],
             created_at=data["created_at"],
-            updated_at=data["updated_at"],
-            sent_at=data["sent_at"],
-            next_retry_at=data["next_retry_at"],
+            last_retry_at=data["last_retry_at"],
         )
 
     def sby_to_filter(self, sby):
