@@ -25,7 +25,7 @@ telegram_table = Table(
     Column("next_retry_at", AwareDateTime(timezone=True), nullable=True),
     Column("created_at", AwareDateTime(timezone=True), nullable=False),
     Column("updated_at", AwareDateTime(timezone=True), nullable=False),
-    Column("partkey", UUID, nullable=False),
+    Column("partkey", String, nullable=False),
 )
 
 

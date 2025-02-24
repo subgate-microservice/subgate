@@ -1,4 +1,5 @@
 import asyncio
+from collections import defaultdict
 
 import httpx
 from loguru import logger
@@ -45,6 +46,13 @@ async def safe_commit(uow: UnitOfWork, msg: Telegram):
         logger.error(err)
 
 
+def group_telegrams(telegrams: list[Telegram]) -> dict[str, list[Telegram]]:
+    result = defaultdict(list)
+    for tlg in telegrams:
+        result[tlg.partkey].append(tlg)
+    return result
+
+
 class Telegraph:
     def __init__(self, uow_factory: UnitOfWorkFactory, sleep_time=10):
         self._uow_factory = uow_factory
@@ -60,6 +68,13 @@ class Telegraph:
     def wake_worker(self):
         self._wake_event.set()
 
+    async def _partkey_worker(self, telegrams: list[Telegram]) -> list[Telegram]:
+        updated_telegrams = []
+        for tlg in telegrams:
+            updated = await self._client.safe_request(tlg)
+            updated_telegrams.append(updated)
+        return updated_telegrams
+
     async def run_worker(self):
         self._STOP_FLAG = False
 
@@ -69,13 +84,14 @@ class Telegraph:
 
             try:
                 async with self._uow_factory.create_uow() as uow:
-                    messages = await uow.telegram_repo().get_messages_for_send()
-                    logger.info(f"Need to send {len(messages)} telegrams")
+                    telegrams = await uow.telegram_repo().get_messages_for_send()
+                    logger.info(f"Need to send {len(telegrams)} telegrams")
+
                     updated_telegrams = []
                     tasks = []
-                    for msg in messages:
-                        task = asyncio.create_task(self._client.safe_request(msg))
-                        task.add_done_callback(lambda x: updated_telegrams.append(x.result()))
+                    for partkey, grouped_telegrams in group_telegrams(telegrams).items():
+                        task = asyncio.create_task(self._partkey_worker(grouped_telegrams))
+                        task.add_done_callback(lambda x: updated_telegrams.extend(x.result()))
                         tasks.append(task)
                     await asyncio.gather(*tasks)
                     await uow.telegram_repo().update_many(updated_telegrams)

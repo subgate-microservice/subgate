@@ -1,7 +1,4 @@
-import json
-
 import aiohttp
-from loguru import logger
 
 from backend.bootstrap import get_container
 from backend.shared.event_driven.base_event import Event
@@ -30,5 +27,6 @@ async def handle_subscription_event(event: Event, context: Context):
 
     # Создаем TelegraphMessage для каждого Webhook
     data = Payload.from_event(event)
-    telegrams = [Telegram(url=hook.target_url, data=data) for hook in webhooks]
+    partkey = str(event.id) if hasattr(event, "id") else str(event.subscription_id)
+    telegrams = [Telegram(url=hook.target_url, data=data, partkey=partkey) for hook in webhooks]
     await context.uow.telegram_repo().add_many(telegrams)

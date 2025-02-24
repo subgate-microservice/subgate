@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from typing import Optional, Self, Literal, Iterable
-from uuid import uuid4, UUID
+from uuid import uuid4
 
 from pydantic import Field, AwareDatetime
 
@@ -36,7 +36,7 @@ class Telegram(MyBase):
     id: int = -1
     url: str
     data: Payload
-    partkey: UUID = Field(default_factory=uuid4)
+    partkey: str = Field(default_factory=lambda: str(uuid4()))
     status: Literal["unprocessed", "success_sent", "failed_sent",] = "unprocessed"
     retries: int = 0
     max_retries: int = 13
