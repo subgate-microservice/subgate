@@ -1,5 +1,4 @@
 import asyncio
-from typing import Optional
 
 import httpx
 from loguru import logger
@@ -12,7 +11,7 @@ class RequestClient:
     def __init__(self):
         self.client = httpx.AsyncClient()
 
-    async def safe_request(self, telegram: Telegram) -> Optional[SentErrorInfo]:
+    async def safe_request(self, telegram: Telegram) -> Telegram:
         payload = telegram.data.model_dump(mode="json")
         error = None
         try:
@@ -35,7 +34,7 @@ class RequestClient:
             )
             logger.error(msg)
 
-        return error
+        return telegram.failed_sent(error) if error else telegram.success_sent()
 
 
 async def safe_commit(uow: UnitOfWork, msg: Telegram):
@@ -72,10 +71,14 @@ class Telegraph:
                 async with self._uow_factory.create_uow() as uow:
                     messages = await uow.telegram_repo().get_messages_for_send()
                     logger.info(f"Need to send {len(messages)} telegrams")
+                    updated_telegrams = []
+                    tasks = []
                     for msg in messages:
-                        error_info = await self._client.safe_request(msg)
-                        updated_msg = msg.failed_sent(error_info) if error_info else msg.success_sent()
-                        await uow.telegram_repo().update_one(updated_msg)
+                        task = asyncio.create_task(self._client.safe_request(msg))
+                        task.add_done_callback(lambda x: updated_telegrams.append(x.result()))
+                        tasks.append(task)
+                    await asyncio.gather(*tasks)
+                    await uow.telegram_repo().update_many(updated_telegrams)
                     await uow.commit()
             except Exception as err:
                 logger.error(err)

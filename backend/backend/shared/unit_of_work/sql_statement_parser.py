@@ -104,15 +104,24 @@ class SqlStatementBuilder:
     def _handle_update_rollback(self, tablename: str, logs: list[Log]):
         if logs:
             table = get_table(tablename)
-            params = {col: col for col in logs[0].model_state.keys() if col != "id"}
+            params = {
+                col: col
+                for col in logs[0].model_state.keys()
+                if col != "id"
+            }
 
-            values = [
+            data = [
                 {**log.model_state, "_id": log.model_id}
                 for log in logs
             ]
 
-            stmt = table.update().where(table.c["id"] == bindparam("_id")).values(params)
-            self._statements.append((stmt, values))
+            stmt = (
+                table
+                .update()
+                .where(table.c["id"] == bindparam("_id"))
+                .values(params)
+            )
+            self._statements.append((stmt, data))
 
     def _handle_delete_rollback(self, tablename: str, logs: list[Log]):
         if logs:
