@@ -16,7 +16,7 @@ async def request(method: str, url: str, **kwargs):
             response.raise_for_status()
 
 
-async def handle_subscription_event(event: Event, context: Context):
+async def handle_event(event: Event, context: Context):
     # Получаем webhooks, которые нужно отправить
     webhook_repo = context.uow.webhook_repo()
     sby = WebhookSby(

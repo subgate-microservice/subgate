@@ -91,7 +91,7 @@ async def get_active_one(
 ) -> Optional[SubscriptionRetrieve]:
     async with container.unit_of_work_factory().create_uow() as uow:
         sub = await uow.subscription_repo().get_subscriber_active_one(subscriber_id, auth_user.id)
-        schema = SubscriptionRetrieve.from_subscription(sub)
+        schema = SubscriptionRetrieve.from_subscription(sub) if sub else None
     return schema
 
 
