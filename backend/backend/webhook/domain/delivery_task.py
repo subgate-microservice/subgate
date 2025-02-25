@@ -36,10 +36,10 @@ class DeliveryTask(MyBase):
     id: int = -1
     url: str
     data: Message
-    partkey: str = Field(default_factory=lambda: str(uuid4()))
+    delays: tuple[int, ...]
+    partkey: str
     status: Literal["unprocessed", "success_sent", "failed_sent",] = "unprocessed"
     retries: int = 0
-    delays: tuple[int, ...]
     error_info: Optional[SentErrorInfo] = None
     last_retry_at: Optional[AwareDatetime] = None
     created_at: AwareDatetime = Field(default_factory=get_current_datetime)

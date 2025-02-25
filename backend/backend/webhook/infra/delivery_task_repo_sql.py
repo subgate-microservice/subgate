@@ -54,6 +54,7 @@ class SqlDeliveryTaskMapper(SQLMapper):
             error_info=data["error_info"],
             created_at=data["created_at"],
             last_retry_at=data["last_retry_at"],
+            partkey=data["partkey"],
         )
 
     def sby_to_filter(self, sby):

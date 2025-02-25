@@ -85,7 +85,7 @@ class Telegraph:
             try:
                 async with self._uow_factory.create_uow() as uow:
                     deliveries = await uow.delivery_task_repo().get_deliveries_for_send()
-                    logger.info(f"Need to send {len(deliveries)} deliveries")
+                    logger.info(f"Need to processing {len(deliveries)} DeliveryTasks")
 
                     updated_deliveries = []
                     tasks = []
@@ -96,6 +96,12 @@ class Telegraph:
                     await asyncio.gather(*tasks)
                     await uow.delivery_task_repo().update_many(updated_deliveries)
                     await uow.commit()
+
+                    successes = len([x for x in updated_deliveries if x.status == "success_sent"])
+                    fails = len(updated_deliveries) - successes
+                    logger.info(
+                        f"{len(updated_deliveries)} DeliveryTasks were processed. {successes} success, {fails} failed"
+                    )
             except Exception as err:
                 logger.error(err)
             finally:
