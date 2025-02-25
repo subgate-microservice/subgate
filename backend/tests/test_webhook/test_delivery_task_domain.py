@@ -1,9 +1,9 @@
-from loguru import logger
+from datetime import timedelta
 
 from backend.shared.utils import get_current_datetime
 from backend.webhook.domain.delivery_task import DeliveryTask, Message, SentErrorInfo
 
-DELAYS = (0, 10, 30, 180, 600, 1_800, 3_600, 7_200, 14_400, 28_800, 57_600, 86_400)
+DELAYS = (0, 10, 30,)
 
 
 def test_next_retry_delay():
@@ -13,7 +13,9 @@ def test_next_retry_delay():
         retries=0,
         delays=DELAYS,
     )
-    logger.debug(f"First attempt: {delivery.next_retry_at}, retry={delivery.retries}")
+    dt = get_current_datetime()
     for retry in range(0, delivery.max_retries):
+        assert delivery.next_retry_at == dt + timedelta(seconds=DELAYS[delivery.retries])
         delivery = delivery.failed_sent(SentErrorInfo(status_code=500, detail="AnyErr"))
-        logger.debug(f"Next attempt: {delivery.next_retry_at}, retry={delivery.retries}")
+    assert delivery.retries == 3
+    assert delivery.max_retries == 3

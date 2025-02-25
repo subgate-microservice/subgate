@@ -57,7 +57,7 @@ class DeliveryTask(MyBase):
 
     @property
     def max_retries(self):
-        return len(self.delays) + 1
+        return len(self.delays)
 
     def failed_sent(self, error_info: SentErrorInfo) -> Self:
         return self.model_copy(update={
