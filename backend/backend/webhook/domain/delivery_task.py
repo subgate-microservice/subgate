@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 from datetime import timedelta
-from typing import Optional, Self, Literal, Iterable
+from typing import Optional, Self, Literal, Iterable, Union
 from uuid import uuid4
 
-from pydantic import Field, AwareDatetime
+from pydantic import Field, AwareDatetime, model_validator
 
 from backend.shared.base_models import MyBase
 from backend.shared.enums import Lock
@@ -16,8 +16,8 @@ class SentErrorInfo(MyBase):
     detail: str
 
 
-class Payload(MyBase):
-    type: str = "event"
+class Message(MyBase):
+    type: str
     event_code: str
     occurred_at: AwareDatetime
     payload: dict
@@ -35,24 +35,27 @@ class Payload(MyBase):
 class DeliveryTask(MyBase):
     id: int = -1
     url: str
-    data: Payload
+    data: Message
     partkey: str = Field(default_factory=lambda: str(uuid4()))
     status: Literal["unprocessed", "success_sent", "failed_sent",] = "unprocessed"
     retries: int = 0
     max_retries: int = 13
+    delays: Union[int, tuple[int, ...]] = 1
     error_info: Optional[SentErrorInfo] = None
     last_retry_at: Optional[AwareDatetime] = None
     created_at: AwareDatetime = Field(default_factory=get_current_datetime)
 
     @property
     def next_retry_at(self) -> Optional[AwareDatetime]:
-        if self.retries + 1 >= self.max_retries:
+        if self.retries >= self.max_retries - 1:
             return None
         if self.status == "success_sent":
             return None
         if self.status == "unprocessed":
             return get_current_datetime()
-        return self.last_retry_at + timedelta(seconds=self.retries)
+
+        delay = self.delays if isinstance(self.delays, int) else self.delays[self.retries]
+        return self.last_retry_at + timedelta(seconds=delay)
 
     def failed_sent(self, error_info: SentErrorInfo) -> Self:
         return self.model_copy(update={
@@ -69,6 +72,13 @@ class DeliveryTask(MyBase):
             "error_info": None,
             "last_retry_at": get_current_datetime(),
         })
+
+    @model_validator(mode='after')
+    def check_delays_len(self) -> Self:
+        if isinstance(self.delays, tuple):
+            if len(self.delays) != self.max_retries - 1:
+                raise ValueError(f"Length of delays must be {self.max_retries - 1}. Real value is {len(self.delays)}")
+        return self
 
 
 class DeliveryTaskRepo(ABC):

@@ -1,6 +1,7 @@
 from typing import Iterable, Mapping, Type, Any
 
-from sqlalchemy import Table, Column, UUID, String, DateTime
+from sqlalchemy import Table, Column, UUID, String, Integer
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.shared.database import metadata
@@ -17,6 +18,8 @@ webhook_table = Table(
     Column('event_code', String, nullable=False),
     Column('target_url', String, nullable=False),
     Column('auth_id', UUID, nullable=False),
+    Column("max_retries", Integer, nullable=False),
+    Column("delays", JSONB, nullable=False),
     Column('created_at', AwareDateTime(timezone=True), default=get_current_datetime),
     Column('updated_at', AwareDateTime(timezone=True), default=get_current_datetime),
 )
@@ -32,8 +35,11 @@ class WebhookSqlMapper(SQLMapper):
         return result
 
     def mapping_to_entity(self, data: Mapping) -> Webhook:
+        delays = data["delays"] if isinstance(data["delays"], int) else tuple(data["delays"])
         return Webhook(
             id=str(data["id"]),
+            max_retries=data["max_retries"],
+            delays=delays,
             event_code=data["event_code"],
             target_url=data["target_url"],
             auth_id=str(data["auth_id"]),

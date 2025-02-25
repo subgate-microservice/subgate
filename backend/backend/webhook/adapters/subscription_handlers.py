@@ -4,7 +4,7 @@ from backend.bootstrap import get_container
 from backend.shared.event_driven.base_event import Event
 from backend.shared.event_driven.bus import Context
 from backend.webhook.application.telegraph import DeliveryTask
-from backend.webhook.domain.delivery_task import Payload
+from backend.webhook.domain.delivery_task import Message
 from backend.webhook.domain.webhook_repo import WebhookSby
 
 container = get_container()
@@ -27,7 +27,16 @@ async def handle_event(event: Event, context: Context):
 
     # Создаем TelegraphMessage для каждого Webhook
     if webhooks:
-        data = Payload.from_event(event)
+        data = Message.from_event(event)
         partkey = str(event.id) if hasattr(event, "id") else str(event.subscription_id)
-        deliveries = [DeliveryTask(url=hook.target_url, data=data, partkey=partkey) for hook in webhooks]
+        deliveries = [
+            DeliveryTask(
+                url=hook.target_url,
+                data=data,
+                partkey=partkey,
+                retries=0,
+                max_retries=hook.max_retries,
+                delays=hook.delays,
+            ) for hook in webhooks
+        ]
         await context.uow.delivery_task_repo().add_many(deliveries)

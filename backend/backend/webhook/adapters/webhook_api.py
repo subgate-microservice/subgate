@@ -1,13 +1,10 @@
 from typing import Optional
-from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import Field, AwareDatetime
 
-from backend.auth.domain.auth_user import AuthUser, AuthId
+from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import Bootstrap, get_container, auth_closure
-from backend.shared.base_models import MyBase
-from backend.shared.utils import get_current_datetime
+from backend.webhook.adapters.schemas import WebhookCreate, WebhookUpdate
 from backend.webhook.application import usecases
 from backend.webhook.domain.webhook import Webhook, WebhookId
 from backend.webhook.domain.webhook_repo import WebhookSby
@@ -18,31 +15,14 @@ webhook_router = APIRouter(
 )
 
 
-class WebhookCreate(MyBase):
-    id: WebhookId = Field(default_factory=uuid4)
-    event_code: str
-    target_url: str
-    created_at: AwareDatetime = Field(default_factory=get_current_datetime, )
-
-
-class WebhookUpdate(WebhookCreate):
-    id: WebhookId
-    event_code: str
-    target_url: str
-
-    def to_webhook(self, auth_id: AuthId, created_at: AwareDatetime):
-        return Webhook(auth_id=auth_id, id=self.id, event_code=self.event_code, target_url=self.target_url,
-                       created_at=created_at, updated_at=get_current_datetime())
-
-
 @webhook_router.post("/")
 async def create_one(
-        webhook: WebhookCreate,
+        webhook_create: WebhookCreate,
         auth_user: AuthUser = Depends(auth_closure),
         container: Bootstrap = Depends(get_container),
 ) -> str:
     async with container.unit_of_work_factory().create_uow() as uow:
-        webhook = Webhook(**webhook.model_dump(), auth_id=auth_user.id)
+        webhook = webhook_create.to_webhook(auth_user.id)
         create_webhook_usecase = usecases.CreateWebhook(uow)
         await create_webhook_usecase.execute(webhook)
         await uow.commit()

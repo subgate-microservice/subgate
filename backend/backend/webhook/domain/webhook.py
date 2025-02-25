@@ -1,18 +1,20 @@
-from uuid import UUID, uuid4
+from typing import Union, Self
+from uuid import UUID
 
-from pydantic import Field, AwareDatetime
+from pydantic import Field, AwareDatetime, model_validator
 
 from backend.auth.domain.auth_user import AuthId
 from backend.shared.base_models import MyBase
-from backend.shared.utils import get_current_datetime
 
 WebhookId = UUID
 
 
 class Webhook(MyBase):
-    id: WebhookId = Field(default_factory=uuid4)
+    id: WebhookId
     event_code: str
     target_url: str
+    max_retries: int
+    delays: Union[tuple[int, ...], int]
     auth_id: AuthId = Field(exclude=True)
-    created_at: AwareDatetime = Field(default_factory=get_current_datetime)
-    updated_at: AwareDatetime = Field(default_factory=get_current_datetime)
+    created_at: AwareDatetime
+    updated_at: AwareDatetime
