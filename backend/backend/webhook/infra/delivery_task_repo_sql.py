@@ -84,6 +84,7 @@ class SqlDeliveryTaskRepo(DeliveryTaskRepo):
             .where(
                 delivery_task_table.c["next_retry_at"] <= get_current_datetime(),
                 delivery_task_table.c["next_retry_at"].isnot(None),
+                delivery_task_table.c["retries"] < delivery_task_table.c["max_retries"],
             )
             .limit(limit)
             .order_by(delivery_task_table.c["id"])
