@@ -12,6 +12,7 @@ def test_next_retry_delay():
         data=Message(type="event", event_code="any", occurred_at=get_current_datetime(), payload={}),
         retries=0,
         delays=DELAYS,
+        partkey="Hello",
     )
     dt = get_current_datetime()
     for retry in range(0, delivery.max_retries):
