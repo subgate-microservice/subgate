@@ -15,8 +15,7 @@ class WebhookCreate(MyBase):
     id: WebhookId = Field(default_factory=uuid4)
     event_code: str
     target_url: str
-    max_retries: int = 13
-    delays: Union[tuple[int, ...], int] = DELAYS
+    delays: tuple[int, ...] = DELAYS
 
     def to_webhook(self, auth_id: AuthId):
         dt = get_current_datetime()
@@ -24,43 +23,26 @@ class WebhookCreate(MyBase):
             id=self.id,
             event_code=self.event_code,
             target_url=self.target_url,
-            max_retries=self.max_retries,
             delays=self.delays,
             auth_id=auth_id,
             created_at=dt,
             updated_at=dt,
         )
 
-    @model_validator(mode='after')
-    def check_delays_len(self) -> Self:
-        if isinstance(self.delays, tuple):
-            if len(self.delays) != self.max_retries - 1:
-                raise ValueError(f"Length of delays must be {self.max_retries - 1}. Real value is {len(self.delays)}")
-        return self
-
 
 class WebhookUpdate(MyBase):
     id: WebhookId
     event_code: str
     target_url: str
-    max_retries: int
     delays: tuple[int, ...]
 
     def to_webhook(self, auth_id: AuthId, created_at: AwareDatetime):
         return Webhook(
             id=self.id,
             auth_id=auth_id,
-            max_retries=self.max_retries,
             delays=self.delays,
             event_code=self.event_code,
             target_url=self.target_url,
             created_at=created_at,
             updated_at=get_current_datetime(),
         )
-
-    @model_validator(mode='after')
-    def check_delays_len(self) -> Self:
-        if isinstance(self.delays, tuple):
-            if len(self.delays) != self.max_retries - 1:
-                raise ValueError(f"Length of delays must be {self.max_retries - 1}. Real value is {len(self.delays)}")
-        return self

@@ -40,6 +40,7 @@ class SqlDeliveryTaskMapper(SQLMapper):
         result["last_retry_at"] = entity.last_retry_at
         result["next_retry_at"] = entity.next_retry_at
         result["created_at"] = entity.created_at
+        result["max_retries"] = entity.max_retries
         return result
 
     def mapping_to_entity(self, data: Mapping) -> DeliveryTask:
@@ -49,7 +50,6 @@ class SqlDeliveryTaskMapper(SQLMapper):
             status=data["status"],
             id=data["id"],
             retries=data["retries"],
-            max_retries=data["max_retries"],
             delays=tuple(data["delays"]),
             error_info=data["error_info"],
             created_at=data["created_at"],

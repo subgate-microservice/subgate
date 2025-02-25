@@ -35,7 +35,6 @@ async def handle_event(event: Event, context: Context):
                 data=data,
                 partkey=partkey,
                 retries=0,
-                max_retries=hook.max_retries,
                 delays=hook.delays,
             ) for hook in webhooks
         ]

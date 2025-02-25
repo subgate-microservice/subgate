@@ -32,13 +32,13 @@ class WebhookSqlMapper(SQLMapper):
     def entity_to_mapping(self, entity: Webhook) -> dict:
         result = entity.model_dump()
         result["auth_id"] = str(entity.auth_id)
+        result["max_retries"] = entity.max_retries
         return result
 
     def mapping_to_entity(self, data: Mapping) -> Webhook:
-        delays = data["delays"] if isinstance(data["delays"], int) else tuple(data["delays"])
+        delays = tuple(data["delays"])
         return Webhook(
             id=str(data["id"]),
-            max_retries=data["max_retries"],
             delays=delays,
             event_code=data["event_code"],
             target_url=data["target_url"],
