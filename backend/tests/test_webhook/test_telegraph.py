@@ -1,6 +1,7 @@
 import asyncio
 import uuid
 from collections import defaultdict
+from typing import Callable
 
 import pytest
 import pytest_asyncio
@@ -57,6 +58,11 @@ async def message_handler(msg: Message) -> str:
     return "OK"
 
 
+@app.post("/bad-message-handler")
+async def bad_message_handler(_msg: Message):
+    raise NotImplemented
+
+
 @pytest_asyncio.fixture(scope="module", autouse=True)
 async def fastapi_server():
     config = uvicorn.Config(app, host=HOST, port=PORT, log_config=None)
@@ -68,11 +74,10 @@ async def fastapi_server():
     task.cancel()
 
 
-@pytest_asyncio.fixture()
-async def deliveries_with_the_same_partkey():
+async def create_deliveries(count: int, url: str, partkey_func: Callable[[], str], delays=(0, 0, 0,)):
     deliveries = []
-    for i in range(20):
-        partkey = "Hello"
+    for i in range(count):
+        partkey = partkey_func()
         msg = Message(
             type="event",
             event_code=f"code_{i}",
@@ -80,9 +85,9 @@ async def deliveries_with_the_same_partkey():
             payload={"partkey": partkey, "number": i},
         )
         delivery = DeliveryTask(
-            url=f"http://{HOST}:{PORT}/message-handler",
+            url=url,
             data=msg,
-            delays=(0, 1, 2),
+            delays=delays,
             partkey=partkey,
         )
         deliveries.append(delivery)
@@ -91,46 +96,65 @@ async def deliveries_with_the_same_partkey():
         await uow.delivery_task_repo().add_many(deliveries)
         await uow.commit()
 
-    yield deliveries
+    return deliveries
+
+
+@pytest_asyncio.fixture()
+async def deliveries_with_the_same_partkey():
+    yield await create_deliveries(
+        20,
+        f"http://{HOST}:{PORT}/message-handler",
+        lambda: "Hello"
+    )
 
 
 @pytest_asyncio.fixture()
 async def deliveries_with_different_partkeys():
-    deliveries = []
-    for i in range(20):
-        partkey = str(uuid.uuid4())
-        msg = Message(
-            type="event",
-            event_code=f"code_{i}",
-            occurred_at=get_current_datetime(),
-            payload={"partkey": partkey, "number": i},
-        )
-        delivery = DeliveryTask(
-            url=f"http://{HOST}:{PORT}/message-handler",
-            data=msg,
-            delays=(0, 1, 2),
-            partkey=partkey,
-        )
-        deliveries.append(delivery)
-
-    async with container.unit_of_work_factory().create_uow() as uow:
-        await uow.delivery_task_repo().add_many(deliveries)
-        await uow.commit()
-
-    yield deliveries
+    yield await create_deliveries(
+        20,
+        f"http://{HOST}:{PORT}/message-handler",
+        lambda: str(uuid.uuid4())
+    )
 
 
-@pytest.mark.asyncio
-async def test_sequential_deliveries_with_the_same_partkey(deliveries_with_the_same_partkey):
-    telegraph = Telegraph(container.unit_of_work_factory())
+@pytest_asyncio.fixture()
+async def deliveries_with_wrong_url():
+    yield await create_deliveries(
+        3,
+        "http://very-bad-url.com",
+        lambda: str(uuid.uuid4())
+    )
+
+
+@pytest_asyncio.fixture()
+async def deliveries_with_bad_handler():
+    yield await create_deliveries(
+        3,
+        f"http://{HOST}:{PORT}/bad-message-handler",
+        lambda: str(uuid.uuid4())
+    )
+
+
+async def telegraph_worker():
+    telegraph = Telegraph(container.unit_of_work_factory(), sleep_time=0.1)
 
     async def stop_task():
-        await asyncio.sleep(DELAY * 2)
+        while True:
+            async with container.unit_of_work_factory().create_uow() as uow:
+                deliveries = await uow.delivery_task_repo().get_deliveries_for_send()
+                if not deliveries:
+                    break
+                else:
+                    await asyncio.sleep(0.3)
         telegraph.stop_worker()
 
     _task = asyncio.create_task(stop_task())
     await telegraph.run_worker()
 
+
+@pytest.mark.asyncio
+async def test_sequential_deliveries_with_the_same_partkey(deliveries_with_the_same_partkey):
+    await telegraph_worker()
     assert len(store.get_all_messages()) == len(deliveries_with_the_same_partkey)
     messages = store.get_all_messages()
     sorted_messages = list(sorted(messages, key=lambda x: x.payload["number"]))
@@ -138,17 +162,31 @@ async def test_sequential_deliveries_with_the_same_partkey(deliveries_with_the_s
 
 
 @pytest.mark.asyncio
-async def test_concurrency_deliveries_with_the_same_partkey(deliveries_with_different_partkeys):
-    telegraph = Telegraph(container.unit_of_work_factory())
-
-    async def stop_task():
-        await asyncio.sleep(DELAY * 2)
-        telegraph.stop_worker()
-
-    _task = asyncio.create_task(stop_task())
-    await telegraph.run_worker()
-
+async def test_concurrency_deliveries_with_different_partkeys(deliveries_with_different_partkeys):
+    await telegraph_worker()
     assert len(store.get_all_messages()) == len(deliveries_with_different_partkeys)
     messages = store.get_all_messages()
     sorted_messages = list(sorted(messages, key=lambda x: x.payload["number"]))
     assert messages != sorted_messages
+
+
+@pytest.mark.asyncio
+async def test_deliveries_with_bad_url(deliveries_with_wrong_url):
+    await telegraph_worker()
+    async with container.unit_of_work_factory().create_uow() as uow:
+        deliveries = await uow.delivery_task_repo().get_all()
+        assert len(deliveries) == 3
+        for delivery in deliveries:
+            assert delivery.retries == 3
+            assert delivery.status == "failed_sent"
+
+
+@pytest.mark.asyncio
+async def test_deliveries_with_bad_handler(deliveries_with_bad_handler):
+    await telegraph_worker()
+    async with container.unit_of_work_factory().create_uow() as uow:
+        deliveries = await uow.delivery_task_repo().get_all()
+        assert len(deliveries) == 3
+        for delivery in deliveries:
+            assert delivery.retries == 3
+            assert delivery.status == "failed_sent"
