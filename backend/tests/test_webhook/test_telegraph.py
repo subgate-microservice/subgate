@@ -1,11 +1,11 @@
 import asyncio
+import uuid
 from collections import defaultdict
 
 import pytest
 import pytest_asyncio
 import uvicorn
 from fastapi import FastAPI
-from loguru import logger
 
 from backend.bootstrap import get_container
 from backend.shared.utils import get_current_datetime
@@ -69,10 +69,36 @@ async def fastapi_server():
 
 
 @pytest_asyncio.fixture()
-async def deliveries():
+async def deliveries_with_the_same_partkey():
     deliveries = []
-    for i in range(120):
-        partkey = str(i % 3)
+    for i in range(20):
+        partkey = "Hello"
+        msg = Message(
+            type="event",
+            event_code=f"code_{i}",
+            occurred_at=get_current_datetime(),
+            payload={"partkey": partkey, "number": i},
+        )
+        delivery = DeliveryTask(
+            url=f"http://{HOST}:{PORT}/message-handler",
+            data=msg,
+            delays=(0, 1, 2),
+            partkey=partkey,
+        )
+        deliveries.append(delivery)
+
+    async with container.unit_of_work_factory().create_uow() as uow:
+        await uow.delivery_task_repo().add_many(deliveries)
+        await uow.commit()
+
+    yield deliveries
+
+
+@pytest_asyncio.fixture()
+async def deliveries_with_different_partkeys():
+    deliveries = []
+    for i in range(20):
+        partkey = str(uuid.uuid4())
         msg = Message(
             type="event",
             event_code=f"code_{i}",
@@ -95,7 +121,7 @@ async def deliveries():
 
 
 @pytest.mark.asyncio
-async def test_sequential_deliveries_with_the_same_partkey(deliveries):
+async def test_sequential_deliveries_with_the_same_partkey(deliveries_with_the_same_partkey):
     telegraph = Telegraph(container.unit_of_work_factory())
 
     async def stop_task():
@@ -105,9 +131,24 @@ async def test_sequential_deliveries_with_the_same_partkey(deliveries):
     _task = asyncio.create_task(stop_task())
     await telegraph.run_worker()
 
-    assert len(store.get_all_messages()) == len(deliveries)
-    for partkey, messages in store.get_grouped_by_partkey().items():
-        number = messages[0].payload["number"]
-        for msg in messages[1:]:
-            assert msg.payload["number"] > number
-            number = msg.payload["number"]
+    assert len(store.get_all_messages()) == len(deliveries_with_the_same_partkey)
+    messages = store.get_all_messages()
+    sorted_messages = list(sorted(messages, key=lambda x: x.payload["number"]))
+    assert messages == sorted_messages
+
+
+@pytest.mark.asyncio
+async def test_concurrency_deliveries_with_the_same_partkey(deliveries_with_different_partkeys):
+    telegraph = Telegraph(container.unit_of_work_factory())
+
+    async def stop_task():
+        await asyncio.sleep(DELAY * 2)
+        telegraph.stop_worker()
+
+    _task = asyncio.create_task(stop_task())
+    await telegraph.run_worker()
+
+    assert len(store.get_all_messages()) == len(deliveries_with_different_partkeys)
+    messages = store.get_all_messages()
+    sorted_messages = list(sorted(messages, key=lambda x: x.payload["number"]))
+    assert messages != sorted_messages
