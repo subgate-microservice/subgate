@@ -31,7 +31,7 @@ async def save_plan(plan: Plan) -> None:
 
 
 def set_dates(item: Union[Subscription, Plan, Webhook]):
-    dt = get_current_datetime() - timedelta(days=1)
+    dt = get_current_datetime() - timedelta(seconds=2)
     item.updated_at = dt
     item.__dict__["_d_created_at"] = dt
 
