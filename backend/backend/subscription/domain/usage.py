@@ -18,6 +18,17 @@ class UsageRate(Eventable):
     def __init__(self, title: str, code: str, unit: str, available_units: float, renew_cycle: Period):
         super().__init__(title=title, code=code, unit=unit, available_units=available_units, renew_cycle=renew_cycle)
 
+    def __eq__(self, other):
+        if not isinstance(other, UsageRate):
+            return False
+        return all([
+            self.title == other.title,
+            self.code == other.code,
+            self.unit == other.unit,
+            self.available_units == other.available_units,
+            self.renew_cycle == other.renew_cycle,
+        ])
+
 
 class Usage(Eventable):
     title: str
@@ -33,6 +44,19 @@ class Usage(Eventable):
         last_renew = last_renew if last_renew else get_current_datetime()
         super().__init__(title=title, code=code, unit=unit, available_units=available_units, used_units=used_units,
                          last_renew=last_renew, renew_cycle=renew_cycle)
+
+    def __eq__(self, other):
+        if not isinstance(other, Usage):
+            return False
+        return all([
+            self.title == other.title,
+            self.code == other.code,
+            self.unit == other.unit,
+            self.available_units == other.available_units,
+            self.renew_cycle == other.renew_cycle,
+            self.used_units == other.used_units,
+            self.last_renew == other.last_renew,
+        ])
 
     @classmethod
     def from_usage_rate(cls, usage_rate: UsageRate) -> Self:

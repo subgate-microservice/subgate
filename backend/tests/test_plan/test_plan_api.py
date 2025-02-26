@@ -111,9 +111,10 @@ class TestGet:
 
 class TestUpdate:
     @pytest.mark.asyncio
-    async def test_add_usages_to_plan(self, simple_plan, current_user, event_handler):
+    async def test_add_usage_rates_to_plan(self, simple_plan, current_user, event_handler):
         user, token, expected_status_code = current_user
         headers = {"Authorization": f"Bearer {token}"}
+
         simple_plan.usage_rates.add(
             UsageRate("Hello", "first", "GB", 100_000, Period.Daily)
         )
@@ -124,6 +125,25 @@ class TestUpdate:
             plan_updated = event_handler.pop(PlanUpdated)
             expected = {
                 "usage_rates.first": "action:added",
+                "updated_at": get_current_datetime(),
+            }
+            check_changes(plan_updated.changes, expected)
+
+    @pytest.mark.asyncio
+    async def test_update_plan_usage_rate(self, plan_with_usage_rates, current_user, event_handler):
+        user, token, expected_status_code = current_user
+        headers = {"Authorization": f"Bearer {token}"}
+
+        target_rate = plan_with_usage_rates.usage_rates.get("first")
+        target_rate.title = "UPDATED"
+
+        await put_request(plan_with_usage_rates, headers, expected_status_code)
+
+        if expected_status_code < 400:
+            assert len(event_handler.events) == 1
+            plan_updated = event_handler.pop(PlanUpdated)
+            expected = {
+                "usage_rates.first": "action:updated",
                 "updated_at": get_current_datetime(),
             }
             check_changes(plan_updated.changes, expected)
