@@ -1,7 +1,5 @@
 from typing import Callable, Iterable, Hashable, Any
 
-from loguru import logger
-
 from backend.shared.event_driven.base_event import (
     Event, FieldUpdated, ItemAdded, ItemRemoved, ItemUpdated
 )
