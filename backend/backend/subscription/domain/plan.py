@@ -1,20 +1,21 @@
 from copy import copy
-from typing import Any, Optional, Self, Callable
-from uuid import uuid4
+from typing import Optional, Callable, Union
 
 from pydantic import AwareDatetime
 
 from backend.auth.domain.auth_user import AuthId
-from backend.shared.event_driven.base_event import Event, FieldUpdated
-from backend.shared.event_driven.eventable import Eventable, EventableSet, Property
+from backend.shared.event_driven.base_event import Event, FieldUpdated, ItemAdded, ItemUpdated, ItemRemoved
+from backend.shared.event_driven.eventable import Eventable, Property
 from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.discount import Discount
 from backend.subscription.domain.events import PlanUpdated, PlanId
-from backend.subscription.domain.usage import Usage, UsageRate
+from backend.subscription.domain.item_manager import ItemManager
+from backend.subscription.domain.usage import UsageRate
 
 
 class Plan(Eventable):
+    id: PlanId = Property(frozen=True)
     title: str
     price: float
     currency: str
@@ -24,72 +25,10 @@ class Plan(Eventable):
     level: int
     features: Optional[str]
     fields: dict
-    id: PlanId = Property(frozen=True)
-    usage_rates: EventableSet[UsageRate] = Property(frozen=True)
-    discounts: EventableSet[Discount] = Property(frozen=True)
+    usage_rates: ItemManager[UsageRate] = Property(frozen=True, mapper=ItemManager)
+    discounts: ItemManager[Discount] = Property(frozen=True, mapper=ItemManager)
     created_at: AwareDatetime = Property(frozen=True)
-    updated_at: AwareDatetime = Property(frozen=True)
-
-    def __init__(
-            self,
-            title: str,
-            price: float,
-            currency: str,
-            auth_id: AuthId,
-            billing_cycle: Period = Period.Monthly,
-            description: str = None,
-            level: int = 10,
-            features: str = None,
-            usage_rates: list[UsageRate] = None,
-            discounts: list[Discount] = None,
-            fields: dict = None,
-            id: PlanId = None,
-    ):
-        dt = get_current_datetime()
-        data = {
-            "title": title,
-            "price": price,
-            "currency": currency,
-            "auth_id": auth_id,
-            "billing_cycle": billing_cycle,
-            "description": description,
-            "level": level,
-            "features": features,
-            "fields": fields if fields is not None else {},
-            "id": id if id else uuid4(),
-            "usage_rates": EventableSet(usage_rates, lambda x: x.code, True),
-            "discounts": EventableSet(discounts, lambda x: x.code, True),
-            "created_at": dt,
-            "updated_at": dt,
-        }
-        super().__init__(**data)
-
-    @classmethod
-    def create_unsafe(
-            cls,
-            id: PlanId,
-            title: str,
-            price: float,
-            currency: str,
-            billing_cycle: Period,
-            description: Optional[str],
-            level: int,
-            features: Optional[str],
-            usage_rates: list[UsageRate],
-            discounts: list[Discount],
-            fields: dict[str, Any],
-            auth_id: AuthId,
-            created_at: AwareDatetime,
-            updated_at: AwareDatetime,
-    ) -> Self:
-        instance = cls(title, price, currency, auth_id, billing_cycle, description, level, features, usage_rates,
-                       discounts,
-                       fields, id)
-        instance._unset_track_flag()
-        instance._created_at = created_at
-        instance._updated_at = updated_at
-        instance._set_track_flag()
-        return instance
+    updated_at: AwareDatetime = Property()
 
     def copy(self):
         return copy(self)
@@ -186,6 +125,9 @@ class PlanEventParser:
     def _handle_event(self, event):
         event_handlers = {
             FieldUpdated: self._handle_field_updated,
+            ItemAdded: self._handle_item_added,
+            ItemUpdated: self._handle_item_updated,
+            ItemRemoved: self._handle_item_removed,
         }
 
         handler: Callable = event_handlers.get(type(event))
@@ -197,7 +139,7 @@ class PlanEventParser:
     def _handle_field_updated(self, event: FieldUpdated):
         entity_field_map = {
             Plan: ("{key}", event.new_value),
-            Usage: ("usages.{key}", "action:updated"),
+            UsageRate: ("usage_rates.{key}", "action:updated"),
             Discount: ("discounts.{key}", "action:updated"),
         }
 
@@ -209,3 +151,25 @@ class PlanEventParser:
             self.updated_fields[key] = value
         except KeyError:
             raise TypeError(entity_type)
+
+    def _handle_item_added(self, event: ItemAdded):
+        field = self.get_field_name(event.item)
+        self.updated_fields[f"{field}.{event.item.code}"] = "action:added"
+
+    def _handle_item_updated(self, event: ItemUpdated):
+        field = self.get_field_name(event.new_item)
+        self.updated_fields[f"{field}.{event.new_item.code}"] = "action:updated"
+
+    def _handle_item_removed(self, event: ItemAdded):
+        field = self.get_field_name(event.item)
+        self.updated_fields[f"{field}.{event.item.code}"] = "action:removed"
+
+    @staticmethod
+    def get_field_name(item: Union[UsageRate, Discount]):
+        if isinstance(item, UsageRate):
+            field = "usage_rates"
+        elif isinstance(item, Discount):
+            field = "discounts"
+        else:
+            raise TypeError(type(item))
+        return field

@@ -75,7 +75,7 @@ async def update_one(
     # todo мы здесь не проверяем auth_id - надо поправить
     async with container.unit_of_work_factory().create_uow() as uow:
         old_version = await uow.plan_repo().get_one_by_id(plan_update.id)
-        new_version = plan_update.to_plan(auth_user.id, old_version.created_at)
+        new_version = plan_update.to_plan(auth_user.id, old_version.created_at, old_version.updated_at)
         PlanUpdater(old_version, new_version).update()
         await save_updated_plan(old_version, uow)
         await container.eventbus().publish_from_unit_of_work(uow)

@@ -1,4 +1,5 @@
 from backend.shared.unit_of_work.uow import UnitOfWork
+from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.events import PlanCreated, PlanDeleted
 from backend.subscription.domain.plan import Plan, PlanEventParser
 
@@ -30,6 +31,7 @@ async def delete_plan(plan: Plan, uow: UnitOfWork) -> None:
 
 
 async def save_updated_plan(plan: Plan, uow: UnitOfWork) -> None:
+    plan.updated_at = get_current_datetime()
     await uow.plan_repo().update_one(plan)
     events = plan.parse_events()
     events = PlanEventParser(plan).parse(events)

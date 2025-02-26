@@ -91,10 +91,11 @@ class PlanCreate(MyBase):
     def to_plan(self, auth_id: AuthId):
         usage_rates = [x.to_usage_rate() for x in self.usage_rates]
         discounts = [x.to_discount() for x in self.discounts]
+        dt = get_current_datetime()
         return Plan(title=self.title, price=self.price, currency=self.currency, auth_id=auth_id,
                     billing_cycle=self.billing_cycle, description=self.description, level=self.level,
                     features=self.features, usage_rates=usage_rates, discounts=discounts, fields=self.fields,
-                    id=self.id)
+                    id=self.id, created_at=dt, updated_at=dt)
 
 
 class PlanUpdate(MyBase):
@@ -118,14 +119,14 @@ class PlanUpdate(MyBase):
             usage_rates=plan.usage_rates.get_all(), fields=plan.fields, discounts=plan.discounts.get_all(),
         )
 
-    def to_plan(self, auth_id: AuthId, created_at: AwareDatetime):
+    def to_plan(self, auth_id: AuthId, created_at: AwareDatetime, updated_at: AwareDatetime):
         usage_rates = [x.to_usage_rate() for x in self.usage_rates]
         discounts = [x.to_discount() for x in self.discounts]
-        return Plan.create_unsafe(
+        return Plan(
             id=self.id, title=self.title, price=self.price, currency=self.currency, billing_cycle=self.billing_cycle,
             description=self.description, level=self.level, features=self.features, usage_rates=usage_rates,
             discounts=discounts, fields=self.fields, auth_id=auth_id, created_at=created_at,
-            updated_at=get_current_datetime(),
+            updated_at=updated_at,
         )
 
 

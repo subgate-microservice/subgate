@@ -69,7 +69,7 @@ def deserialize_plan(data: Mapping) -> Plan:
     auth_id = deserialize_uuid(data["auth_id"])
     created_at = deserialize_datetime(data["created_at"])
     updated_at = deserialize_datetime(data["updated_at"])
-    return Plan.create_unsafe(
+    return Plan(
         id=plan_id,
         title=data["title"],
         price=data["price"],
