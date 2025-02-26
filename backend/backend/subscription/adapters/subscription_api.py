@@ -316,6 +316,7 @@ async def expire_subscription(
     container.telegraph().wake_worker()
     return "Ok"
 
+
 @subscription_router.patch("/{sub_id}/add-discounts")
 async def add_discounts(
         sub_id: SubId,
