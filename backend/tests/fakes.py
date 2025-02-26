@@ -13,7 +13,8 @@ from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.discount import Discount
 from backend.subscription.domain.plan import Plan
 from backend.subscription.domain.subscription import Subscription
-from backend.subscription.domain.usage import Usage
+from backend.subscription.domain.usage import Usage, UsageRate
+from backend.webhook.adapters.schemas import WebhookCreate
 
 
 async def save_sub(sub: Subscription) -> None:
@@ -56,6 +57,18 @@ async def simple_plan(current_user):
     user, token, expected_status_code = current_user
     plan = Plan("Simple", 100, "USD", user.id, Period.Monthly, level=10)
     await save_plan(plan)
+    yield plan
+
+
+@pytest_asyncio.fixture()
+async def plan_with_usage_rates(current_user):
+    user, token, expected_status_code = current_user
+    plan = Plan("Simple", 100, "USD", user.id, Period.Monthly)
+    plan.usage_rates.add(UsageRate("First", "first", "GB", 100, Period.Monthly))
+    plan.usage_rates.add(UsageRate("Second", "second", "call", 120, Period.Daily))
+    async with container.unit_of_work_factory().create_uow() as uow:
+        await uow.plan_repo().add_one(plan)
+        await uow.commit()
     yield plan
 
 
@@ -126,3 +139,28 @@ async def sub_with_fields(current_user):
     sub.fields = {"any_value": 1, "inner_items": [1, 2, 3, 4, 5]}
     await save_sub(sub)
     yield sub
+
+
+@pytest_asyncio.fixture()
+async def simple_webhook(current_user):
+    user, token, expected_status_code = current_user
+
+    async with container.unit_of_work_factory().create_uow() as uow:
+        hook = WebhookCreate(event_code="plan_created", target_url="http://my-site.com").to_webhook(user.id)
+        await uow.webhook_repo().add_one(hook)
+        await uow.commit()
+    yield hook
+
+
+@pytest_asyncio.fixture()
+async def many_webhooks(current_user):
+    user, token, expected_status_code = current_user
+
+    hooks = []
+    async with container.unit_of_work_factory().create_uow() as uow:
+        for i in range(11):
+            hook = WebhookCreate(event_code="plan_created", target_url=f"http://my-site-{i}.com").to_webhook(user.id)
+            await uow.webhook_repo().add_one(hook)
+            hooks.append(hook)
+        await uow.commit()
+    yield hooks

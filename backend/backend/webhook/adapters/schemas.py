@@ -1,7 +1,6 @@
-from typing import Union, Self
 from uuid import uuid4
 
-from pydantic import Field, AwareDatetime, model_validator
+from pydantic import Field, AwareDatetime
 
 from backend.auth.domain.auth_user import AuthId
 from backend.shared.base_models import MyBase
@@ -46,3 +45,7 @@ class WebhookUpdate(MyBase):
             created_at=created_at,
             updated_at=get_current_datetime(),
         )
+
+    @classmethod
+    def from_webhook(cls, hook: Webhook):
+        return cls(id=hook.id, event_code=hook.event_code, target_url=hook.target_url, delays=hook.delays)

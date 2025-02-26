@@ -1,5 +1,4 @@
 import pytest
-import pytest_asyncio
 from loguru import logger
 
 from backend.bootstrap import get_container
@@ -12,6 +11,7 @@ from backend.subscription.domain.events import PlanCreated, PlanUpdated
 from backend.subscription.domain.plan import Plan
 from backend.subscription.domain.usage import UsageRate
 from tests.conftest import current_user, get_async_client
+from tests.fakes import simple_plan, plan_with_usage_rates
 
 container = get_container()
 
@@ -22,28 +22,6 @@ async def event_handler(event, _context):
 
 container.eventbus().subscribe(PlanCreated, event_handler)
 container.eventbus().subscribe(PlanUpdated, event_handler)
-
-
-@pytest_asyncio.fixture()
-async def simple_plan(current_user):
-    user, token, expected_status_code = current_user
-    plan = Plan("Simple", 100, "USD", user.id, Period.Monthly)
-    async with container.unit_of_work_factory().create_uow() as uow:
-        await uow.plan_repo().add_one(plan)
-        await uow.commit()
-    yield plan
-
-
-@pytest_asyncio.fixture()
-async def with_usage_rates(current_user):
-    user, token, expected_status_code = current_user
-    plan = Plan("Simple", 100, "USD", user.id, Period.Monthly)
-    plan.usage_rates.add(UsageRate("First", "first", "GB", 100, Period.Monthly))
-    plan.usage_rates.add(UsageRate("Second", "second", "call", 120, Period.Daily))
-    async with container.unit_of_work_factory().create_uow() as uow:
-        await uow.plan_repo().add_one(plan)
-        await uow.commit()
-    yield plan
 
 
 class TestCreate:
@@ -98,12 +76,12 @@ class TestGet:
             assert response.status_code == expected_status_code
 
     @pytest.mark.asyncio
-    async def test_get_with_usage_rates(self, with_usage_rates, current_user):
+    async def test_get_with_usage_rates(self, plan_with_usage_rates, current_user):
         user, token, expected_status_code = current_user
         headers = {"Authorization": f"Bearer {token}"}
 
         async with get_async_client() as client:
-            response = await client.get(f"/plan/{with_usage_rates.id}", headers=headers)
+            response = await client.get(f"/plan/{plan_with_usage_rates.id}", headers=headers)
             assert response.status_code == expected_status_code
 
 

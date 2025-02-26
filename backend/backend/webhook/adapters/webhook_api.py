@@ -90,12 +90,17 @@ async def delete_one_by_id(
 
 @webhook_router.delete("/")
 async def delete_selected(
-        sby: WebhookSby,
+        ids: Optional[list[WebhookId]] = Query(None),
+        event_codes: Optional[list[str]] = Query(None),
         auth_user=Depends(auth_closure),
         container: Bootstrap = Depends(get_container),
 ) -> str:
     async with container.unit_of_work_factory().create_uow() as uow:
-        sby.auth_ids = {auth_user.id}
+        sby = WebhookSby(
+            ids=ids,
+            event_codes=event_codes,
+            auth_ids={auth_user.id}
+        )
         await usecases.DeleteSelectedWebhooks(uow).execute(sby)
         await uow.commit()
     return "Ok"
