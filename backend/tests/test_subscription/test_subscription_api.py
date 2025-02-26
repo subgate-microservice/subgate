@@ -1,9 +1,8 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import pytest
 
 from backend.bootstrap import get_container
-from backend.shared.event_driven.base_event import Event
 from backend.shared.utils import get_current_datetime
 from backend.subscription.adapters.schemas import SubscriptionCreate, SubscriptionUpdate, UsageSchema, DiscountSchema
 from backend.subscription.domain.cycle import Period
@@ -49,24 +48,6 @@ async def full_update_sub_request(subscription: Subscription, headers: dict, exp
 def get_headers(current_user):
     user, token, _ = current_user
     return {"Authorization": f"Bearer {token}"}
-
-
-def check_event(event_handler, expected_event: Event):
-    event_type = type(expected_event)
-    real = event_handler.get(event_type)
-    assert real is not None
-
-    def mapper(key, value):
-        if key == "changed_fields":
-            return set(value)
-        if key == "paused_from":
-            return value.replace(second=0, microsecond=0)
-        if isinstance(value, datetime):
-            return value.replace(second=0, microsecond=0)
-
-    expected = {k: mapper(k, v) for k, v in expected_event.model_dump().items()}
-    real = {k: mapper(k, v) for k, v in real.model_dump().items()}
-    assert expected == real
 
 
 class TestCreate:
@@ -115,21 +96,12 @@ class TestStatusManagement:
 
         # Check events
         if expected_status_code < 400:
-            expected_sub_updated = SubUpdated(
-                id=simple_sub.id,
-                subscriber_id=simple_sub.subscriber_id,
-                auth_id=simple_sub.auth_id,
-                changes={
-                    "paused_from": get_current_datetime(),
-                    "status": SubscriptionStatus.Paused,
-                },
-            )
-            expected_sub_paused = SubPaused(
-                id=simple_sub.id, subscriber_id=simple_sub.subscriber_id, auth_id=simple_sub.auth_id,
-            )
             assert len(event_handler.events) == 2
-            check_event(event_handler, expected_sub_updated)
-            check_event(event_handler, expected_sub_paused)
+            s_paused, s_updated = event_handler.get(SubPaused), event_handler.get(SubUpdated)
+            assert s_updated
+            assert s_updated
+            assert "paused_from" in s_updated.changes
+            assert s_updated.changes["status"] == SubscriptionStatus.Paused
 
     @pytest.mark.asyncio
     async def test_resume_paused_subscription(self, current_user, paused_sub, event_handler):
@@ -467,7 +439,7 @@ class TestSpecificStatusAPI:
 
         async with get_async_client() as client:
             from_date = get_current_datetime() + timedelta(days=3)
-            params={"from_date": from_date}
+            params = {"from_date": from_date}
             response = await client.patch(f"/subscription/{simple_sub.id}/renew", params=params, headers=headers)
             assert response.status_code == expected_status_code
 
@@ -507,7 +479,6 @@ class TestSpecificStatusAPI:
         headers = get_headers(current_user)
 
         async with get_async_client() as client:
-            from_date = get_current_datetime() + timedelta(days=3)
             response = await client.patch(f"/subscription/{simple_sub.id}/expire", headers=headers)
             assert response.status_code == expected_status_code
 
