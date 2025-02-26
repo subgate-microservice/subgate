@@ -43,8 +43,8 @@ class Subscription(Eventable):
     autorenew: bool = Property(default=False)
     fields: dict = Property(default_factory=dict)
     id: SubId = Property(frozen=True, default_factory=uuid4)
-    discounts: ItemManager[Discount] = Property(frozen=True, mapper=ItemManager)
-    usages: ItemManager[Usage] = Property(frozen=True, mapper=ItemManager)
+    discounts: ItemManager[Discount] = Property(frozen=True, mapper=ItemManager, default_factory=list)
+    usages: ItemManager[Usage] = Property(frozen=True, mapper=ItemManager, default_factory=list)
     created_at: AwareDatetime = Property(frozen=True, default_factory=get_current_datetime)
     updated_at: AwareDatetime = Property(frozen=True, default_factory=get_current_datetime)
 
