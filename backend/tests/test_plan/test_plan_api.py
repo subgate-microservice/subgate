@@ -9,6 +9,7 @@ from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.discount import Discount
 from backend.subscription.domain.events import PlanCreated, PlanUpdated
 from backend.subscription.domain.plan import Plan
+from backend.subscription.domain.plan_repo import PlanSby
 from backend.subscription.domain.usage import UsageRate
 from tests.conftest import current_user, get_async_client
 from tests.fakes import simple_plan, plan_with_usage_rates
@@ -84,6 +85,17 @@ class TestGet:
             response = await client.get(f"/plan/{plan_with_usage_rates.id}", headers=headers)
             assert response.status_code == expected_status_code
 
+    @pytest.mark.asyncio
+    async def test_get_selected(self, simple_plan, plan_with_usage_rates, current_user):
+        user, token, expected_status_code = current_user
+        headers = {"Authorization": f"Bearer {token}"}
+
+        async with get_async_client() as client:
+            params = {"ids": [plan_with_usage_rates.id]}
+            response = await client.get(f"/plan/", headers=headers, params=params)
+            assert response.status_code == expected_status_code
+            assert len(response.json()) == 1
+
 
 class TestUpdate:
     @pytest.mark.asyncio
@@ -98,3 +110,28 @@ class TestUpdate:
             payload = PlanUpdate.from_plan(simple_plan).model_dump(mode="json")
             response = await client.put(f"/plan/{simple_plan.id}", json=payload, headers=headers)
             assert response.status_code == expected_status_code
+
+
+class TestDelete:
+    @pytest.mark.asyncio
+    async def test_delete_by_id(self, simple_plan, current_user):
+        user, token, expected_status_code = current_user
+        headers = {"Authorization": f"Bearer {token}"}
+
+        async with get_async_client() as client:
+            response = await client.delete(f"/plan/{simple_plan.id}", headers=headers)
+            assert response.status_code == expected_status_code
+
+    @pytest.mark.asyncio
+    async def test_delete_selected(self, simple_plan, plan_with_usage_rates, current_user):
+        user, token, expected_status_code = current_user
+        headers = {"Authorization": f"Bearer {token}"}
+
+        async with get_async_client() as client:
+            params = {"ids": [simple_plan.id]}
+            response = await client.delete(f"/plan/{simple_plan.id}", headers=headers, params=params)
+            assert response.status_code == expected_status_code
+
+        async with container.unit_of_work_factory().create_uow() as uow:
+            real = await uow.plan_repo().get_selected(PlanSby())
+            assert len(real) == 1
