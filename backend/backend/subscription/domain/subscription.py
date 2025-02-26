@@ -46,7 +46,7 @@ class Subscription(Eventable):
     discounts: ItemManager[Discount] = Property(frozen=True, mapper=ItemManager, default_factory=list)
     usages: ItemManager[Usage] = Property(frozen=True, mapper=ItemManager, default_factory=list)
     created_at: AwareDatetime = Property(frozen=True, default_factory=get_current_datetime)
-    updated_at: AwareDatetime = Property(frozen=True, default_factory=get_current_datetime)
+    updated_at: AwareDatetime = Property(frozen=False, default_factory=get_current_datetime)
 
     _status: SubscriptionStatus = PrivateProperty(default=SubscriptionStatus.Active, excluded=True)
     _paused_from: Optional[AwareDatetime] = PrivateProperty(default=None, excluded=True)

@@ -281,10 +281,15 @@ class SubscriptionUpdate(MyBase):
             fields=sub.fields,
         )
 
-    def to_subscription(self, auth_id: AuthId, created_at: AwareDatetime, saved_days: int) -> Subscription:
+    def to_subscription(
+            self,
+            auth_id: AuthId,
+            created_at: AwareDatetime,
+            updated_at: AwareDatetime,
+            saved_days: int,
+    ) -> Subscription:
         usages = [x.to_usage() for x in self.usages]
         discounts = [x.to_discount() for x in self.discounts]
-        updated_at = get_current_datetime()
         plan_info = self.plan_info.to_plan_info()
         billing_info = self.billing_info.to_billing_info(saved_days=saved_days)
         return Subscription.create_unsafe(

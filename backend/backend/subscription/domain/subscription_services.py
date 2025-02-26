@@ -229,6 +229,7 @@ class SubscriptionUpdater:
 
             '_status',
             '_paused_from',
+            'updated_at',
             'subscriber_id',
             'autorenew',
             'fields',

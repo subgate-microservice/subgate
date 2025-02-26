@@ -154,7 +154,10 @@ async def update_subscription(
     async with container.unit_of_work_factory().create_uow() as uow:
         old_version = await uow.subscription_repo().get_one_by_id(subscription_update.id)
         new_version = subscription_update.to_subscription(
-            auth_user.id, old_version.created_at, old_version.billing_info.saved_days
+            auth_id=auth_user.id,
+            created_at=old_version.created_at,
+            updated_at=old_version.updated_at,
+            saved_days=old_version.billing_info.saved_days,
         )
         await services.update_subscription_from_another(old_version, new_version, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
