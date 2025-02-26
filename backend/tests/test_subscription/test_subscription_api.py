@@ -441,6 +441,85 @@ class TestSpecificStatusAPI:
                 "paused_from": get_current_datetime(),
             }
 
+    @pytest.mark.asyncio
+    async def test_resume_endpoint(self, current_user, paused_sub, event_handler):
+        user, token, expected_status_code = current_user
+        headers = get_headers(current_user)
+
+        async with get_async_client() as client:
+            response = await client.patch(f"/subscription/{paused_sub.id}/resume", headers=headers)
+            assert response.status_code == expected_status_code
+
+        # Check events
+        if response.status_code < 400:
+            assert len(event_handler.events) == 2
+            sub_updated, sub_paused = event_handler.get(SubUpdated), event_handler.get(SubPaused)
+            assert sub_updated is not None
+            assert sub_updated.changes == {
+                "status": SubscriptionStatus.Active,
+                "paused_from": None,
+            }
+
+    @pytest.mark.asyncio
+    async def test_renew_active_endpoint(self, current_user, simple_sub, event_handler):
+        user, token, expected_status_code = current_user
+        headers = get_headers(current_user)
+
+        async with get_async_client() as client:
+            from_date = get_current_datetime() + timedelta(days=3)
+            params={"from_date": from_date}
+            response = await client.patch(f"/subscription/{simple_sub.id}/renew", params=params, headers=headers)
+            assert response.status_code == expected_status_code
+
+        # Check events
+        if response.status_code < 400:
+            assert len(event_handler.events) == 2
+            sub_updated, sub_paused = event_handler.get(SubUpdated), event_handler.get(SubPaused)
+            assert sub_updated is not None
+            assert sub_updated.changes == {
+                "billing_info.last_billing": from_date,
+            }
+
+    @pytest.mark.asyncio
+    async def test_renew_expired_endpoint(self, current_user, expired_sub, event_handler):
+        user, token, expected_status_code = current_user
+        headers = get_headers(current_user)
+
+        async with get_async_client() as client:
+            from_date = get_current_datetime() + timedelta(days=3)
+            params = {"from_date": from_date}
+            response = await client.patch(f"/subscription/{expired_sub.id}/renew", params=params, headers=headers)
+            assert response.status_code == expected_status_code
+
+        # Check events
+        if response.status_code < 400:
+            assert len(event_handler.events) == 2
+            sub_updated, sub_paused = event_handler.get(SubUpdated), event_handler.get(SubPaused)
+            assert sub_updated is not None
+            assert sub_updated.changes == {
+                "status": SubscriptionStatus.Active,
+                "billing_info.last_billing": from_date,
+            }
+
+    @pytest.mark.asyncio
+    async def test_expire_endpoint(self, current_user, simple_sub, event_handler):
+        user, token, expected_status_code = current_user
+        headers = get_headers(current_user)
+
+        async with get_async_client() as client:
+            from_date = get_current_datetime() + timedelta(days=3)
+            response = await client.patch(f"/subscription/{simple_sub.id}/expire", headers=headers)
+            assert response.status_code == expected_status_code
+
+        # Check events
+        if response.status_code < 400:
+            assert len(event_handler.events) == 2
+            sub_updated, sub_paused = event_handler.get(SubUpdated), event_handler.get(SubPaused)
+            assert sub_updated is not None
+            assert sub_updated.changes == {
+                "status": SubscriptionStatus.Expired,
+            }
+
 
 class TestSpecificUsageAPI:
     @pytest.mark.asyncio

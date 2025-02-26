@@ -301,6 +301,21 @@ async def renew_subscription(
     return "Ok"
 
 
+@subscription_router.patch("/{sub_id}/expire")
+async def expire_subscription(
+        sub_id: SubId,
+        _auth_user: AuthUser = Depends(auth_closure),
+        container: Bootstrap = Depends(get_container),
+):
+    async with container.unit_of_work_factory().create_uow() as uow:
+        target_sub = await uow.subscription_repo().get_one_by_id(sub_id)
+        target_sub.expire()
+        await services.save_updated_subscription(target_sub, uow)
+        await container.eventbus().publish_from_unit_of_work(uow)
+        await uow.commit()
+    container.telegraph().wake_worker()
+    return "Ok"
+
 @subscription_router.patch("/{sub_id}/add-discounts")
 async def add_discounts(
         sub_id: SubId,
