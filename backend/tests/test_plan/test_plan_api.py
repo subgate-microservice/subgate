@@ -6,7 +6,7 @@ from backend.subscription.adapters.plan_api import PlanCreate
 from backend.subscription.adapters.schemas import PlanUpdate
 from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.discount import Discount
-from backend.subscription.domain.events import PlanCreated, PlanUpdated
+from backend.subscription.domain.events import PlanCreated, PlanUpdated, PlanDeleted
 from backend.subscription.domain.plan import Plan
 from backend.subscription.domain.plan_repo import PlanSby
 from backend.subscription.domain.usage import UsageRate
@@ -151,7 +151,7 @@ class TestUpdate:
 
 class TestDelete:
     @pytest.mark.asyncio
-    async def test_delete_by_id(self, simple_plan, current_user):
+    async def test_delete_by_id(self, simple_plan, current_user, event_handler):
         user, token, expected_status_code = current_user
         headers = {"Authorization": f"Bearer {token}"}
 
@@ -159,8 +159,12 @@ class TestDelete:
             response = await client.delete(f"/plan/{simple_plan.id}", headers=headers)
             assert response.status_code == expected_status_code
 
+        if expected_status_code < 400:
+            assert len(event_handler.events) == 1
+            _plan_deleted = event_handler.pop(PlanDeleted)
+
     @pytest.mark.asyncio
-    async def test_delete_selected(self, simple_plan, plan_with_usage_rates, current_user):
+    async def test_delete_selected(self, simple_plan, plan_with_usage_rates, current_user, event_handler):
         user, token, expected_status_code = current_user
         headers = {"Authorization": f"Bearer {token}"}
 
@@ -172,3 +176,7 @@ class TestDelete:
         async with container.unit_of_work_factory().create_uow() as uow:
             real = await uow.plan_repo().get_selected(PlanSby())
             assert len(real) == 1
+
+        if expected_status_code < 400:
+            assert len(event_handler.events) == 1
+            _plan_deleted = event_handler.pop(PlanDeleted)
