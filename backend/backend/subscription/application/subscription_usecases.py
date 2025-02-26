@@ -1,4 +1,5 @@
 from backend.shared.unit_of_work.uow import UnitOfWork
+from backend.shared.utils import get_current_datetime
 from backend.subscription.domain.events import SubDeleted, SubCreated
 from backend.subscription.domain.subscription import (
     Subscription, )
@@ -39,6 +40,7 @@ async def update_subscription_from_another(target_sub: Subscription, new_sub: Su
 
 
 async def save_updated_subscription(target: Subscription, uow: UnitOfWork) -> None:
+    target.updated_at = get_current_datetime()
     await uow.subscription_repo().update_one(target)
     events = SubscriptionEventParser(target).parse(target.parse_events())
     for ev in events:

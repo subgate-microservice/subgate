@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Type, Optional
+from typing import Type, Optional, Union
 
 import pytest
 import pytest_asyncio
@@ -15,6 +15,7 @@ from backend.subscription.domain.plan import Plan
 from backend.subscription.domain.subscription import Subscription
 from backend.subscription.domain.usage import Usage, UsageRate
 from backend.webhook.adapters.schemas import WebhookCreate
+from backend.webhook.domain.webhook import Webhook
 
 
 async def save_sub(sub: Subscription) -> None:
@@ -27,6 +28,12 @@ async def save_plan(plan: Plan) -> None:
     async with container.unit_of_work_factory().create_uow() as uow:
         await uow.plan_repo().add_one(plan)
         await uow.commit()
+
+
+def set_dates(item: Union[Subscription, Plan, Webhook]):
+    dt = get_current_datetime() - timedelta(days=1)
+    item.updated_at = dt
+    item.__dict__["_d_created_at"] = dt
 
 
 @pytest.fixture()
@@ -56,6 +63,7 @@ def event_handler():
 async def simple_plan(current_user):
     user, token, expected_status_code = current_user
     plan = Plan("Simple", 100, "USD", user.id, Period.Monthly, level=10)
+    set_dates(plan)
     await save_plan(plan)
     yield plan
 
@@ -66,6 +74,7 @@ async def plan_with_usage_rates(current_user):
     plan = Plan("Simple", 100, "USD", user.id, Period.Monthly)
     plan.usage_rates.add(UsageRate("First", "first", "GB", 100, Period.Monthly))
     plan.usage_rates.add(UsageRate("Second", "second", "call", 120, Period.Daily))
+    set_dates(plan)
     async with container.unit_of_work_factory().create_uow() as uow:
         await uow.plan_repo().add_one(plan)
         await uow.commit()
@@ -78,6 +87,7 @@ async def simple_sub(current_user) -> Subscription:
 
     plan = Plan("Simple", 100, "USD", user.id, Period.Monthly, level=10)
     sub = Subscription.from_plan(plan, "AmyID")
+    set_dates(sub)
     await save_sub(sub)
 
     yield sub
@@ -89,6 +99,7 @@ async def paused_sub(current_user):
     plan = Plan("Simple", 100, "USD", user.id, Period.Monthly)
     sub = Subscription.from_plan(plan, "AmyID")
     sub.pause()
+    set_dates(sub)
     await save_sub(sub)
     yield sub
 
@@ -100,6 +111,7 @@ async def expired_sub(current_user):
     sub = Subscription.from_plan(plan, "AmyID")
     sub.billing_info.last_billing = get_current_datetime() - timedelta(100)
     sub.expire()
+    set_dates(sub)
     await save_sub(sub)
     yield sub
 
@@ -113,6 +125,7 @@ async def sub_with_usages(current_user):
         Usage(title="First", code="first", unit="GB", renew_cycle=Period.Monthly, available_units=111, used_units=0,
               last_renew=get_current_datetime())
     )
+    set_dates(sub)
     await save_sub(sub)
     yield sub
 
@@ -126,6 +139,7 @@ async def sub_with_discounts(current_user):
     sub.discounts.add(
         Discount(title="First", code="first", size=0.2, description="Black friday", valid_until=get_current_datetime())
     )
+    set_dates(sub)
     await save_sub(sub)
     yield sub
 
@@ -137,6 +151,7 @@ async def sub_with_fields(current_user):
     plan = Plan("Simple", 100, "USD", user.id, Period.Monthly)
     sub = Subscription.from_plan(plan, "AmyID")
     sub.fields = {"any_value": 1, "inner_items": [1, 2, 3, 4, 5]}
+    set_dates(sub)
     await save_sub(sub)
     yield sub
 
@@ -147,6 +162,7 @@ async def simple_webhook(current_user):
 
     async with container.unit_of_work_factory().create_uow() as uow:
         hook = WebhookCreate(event_code="plan_created", target_url="http://my-site.com").to_webhook(user.id)
+        set_dates(hook)
         await uow.webhook_repo().add_one(hook)
         await uow.commit()
     yield hook
@@ -161,6 +177,7 @@ async def many_webhooks(current_user):
         for i in range(11):
             hook = WebhookCreate(event_code="plan_created", target_url=f"http://my-site-{i}.com").to_webhook(user.id)
             await uow.webhook_repo().add_one(hook)
+            set_dates(hook)
             hooks.append(hook)
         await uow.commit()
     yield hooks

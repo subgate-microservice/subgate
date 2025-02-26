@@ -77,11 +77,10 @@ class Subscription(Eventable):
             fields: dict,
     ):
         instance = cls(plan_info=plan_info, billing_info=billing_info, subscriber_id=subscriber_id, auth_id=auth_id,
-                       autorenew=autorenew, usages=usages, discounts=discounts, fields=fields, id=id)
+                       autorenew=autorenew, usages=usages, discounts=discounts, fields=fields, id=id,
+                       created_at=created_at, updated_at=updated_at)
         instance.__setuntrack__("_status", status)
         instance.__setuntrack__("_paused_from", paused_from)
-        instance.__setuntrack__("_created_at", created_at)
-        instance.__setuntrack__("_updated_at", updated_at)
         return instance
 
     @classmethod
