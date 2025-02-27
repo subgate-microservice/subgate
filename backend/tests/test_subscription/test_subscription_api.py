@@ -11,14 +11,13 @@ from backend.subscription.domain.enums import SubscriptionStatus
 from backend.subscription.domain.events import (
     SubPaused, SubResumed, SubRenewed,
     SubUsageAdded, SubUsageRemoved, SubUsageUpdated, SubDiscountAdded,
-    SubDiscountRemoved, SubDiscountUpdated, SubUpdated, SubExpired)
-from backend.subscription.domain.plan import Plan
+    SubDiscountRemoved, SubDiscountUpdated, SubUpdated, SubExpired, SubCreated)
 from backend.subscription.domain.subscription import (
     Subscription, )
 from backend.subscription.domain.usage import Usage
 from tests.conftest import current_user, get_async_client
 from tests.fakes import (event_handler, simple_sub, paused_sub, expired_sub, sub_with_discounts, sub_with_usages,
-                         sub_with_fields)
+                         sub_with_fields, simple_plan)
 from tests.helpers import check_changes
 
 container = get_container()
@@ -54,12 +53,11 @@ def get_headers(current_user):
 
 class TestCreate:
     @pytest.mark.asyncio
-    async def test_create_simple_subscription(self, current_user, event_handler):
+    async def test_create_simple_subscription(self, current_user, event_handler, simple_plan):
         user, token, expected_status_code = current_user
         headers = get_headers(current_user)
 
-        plan = Plan("Simple", 100, "USD", user.id, Period.Monthly)
-        subscription = Subscription.from_plan(plan, "AnyID")
+        subscription = Subscription.from_plan(simple_plan, "AnyID")
         payload = SubscriptionCreate.from_subscription(subscription).model_dump(mode="json")
         await post_request(f"/subscription/", headers, expected_status_code, json=payload)
 
@@ -67,24 +65,25 @@ class TestCreate:
             assert len(event_handler.events) == 1
 
     @pytest.mark.asyncio
-    async def test_create_second_subscription_when_another_one_exist(self, current_user, event_handler):
+    async def test_create_second_subscription_when_another_one_exist(self, current_user, event_handler, simple_plan):
         user, token, expected_status_code = current_user
         headers = get_headers(current_user)
 
         # First
-        plan = Plan("Simple", 100, "USD", user.id, Period.Monthly)
-        sub1 = Subscription.from_plan(plan, "AnyID")
+        sub1 = Subscription.from_plan(simple_plan, "AnyID")
         payload1 = SubscriptionCreate.from_subscription(sub1).model_dump(mode="json")
         await post_request(f"/subscription/", headers, expected_status_code, json=payload1)
+        if expected_status_code < 400:
+            sub_created = event_handler.get(SubCreated)
+            assert sub_created.status == SubscriptionStatus.Active
 
         # Second
-        plan = Plan("Superior", 100, "USD", user.id, Period.Monthly, level=20)
-        sub2 = Subscription.from_plan(plan, "AnyID")
+        sub2 = Subscription.from_plan(simple_plan, "AnyID")
         payload2 = SubscriptionCreate.from_subscription(sub2).model_dump(mode="json")
         await post_request(f"/subscription/", headers, expected_status_code, json=payload2)
-
         if expected_status_code < 400:
-            assert len(event_handler.events) == 3
+            sub_created = event_handler.get(SubCreated)
+            assert sub_created.status == SubscriptionStatus.Paused
 
 
 class TestStatusManagement:

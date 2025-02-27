@@ -53,6 +53,9 @@ def event_handler():
         def pop[T](self, event_class: Type[T]) -> T:
             return self.events.pop(event_class)
 
+        def clear(self):
+            self.events = {}
+
     handler = EventHandler()
     for ev in EVENTS:
         container.eventbus().subscribe(ev, handler.handle_event)
@@ -99,11 +102,12 @@ async def plan_with_discounts(current_user):
         await uow.commit()
     yield plan
 
+
 @pytest_asyncio.fixture()
 async def simple_sub(current_user) -> Subscription:
     user, token, expected_status_code = current_user
 
-    plan = PlanCreate(title="Simple", price=100, currecy="USD", billing_cycle=Period.Monthly, level=10).to_plan(user.id)
+    plan = PlanCreate(title="Simple", price=100, currency="USD", billing_cycle=Period.Monthly, level=10).to_plan(user.id)
     sub = Subscription.from_plan(plan, "AmyID")
     set_dates(sub)
     await save_sub(sub)

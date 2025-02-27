@@ -1,5 +1,6 @@
 from copy import copy
 from typing import Optional, Callable, Union
+from uuid import uuid4
 
 from pydantic import AwareDatetime
 
@@ -29,6 +30,18 @@ class Plan(Eventable):
     discounts: ItemManager[Discount] = Property(frozen=True, mapper=ItemManager)
     created_at: AwareDatetime = Property(frozen=True)
     updated_at: AwareDatetime = Property()
+
+    def __init__(self, title: str, price: float, currency: str, auth_id: AuthId, billing_cycle=Period.Monthly,
+                 description: str = None, level: int = 10, features: str = None, fields: dict = None,
+                 usage_rates: list[UsageRate] = None, discounts: list[Discount] = None,
+                 created_at: AwareDatetime = None, updated_at: AwareDatetime = None, id: PlanId = None):
+        created_at = created_at if created_at else get_current_datetime()
+        updated_at = updated_at if updated_at else created_at
+        id = id if id else uuid4()
+        super().__init__(title=title, price=price, currency=currency, auth_id=auth_id, billing_cycle=billing_cycle,
+                         description=description, level=level, features=features, fields=fields,
+                         usage_rates=usage_rates, discounts=discounts, created_at=created_at, updated_at=updated_at,
+                         id=id)
 
     def copy(self):
         return copy(self)

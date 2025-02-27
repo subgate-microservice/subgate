@@ -237,6 +237,7 @@ class TestUpdate:
             }
             check_changes(plan_updated.changes, expected)
 
+
 class TestDelete:
     @pytest.mark.asyncio
     async def test_delete_by_id(self, simple_plan, current_user, event_handler):
