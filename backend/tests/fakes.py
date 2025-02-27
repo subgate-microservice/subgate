@@ -88,6 +88,18 @@ async def plan_with_usage_rates(current_user):
 
 
 @pytest_asyncio.fixture()
+async def plan_with_discounts(current_user):
+    user, token, expected_status_code = current_user
+    plan = PlanCreate(title="Simple", price=100, currency="USD", billing_cycle=Period.Monthly).to_plan(user.id)
+    plan.discounts.add(Discount("First", "first", "GB", 0.2, get_current_datetime()))
+    plan.discounts.add(Discount("Second", "second", "call", 0.3, get_current_datetime()))
+    set_dates(plan)
+    async with container.unit_of_work_factory().create_uow() as uow:
+        await uow.plan_repo().add_one(plan)
+        await uow.commit()
+    yield plan
+
+@pytest_asyncio.fixture()
 async def simple_sub(current_user) -> Subscription:
     user, token, expected_status_code = current_user
 

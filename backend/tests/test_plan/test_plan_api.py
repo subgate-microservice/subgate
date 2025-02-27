@@ -12,7 +12,7 @@ from backend.subscription.domain.plan_repo import PlanSby
 from backend.subscription.domain.usage import UsageRate
 from tests.conftest import current_user, get_async_client
 from tests.fakes import event_handler
-from tests.fakes import simple_plan, plan_with_usage_rates
+from tests.fakes import simple_plan, plan_with_usage_rates, plan_with_discounts
 from tests.helpers import check_changes
 
 container = get_container()
@@ -111,6 +111,23 @@ class TestGet:
 
 class TestUpdate:
     @pytest.mark.asyncio
+    async def test_change_plan_title(self, simple_plan, current_user, event_handler):
+        user, token, expected_status_code = current_user
+        headers = {"Authorization": f"Bearer {token}"}
+
+        simple_plan.title = "UPDATED"
+        await put_request(simple_plan, headers, expected_status_code)
+
+        if expected_status_code < 400:
+            assert len(event_handler.events) == 1
+            plan_updated = event_handler.pop(PlanUpdated)
+            expected = {
+                "title": "UPDATED",
+                "updated_at": get_current_datetime(),
+            }
+            check_changes(plan_updated.changes, expected)
+
+    @pytest.mark.asyncio
     async def test_add_usage_rates_to_plan(self, simple_plan, current_user, event_handler):
         user, token, expected_status_code = current_user
         headers = {"Authorization": f"Bearer {token}"}
@@ -148,6 +165,77 @@ class TestUpdate:
             }
             check_changes(plan_updated.changes, expected)
 
+    @pytest.mark.asyncio
+    async def test_remove_plan_usage_rate(self, plan_with_usage_rates, current_user, event_handler):
+        user, token, expected_status_code = current_user
+        headers = {"Authorization": f"Bearer {token}"}
+
+        plan_with_usage_rates.usage_rates.remove("first")
+        await put_request(plan_with_usage_rates, headers, expected_status_code)
+
+        if expected_status_code < 400:
+            assert len(event_handler.events) == 1
+            plan_updated = event_handler.pop(PlanUpdated)
+            expected = {
+                "usage_rates.first": "action:removed",
+                "updated_at": get_current_datetime(),
+            }
+            check_changes(plan_updated.changes, expected)
+
+    @pytest.mark.asyncio
+    async def test_add_discount_plan(self, simple_plan, current_user, event_handler):
+        user, token, expected_status_code = current_user
+        headers = {"Authorization": f"Bearer {token}"}
+
+        simple_plan.discounts.add(
+            Discount("Hello", "first", "GB", 0.2, get_current_datetime())
+        )
+        await put_request(simple_plan, headers, expected_status_code)
+
+        if expected_status_code < 400:
+            assert len(event_handler.events) == 1
+            plan_updated = event_handler.pop(PlanUpdated)
+            expected = {
+                "discounts.first": "action:added",
+                "updated_at": get_current_datetime(),
+            }
+            check_changes(plan_updated.changes, expected)
+
+    @pytest.mark.asyncio
+    async def test_update_plan_discount(self, plan_with_discounts, current_user, event_handler):
+        user, token, expected_status_code = current_user
+        headers = {"Authorization": f"Bearer {token}"}
+
+        target_discount = plan_with_discounts.discounts.get("first")
+        target_discount.title = "UPDATED"
+
+        await put_request(plan_with_discounts, headers, expected_status_code)
+
+        if expected_status_code < 400:
+            assert len(event_handler.events) == 1
+            plan_updated = event_handler.pop(PlanUpdated)
+            expected = {
+                "discounts.first": "action:updated",
+                "updated_at": get_current_datetime(),
+            }
+            check_changes(plan_updated.changes, expected)
+
+    @pytest.mark.asyncio
+    async def test_remove_plan_discount(self, plan_with_discounts, current_user, event_handler):
+        user, token, expected_status_code = current_user
+        headers = {"Authorization": f"Bearer {token}"}
+
+        plan_with_discounts.discounts.remove("first")
+        await put_request(plan_with_discounts, headers, expected_status_code)
+
+        if expected_status_code < 400:
+            assert len(event_handler.events) == 1
+            plan_updated = event_handler.pop(PlanUpdated)
+            expected = {
+                "discounts.first": "action:removed",
+                "updated_at": get_current_datetime(),
+            }
+            check_changes(plan_updated.changes, expected)
 
 class TestDelete:
     @pytest.mark.asyncio
