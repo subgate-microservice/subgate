@@ -7,7 +7,7 @@ from loguru import logger
 
 
 def get_current_datetime():
-    return datetime.datetime.now(datetime.UTC).replace(microsecond=0)
+    return datetime.datetime.now(datetime.UTC)
 
 
 def run_sync(coro):
