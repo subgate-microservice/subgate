@@ -140,12 +140,11 @@ async def telegraph_worker():
 
     async def stop_task():
         while True:
+            await asyncio.sleep(0.3)
             async with container.unit_of_work_factory().create_uow() as uow:
                 deliveries = await uow.delivery_task_repo().get_deliveries_for_send()
                 if not deliveries:
                     break
-                else:
-                    await asyncio.sleep(0.3)
         telegraph.stop_worker()
 
     _task = asyncio.create_task(stop_task())
