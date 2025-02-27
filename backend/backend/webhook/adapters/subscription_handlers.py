@@ -43,9 +43,7 @@ async def handle_subscription_domain_event(event: Event, context: Context):
     if webhooks:
         partkey_attr = EVENT_PARTKEY_MAPPING[event.get_event_code()]
         partkey = str(getattr(event, partkey_attr))
-        payload = event.model_dump(mode="json", exclude={"auth_id", "occurred_at"})
-        payload.get("changes", {}).pop("updated_at", None)
-        message = Message(type="event", event_code=event_code, occurred_at=event.occurred_at, payload=payload)
+        message = Message.from_event(event)
         deliveries = [
             DeliveryTask(
                 url=hook.target_url,

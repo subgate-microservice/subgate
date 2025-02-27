@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from typing import Optional, Self, Literal, Iterable
-from uuid import uuid4
 
 from pydantic import Field, AwareDatetime
 
@@ -24,11 +23,13 @@ class Message(MyBase):
 
     @classmethod
     def from_event(cls, event: Event):
+        payload = event.model_dump(mode="json", exclude={"auth_id", "occurred_at"})
+        payload.get("changes", {}).pop("updated_at", None)
         return cls(
             type="event",
             event_code=event.get_event_code(),
             occurred_at=event.occurred_at,
-            payload=event.model_dump(mode="json", exclude={"auth_id", "occurred_at"})
+            payload=payload,
         )
 
 
