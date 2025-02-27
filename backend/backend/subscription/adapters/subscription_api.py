@@ -157,7 +157,6 @@ async def update_subscription(
             auth_id=auth_user.id,
             created_at=old_version.created_at,
             updated_at=old_version.updated_at,
-            saved_days=old_version.billing_info.saved_days,
         )
         await services.update_subscription_from_another(old_version, new_version, uow)
         await container.eventbus().publish_from_unit_of_work(uow)

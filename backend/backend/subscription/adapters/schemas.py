@@ -186,15 +186,17 @@ class BillingInfoSchema(MyBase):
     currency: str
     billing_cycle: Period
     last_billing: AwareDatetime
+    saved_days: int
 
     @classmethod
     def from_billing_info(cls, billing_info: BillingInfo) -> Self:
         return cls(price=billing_info.price, currency=billing_info.currency,
-                   billing_cycle=billing_info.billing_cycle, last_billing=billing_info.last_billing)
+                   billing_cycle=billing_info.billing_cycle, last_billing=billing_info.last_billing,
+                   saved_days=billing_info.saved_days)
 
-    def to_billing_info(self, saved_days: int) -> BillingInfo:
+    def to_billing_info(self) -> BillingInfo:
         return BillingInfo(price=self.price, currency=self.currency, billing_cycle=self.billing_cycle,
-                           last_billing=self.last_billing, saved_days=saved_days)
+                           last_billing=self.last_billing, saved_days=self.saved_days)
 
 
 class SubscriptionCreate(MyBase):
@@ -233,7 +235,7 @@ class SubscriptionCreate(MyBase):
         usages = [x.to_usage() for x in self.usages]
         discounts = [x.to_discount() for x in self.discounts]
         plan_info = self.plan_info.to_plan_info()
-        billing_info = self.billing_info.to_billing_info(saved_days=0)
+        billing_info = self.billing_info.to_billing_info()
         return Subscription.create_unsafe(
             id=self.id,
             subscriber_id=self.subscriber_id,
@@ -287,12 +289,11 @@ class SubscriptionUpdate(MyBase):
             auth_id: AuthId,
             created_at: AwareDatetime,
             updated_at: AwareDatetime,
-            saved_days: int,
     ) -> Subscription:
         usages = [x.to_usage() for x in self.usages]
         discounts = [x.to_discount() for x in self.discounts]
         plan_info = self.plan_info.to_plan_info()
-        billing_info = self.billing_info.to_billing_info(saved_days=saved_days)
+        billing_info = self.billing_info.to_billing_info()
         return Subscription.create_unsafe(
             id=self.id,
             subscriber_id=self.subscriber_id,
