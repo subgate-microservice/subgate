@@ -28,6 +28,7 @@ class SubscriptionEventParser:
         self.subscription = subscription
         self.updated_fields = {}
         self.result = []
+        self.dt = get_current_datetime()
 
     def parse(self, events: list[Event]) -> list[Event]:
         for event in events:
@@ -40,7 +41,7 @@ class SubscriptionEventParser:
                     subscriber_id=self.subscription.subscriber_id,
                     changes=self.updated_fields,
                     auth_id=self.subscription.auth_id,
-                    occurred_at=get_current_datetime(),
+                    occurred_at=self.dt,
                 )
             )
         return self.result
@@ -91,7 +92,7 @@ class SubscriptionEventParser:
                     used_units=event.item.used_units,
                     last_renew=event.item.last_renew,
                     auth_id=self.subscription.auth_id,
-                    occurred_at=event.occurred_at,
+                    occurred_at=self.dt,
                 )
             )
         elif isinstance(event.item, Discount):
@@ -105,7 +106,7 @@ class SubscriptionEventParser:
                     size=event.item.size,
                     valid_until=event.item.valid_until,
                     auth_id=self.subscription.auth_id,
-                    occurred_at=event.occurred_at,
+                    occurred_at=self.dt,
                 )
             )
 
@@ -118,7 +119,7 @@ class SubscriptionEventParser:
                     code=event.new_item.code,
                     changes=find_changes(event.old_item, event.new_item),
                     delta=event.new_item.used_units - event.old_item.used_units,
-                    occurred_at=event.occurred_at,
+                    occurred_at=self.dt,
                     auth_id=self.subscription.auth_id,
             )
             )
@@ -129,7 +130,7 @@ class SubscriptionEventParser:
                     subscription_id=self.subscription.id,
                     code=event.new_item.code,
                     changes=find_changes(event.old_item, event.new_item),
-                    occurred_at=event.occurred_at,
+                    occurred_at=self.dt,
                     auth_id=self.subscription.auth_id,
                 )
             )
@@ -148,7 +149,7 @@ class SubscriptionEventParser:
                     used_units=event.item.used_units,
                     last_renew=event.item.last_renew,
                     auth_id=self.subscription.auth_id,
-                    occurred_at=event.occurred_at,
+                    occurred_at=self.dt,
                 )
             )
         elif isinstance(event.item, Discount):
@@ -162,7 +163,7 @@ class SubscriptionEventParser:
                     size=event.item.size,
                     valid_until=event.item.valid_until,
                     auth_id=self.subscription.auth_id,
-                    occurred_at=event.occurred_at,
+                    occurred_at=self.dt,
                 )
             )
 

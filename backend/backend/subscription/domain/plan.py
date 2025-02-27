@@ -119,6 +119,7 @@ class PlanEventParser:
         self.plan = plan
         self.updated_fields = {}
         self.result = []
+        self.dt = get_current_datetime()
 
     def parse(self, events: list[Event]) -> list[Event]:
         for event in events:
@@ -130,7 +131,7 @@ class PlanEventParser:
                     id=self.plan.id,
                     changes=self.updated_fields,
                     auth_id=self.plan.auth_id,
-                    occurred_at=get_current_datetime(),
+                    occurred_at=self.dt,
                 )
             )
         return self.result
