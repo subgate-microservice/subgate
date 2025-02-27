@@ -51,8 +51,8 @@ async def _create_apikey_if_not_exist(auth_user: AuthUser, title: str, value: st
 async def _subscribe_events_to_eventbus():
     logger.info("Subscribe events to eventbus")
     bus = get_container().eventbus()
-    for event in EVENTS:
-        bus.subscribe(event, subscription_handlers.handle_event)
+    for event_type in EVENTS:
+        bus.subscribe(event_type, subscription_handlers.handle_subscription_domain_event)
 
 
 async def _create_database():

@@ -9,6 +9,25 @@ from backend.webhook.domain.webhook_repo import WebhookSby
 
 container = get_container()
 
+EVENT_PARTKEY_MAPPING = {
+    "sub_created": "id",
+    "sub_deleted": "id",
+    "sub_updated": "id",
+    "plan_created": "id",
+    "plan_deleted": "id",
+    "plan_updated": "id",
+    "sub_usage_added": "subscription_id",
+    "sub_usage_removed": "subscription_id",
+    "sub_usage_updated": "subscription_id",
+    "sub_discount_added": "subscription_id",
+    "sub_discount_removed": "subscription_id",
+    "sub_discount_updated": "subscription_id",
+    "sub_paused": "id",
+    "sub_resumed": "id",
+    "sub_expired": "id",
+    "sub_renewed": "id",
+}
+
 
 async def request(method: str, url: str, **kwargs):
     async with aiohttp.ClientSession() as session:
@@ -16,23 +35,21 @@ async def request(method: str, url: str, **kwargs):
             response.raise_for_status()
 
 
-async def handle_event(event: Event, context: Context):
-    # Получаем webhooks, которые нужно отправить
-    webhook_repo = context.uow.webhook_repo()
-    sby = WebhookSby(
-        auth_ids={event.auth_id},
-        event_codes={event.get_event_code()},
-    )
-    webhooks = await webhook_repo.get_selected(sby)
+async def handle_subscription_domain_event(event: Event, context: Context):
+    event_code = event.get_event_code()
+    sby = WebhookSby(auth_ids={event.auth_id}, event_codes={event_code})
+    webhooks = await context.uow.webhook_repo().get_selected(sby)
 
-    # Создаем TelegraphMessage для каждого Webhook
     if webhooks:
-        data = Message.from_event(event)
-        partkey = str(event.id) if hasattr(event, "id") else str(event.subscription_id)
+        partkey_attr = EVENT_PARTKEY_MAPPING[event.get_event_code()]
+        partkey = str(getattr(event, partkey_attr))
+        payload = event.model_dump(mode="json", exclude={"auth_id", "occurred_at"})
+        payload.get("changes", {}).pop("updated_at", None)
+        message = Message(type="event", event_code=event_code, occurred_at=event.occurred_at, payload=payload)
         deliveries = [
             DeliveryTask(
                 url=hook.target_url,
-                data=data,
+                data=message,
                 partkey=partkey,
                 retries=0,
                 delays=hook.delays,
