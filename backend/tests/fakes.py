@@ -184,7 +184,6 @@ async def simple_webhook(current_user):
 
     async with container.unit_of_work_factory().create_uow() as uow:
         hook = WebhookCreate(event_code="plan_created", target_url="http://my-site.com").to_webhook(user.id)
-        set_dates(hook)
         await uow.webhook_repo().add_one(hook)
         await uow.commit()
     yield hook
@@ -199,7 +198,6 @@ async def many_webhooks(current_user):
         for i in range(11):
             hook = WebhookCreate(event_code="plan_created", target_url=f"http://my-site-{i}.com").to_webhook(user.id)
             await uow.webhook_repo().add_one(hook)
-            set_dates(hook)
             hooks.append(hook)
         await uow.commit()
     yield hooks
