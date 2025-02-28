@@ -13,6 +13,8 @@ import {
 } from "../../../../other/billing-cycle";
 import {getAllCurrencies, getCurrencyByCode} from "../../../../other/currency";
 import PeriodSelector from "../../../../core/components/period-selector.vue";
+import DiscountManager from "../../../../core/components/discount-manager.vue";
+import UsageRateManager from "../../../../core/components/usage-rate-manager.vue";
 
 
 interface P {
@@ -192,89 +194,10 @@ const onCancel = () => {
       </div>
 
       <!--UsageLimits-->
-      <div class="w-full mt-4">
-        <div class="flex gap-2">
-          <h2>Usage rates</h2>
-          <i class="pi pi-plus-circle h-fit self-center cursor-pointer" @click="onAddUsageRate"/>
-        </div>
-
-        <div v-if="inputSchema.usageRates.length === 0" class="mt-1">
-          There are no usage rate parameters
-        </div>
-
-        <div v-for="item in inputSchema.usageRates">
-          <InputGroup class="mt-2">
-            <IftaLabel class="flex-grow">
-              <InputText id="code" v-model="item.code" class="w-full"/>
-              <label for="code">code</label>
-            </IftaLabel>
-            <IftaLabel class="w-1/4">
-              <InputText id="code_unit" v-model="item.unit" class="w-full"/>
-              <label for="code_unit">Unit</label>
-            </IftaLabel>
-            <IftaLabel class="w-1/4">
-              <InputNumber id="code_limit" v-model="item.availableUnits" class="w-full"/>
-              <label for="code_limit">Limit</label>
-            </IftaLabel>
-
-            <period-selector label="Renew period" class="w-full" v-model="item.renewCycle"/>
-
-
-            <Button
-                icon="pi pi-trash"
-                style="width: 5rem;"
-                severity="contrast"
-                @click="() => onDeleteUsageRate(item)"
-            />
-          </InputGroup>
-          <Message
-              severity="error" size="small" variant="simple" class="mt-1"
-              v-for="err in validationResult.usageRates[item.code]"
-          >
-            {{ err }}
-          </Message>
-        </div>
-      </div>
+      <usage-rate-manager :usage-rates="inputSchema.usageRates"/>
 
       <!--Discounts-->
-      <div class="w-full mt-4">
-        <div class="flex gap-2">
-          <h2>Discounts</h2>
-          <i class="pi pi-plus-circle h-fit self-center cursor-pointer" @click="createNewDiscount"/>
-        </div>
-
-        <div v-if="inputSchema.discounts.length === 0" class="mt-1">
-          There are no discounts
-        </div>
-
-        <div v-for="item in inputSchema.discounts" :key="item.code">
-          <InputGroup class="mt-2">
-            <IftaLabel>
-              <InputText :id="'Desc' + item.code" v-model="item.description" class="w-full"/>
-              <label :for="'Desc' + item.code">Description</label>
-            </IftaLabel>
-            <IftaLabel>
-              <InputNumber :id="'Amount' + item.code" v-model="item.size" class="w-full" suffix="%"/>
-              <label :for="'Amount' + item.code">Size</label>
-            </IftaLabel>
-            <IftaLabel>
-              <DatePicker :id="'ValidUntil' + item.code" v-model="item.validUntil" class="w-full"/>
-              <label :for="'ValidUntil' + item.code">Expiration date</label>
-            </IftaLabel>
-            <Button
-                icon="pi pi-trash"
-                style="min-width: 1.25rem;"
-                severity="contrast"
-                @click="deleteDiscount(item)"
-            />
-          </InputGroup>
-          <Message severity="error" size="small" variant="simple" v-for="err in validationResult.discounts[item.code]"
-                   class="mt-1">
-            {{ err }}
-          </Message>
-        </div>
-
-      </div>
+      <discount-manager :discounts="inputSchema.discounts"/>
 
       <div class="flex flex-wrap gap-2">
         <Button

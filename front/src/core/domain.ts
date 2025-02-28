@@ -17,7 +17,7 @@ export interface UsageRate{
     code: string
     unit: string
     availableUnits: number
-    renewCycle: Date
+    renewCycle: Period
 }
 
 export interface Discount{

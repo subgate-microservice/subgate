@@ -14,6 +14,12 @@ const p = withDefaults(defineProps<P>(), {
 const validationErrors: Ref<Record<string, string[]>> = ref({})
 
 const addDiscount = () => {
+  p.discounts.push({
+    title: "",
+    code: "",
+    size: 0,
+    validUntil: new Date(),
+  })
 }
 
 const removeDiscount = (value: Discount) => {
@@ -34,18 +40,32 @@ const removeDiscount = (value: Discount) => {
 
     <div v-for="item in p.discounts" :key="item.code">
       <InputGroup class="mt-2">
+
+        <IftaLabel>
+          <InputText :id="'Title' + item.code" v-model="item.title" class="w-full"/>
+          <label :for="'Title' + item.code">Title</label>
+        </IftaLabel>
+
+        <IftaLabel>
+          <InputText :id="'Code' + item.code" v-model="item.code" class="w-full"/>
+          <label :for="'Code' + item.code">Code</label>
+        </IftaLabel>
+
         <IftaLabel>
           <InputText :id="'Desc' + item.code" v-model="item.description" class="w-full"/>
           <label :for="'Desc' + item.code">Description</label>
         </IftaLabel>
+
         <IftaLabel>
           <InputNumber :id="'Amount' + item.code" v-model="item.size" class="w-full" suffix="%"/>
           <label :for="'Amount' + item.code">Size</label>
         </IftaLabel>
+
         <IftaLabel>
           <DatePicker :id="'ValidUntil' + item.code" v-model="item.validUntil" class="w-full"/>
           <label :for="'ValidUntil' + item.code">Expiration date</label>
         </IftaLabel>
+
         <Button
             icon="pi pi-trash"
             style="min-width: 1.25rem;"
