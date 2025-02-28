@@ -9,10 +9,10 @@ import {
   validatePlanFormData
 } from "./services.ts";
 import {
-  getAllPeriods,
   Period,
 } from "../../../../other/billing-cycle";
 import {getAllCurrencies, getCurrencyByCode} from "../../../../other/currency";
+import PeriodSelector from "../../../../core/components/period-selector.vue";
 
 
 interface P {
@@ -43,7 +43,6 @@ const e = defineEmits<{
 const inputSchema = ref(convertPlanFormDataToInputSchema(p.initData))
 const validationResult: Ref<PlanFormDataValidationResult> = ref(blankPlanFormDataValidationResult())
 
-const allCycles = getAllPeriods()
 
 // Usage Rate
 const onAddUsageRate = () => {
@@ -145,14 +144,8 @@ const onCancel = () => {
           </IftaLabel>
 
           <!--BillingCycle-->
-          <IftaLabel class="w-2/4">
-            <Select
-                id="period"
-                v-model="inputSchema.billingCycle"
-                :options="allCycles"
-            />
-            <label for="period">Billing cycle</label>
-          </IftaLabel>
+          <period-selector v-model="inputSchema.billingCycle" class="w-2/4" label="Billing cycle"/>
+
         </InputGroup>
         <div class="mt-1">
           <Message
@@ -224,16 +217,8 @@ const onCancel = () => {
               <label for="code_limit">Limit</label>
             </IftaLabel>
 
-            <IftaLabel>
-              <Select
-                  :id="'usagePeriod' + item.code"
-                  option-label="title"
-                  v-model="item.renewCycle"
-                  :options="allCycles"
-                  class="w-full"
-              />
-              <label :for="'usagePeriod' + item.code">Renew period</label>
-            </IftaLabel>
+            <period-selector label="Renew period" class="w-full" v-model="item.renewCycle"/>
+
 
             <Button
                 icon="pi pi-trash"

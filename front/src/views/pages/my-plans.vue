@@ -33,7 +33,7 @@ const openFullInfo = (item: Plan) => {
 
 
 // Create plan
-const showCreatePlanDialog = ref(false)
+const showCreatePlanDialog = ref(true)
 const startCreating = () => {
   showCreatePlanDialog.value = true
 }
