@@ -5,7 +5,6 @@ import {Currency} from "../../../../other/currency";
 import {safeArrayParsing} from "../../../../utils/other.ts";
 import {Period} from "../../../../other/billing-cycle";
 
-
 export interface PlanFormDataValidationResult {
     title: string[],
     description: string[],
@@ -20,7 +19,7 @@ export interface PlanFormDataValidationResult {
     validated: boolean,
 }
 
-export interface InputSchema {
+export interface PlanInput {
     title: string,
     price: number,
     currency: Currency,
@@ -50,7 +49,7 @@ export function blankPlanFormDataValidationResult(): PlanFormDataValidationResul
     }
 }
 
-export function validatePlanFormData(data: InputSchema): PlanFormDataValidationResult {
+export function validatePlanFormData(data: PlanInput): PlanFormDataValidationResult {
     const result: PlanFormDataValidationResult = {
         title: [],
         description: [],
@@ -121,7 +120,7 @@ export function validatePlanFormData(data: InputSchema): PlanFormDataValidationR
 }
 
 
-export function convertPlanFormDataToInputSchema(data: PlanFormData): InputSchema {
+export function convertPlanFormDataToInputSchema(data: PlanFormData): PlanInput {
     const discounts: Discount[] = safeArrayParsing(Discount, JSON.parse(JSON.stringify(data.discounts)))
     discounts.forEach(x => x.size = x.size * 100)
     return {
@@ -138,8 +137,8 @@ export function convertPlanFormDataToInputSchema(data: PlanFormData): InputSchem
     }
 }
 
-export function convertInputSchemaToPlanFormData(schema: InputSchema): PlanFormData {
-    const discounts: Discount[] = safeArrayParsing(Discount,JSON.parse(JSON.stringify(schema.discounts)))
+export function convertInputSchemaToPlanFormData(schema: PlanInput): PlanFormData {
+    const discounts: Discount[] = safeArrayParsing(Discount, JSON.parse(JSON.stringify(schema.discounts)))
     discounts.forEach(x => x.size = x.size / 100)
     return {
         title: schema.title,

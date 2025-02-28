@@ -4,8 +4,8 @@ import {DataTable, Column, Drawer} from "primevue";
 import {useTopMenu} from "../components/shared/top-menu";
 import {ToolbarButtons} from "../components/shared/toolbar-menu";
 import {
-  convertPlanFormDataToPlan,
-  convertPlanToPlanFormData,
+  formToPlan,
+  planToForm,
   createPlan, deletePlanById, deleteSelectedPlans, getSelectedPlans,
   Plan,
   PlanFormData,
@@ -55,7 +55,7 @@ const startPlanUpdating = (item: Plan) => {
   showUpdatePlanDialog.value = true
 }
 const saveUpdatedPlan = async (data: PlanFormData) => {
-  const updatedItem = convertPlanFormDataToPlan(
+  const updatedItem = formToPlan(
       data,
       planForUpdate.value!.id,
       planForUpdate.value!.createdAt,
@@ -187,7 +187,7 @@ const COLUMN_STYLES = {
     <Dialog header="Update plan" v-model:visible="showUpdatePlanDialog" modal>
       <plan-form
           v-if="planForUpdate"
-          :init-data="convertPlanToPlanFormData(planForUpdate)"
+          :init-data="planToForm(planForUpdate)"
           @submit="saveUpdatedPlan"
           @cancel="cancelUpdatePlan"
       />

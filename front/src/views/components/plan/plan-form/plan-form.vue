@@ -9,6 +9,7 @@ import {
   validatePlanFormData
 } from "./services.ts";
 import {
+  getAllPeriods,
   Period,
 } from "../../../../other/billing-cycle";
 import {getAllCurrencies, getCurrencyByCode} from "../../../../other/currency";
@@ -42,12 +43,18 @@ const e = defineEmits<{
 const inputSchema = ref(convertPlanFormDataToInputSchema(p.initData))
 const validationResult: Ref<PlanFormDataValidationResult> = ref(blankPlanFormDataValidationResult())
 
-const allCycles = [Period.enum.Annual, Period.enum.Daily]
+const allCycles = getAllPeriods()
 
 // Usage Rate
 const onAddUsageRate = () => {
   inputSchema.value.usageRates.push(
-      {availableUnits: 0, code: "", unit: "", renewCycle: inputSchema.value.billingCycle, title: ""}
+      {
+        title: "",
+        code: "",
+        unit: "",
+        availableUnits: 0,
+        renewCycle: inputSchema.value.billingCycle,
+      }
   )
 }
 const onDeleteUsageRate = (item: UsageRate) => {
@@ -143,7 +150,6 @@ const onCancel = () => {
                 id="period"
                 v-model="inputSchema.billingCycle"
                 :options="allCycles"
-                optionLabel="title"
             />
             <label for="period">Billing cycle</label>
           </IftaLabel>
@@ -195,7 +201,7 @@ const onCancel = () => {
       <!--UsageLimits-->
       <div class="w-full mt-4">
         <div class="flex gap-2">
-          <h2>Usage limits</h2>
+          <h2>Usage rates</h2>
           <i class="pi pi-plus-circle h-fit self-center cursor-pointer" @click="onAddUsageRate"/>
         </div>
 

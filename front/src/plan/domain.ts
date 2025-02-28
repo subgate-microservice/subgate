@@ -16,7 +16,7 @@ export const Discount = z.object({
     title: z.string(),
     code: z.string(),
     description: z.string().optional().nullable(),
-    size: z.number().min(0).max(1),
+    size: z.number().min(0).max(100),
     validUntil: z.coerce.date(),
 }).strict()
 
@@ -49,7 +49,8 @@ export const PlanFormData = z.object({
     discounts: Discount.array(),
 })
 
-export function convertPlanToPlanFormData(plan: Plan): PlanFormData {
+
+export function planToForm(plan: Plan): PlanFormData {
     return {
         title: plan.title,
         price: plan.price,
@@ -64,7 +65,7 @@ export function convertPlanToPlanFormData(plan: Plan): PlanFormData {
     }
 }
 
-export function convertPlanFormDataToPlan(
+export function formToPlan(
     data: PlanFormData,
     planId: string,
     createdAt: Date,
