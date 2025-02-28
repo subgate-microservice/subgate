@@ -1,0 +1,231 @@
+<script setup lang="ts">
+import {ref, onMounted, Ref} from 'vue';
+import {DataTable, Column, Drawer} from "primevue";
+import {
+  convertFormDataToSubscription, convertSubscriptionToFormData,
+  Subscription,
+  SubscriptionFormData
+} from "../../subscription/domain.ts";
+import {
+  createSubscription, deleteSelectedSubscriptions,
+  deleteSubscriptionById,
+  getSelectedSubscriptions,
+  updateSubscription
+} from "../../subscription/usecases.ts";
+import {SubscriptionInfo} from "../components/subscription/subscription-info";
+import {useTopMenu} from "../components/shared/top-menu";
+import {ToolbarButtons} from "../components/shared/toolbar-menu";
+import {SubscriptionForm} from "../components/subscription/subcription-form";
+import {getSelectedPlans, Plan} from "../../plan";
+import {findAndDelete, findAndReplace} from "../../utils/array-utils.ts";
+import {ExpandedMenu} from "../components/shared/settings-menu";
+import {CopyWrapper} from "../components/shared/copy-button";
+import {StatusTag} from "../components/subscription/status-tag";
+import {getNextBillingDate} from "../../other/billing-cycle";
+
+
+const topMenuStore = useTopMenu()
+topMenuStore.headerTitle = "Subscriptions"
+
+const subscriptions: Ref<Subscription[]> = ref([])
+const plans: Ref<Plan[]> = ref([])
+
+
+// Create subscription
+const showCreateDialog = ref(false)
+const startCreating = () => {
+  showCreateDialog.value = true
+}
+const cancelCreating = () => {
+  showCreateDialog.value = false
+}
+const saveCreated = async (item: SubscriptionFormData) => {
+  const created = await createSubscription(item)
+  subscriptions.value = [...subscriptions.value, created]
+  showCreateDialog.value = false
+}
+
+// View subscription
+const showInfoWindow = ref(false)
+const itemFowFullInfo: Ref<Subscription | null> = ref(null)
+const openFullInfo = (item: Subscription) => {
+  itemFowFullInfo.value = item
+  showInfoWindow.value = true
+}
+
+
+// Update subscription
+const showUpdateDialog = ref(false)
+const itemForUpdate: Ref<Subscription | null> = ref(null)
+const startUpdating = (item: Subscription) => {
+  itemForUpdate.value = item
+  showUpdateDialog.value = true
+}
+const cancelUpdating = () => {
+  showUpdateDialog.value = false
+}
+const saveUpdated = async (item: SubscriptionFormData) => {
+  const updatedItem = convertFormDataToSubscription(item, itemForUpdate.value!.id)
+  await updateSubscription(updatedItem)
+  findAndReplace(updatedItem, subscriptions.value, x => x.id)
+  itemForUpdate.value = null
+  showUpdateDialog.value = false
+}
+
+
+// Delete subscription
+const selected: Ref<Subscription[]> = ref([]);
+const deleteOne = async (item: Subscription) => {
+  await deleteSubscriptionById(item.id)
+  findAndDelete(item, subscriptions.value, x => x.id)
+}
+const deleteSelected = async () => {
+  const sby = {ids: selected.value.map(x => x.id)}
+  await deleteSelectedSubscriptions(sby)
+
+  const hashes = new Set(sby.ids)
+  subscriptions.value = subscriptions.value.filter(x => !hashes.has(x.id))
+  selected.value = []
+}
+
+
+onMounted(async () => {
+  subscriptions.value = await getSelectedSubscriptions({})
+  plans.value = await getSelectedPlans({})
+});
+
+
+const TABLE_STYLES = {
+  table: {
+    "max-with": "100%"
+  },
+  selectionCol: {
+    "min-width": "3rem",
+    "max-with": "3rem",
+  },
+  subIdCol: {
+    "min-width": "20rem",
+    "max-with": "20rem",
+  },
+  planTitleCol: {
+    "min-width": "8rem",
+    "max-with": "8rem",
+    "white-space": "nowrap",
+    "overflow": "hidden",
+    "text-overflow": "ellipsis",
+  },
+  billingCycleCol: {
+    "min-width": "8rem",
+    "max-with": "8rem"
+  },
+  createdCol: {
+    "min-width": "8rem",
+    "max-with": "8rem",
+  },
+  nextBillingCol: {
+    "min-width": "8rem",
+    "max-with": "8rem",
+  },
+  statusCol: {
+    "min-width": "8rem",
+    "max-with": "8rem",
+  },
+  toolbarCol: {
+    "min-width": "7rem",
+    "max-with": "7rem",
+  },
+}
+</script>
+
+<template>
+  <div class="w-full">
+    <div class="card mt-2 table-height table-width">
+      <DataTable
+          v-model:selection="selected"
+          :value="subscriptions"
+          dataKey="id"
+          scrollable
+          scrollHeight="flex"
+          size="small"
+          :virtualScrollerOptions="{ itemSize: 46 }"
+          :style="TABLE_STYLES.table"
+      >
+        <Column selectionMode="multiple" :style="TABLE_STYLES.selectionCol"></Column>
+        <Column field="" header="SubscriberId" :style="TABLE_STYLES.subIdCol">
+          <template #body="slotProps">
+            <copy-wrapper :text-for-copy="slotProps.data.subscriberId" message-after="SubscriberID copied">
+              {{ slotProps.data.subscriberId }}
+            </copy-wrapper>
+          </template>
+        </Column>
+        <Column field="plan.title" header="Plan" :style="TABLE_STYLES.planTitleCol"></Column>
+        <Column field="plan.billingCycle.title" header="Billing cycle" :style="TABLE_STYLES.billingCycleCol"></Column>
+        <Column field="" header="Created" :style="TABLE_STYLES.createdCol">
+          <template #body="slotProps">
+            {{ slotProps.data.createdAt.toLocaleDateString() }}
+          </template>
+        </Column>
+        <Column field="" header="Next billing" :style="TABLE_STYLES.nextBillingCol">
+          <template #body="slotProps">
+            {{ getNextBillingDate(slotProps.data.lastBilling, slotProps.data.plan.billingCycle).toLocaleDateString() }}
+          </template>
+        </Column>
+        <Column field="status" header="Status" :style="TABLE_STYLES.statusCol">
+          <template #body="slotProps">
+            <status-tag :status="slotProps.data.status"/>
+          </template>
+        </Column>
+        <Column :style="TABLE_STYLES.toolbarCol">
+          <template #header>
+            <toolbar-buttons
+                @new="startCreating"
+                @delete="deleteSelected"
+                :disabled-delete="selected.length === 0"
+                class="justify-end w-full"
+            />
+          </template>
+          <template #body="slotProps">
+            <expanded-menu
+                @more="openFullInfo(slotProps.data)"
+                @edit="startUpdating(slotProps.data)"
+                @delete="deleteOne(slotProps.data)"
+                class="justify-end"
+            />
+          </template>
+        </Column>
+      </DataTable>
+
+    </div>
+    <Drawer v-model:visible="showInfoWindow" position="right" style="width: 60rem;">
+      <subscription-info :subscription="itemFowFullInfo" v-if="itemFowFullInfo"/>
+    </Drawer>
+    <Dialog header="New subscription" v-model:visible="showCreateDialog" modal>
+      <subscription-form
+          @submit="saveCreated"
+          @cancel="cancelCreating"
+          mode="new"
+      />
+    </Dialog>
+    <Dialog header="Update subscription" v-model:visible="showUpdateDialog" modal>
+      <subscription-form
+          v-if="itemForUpdate"
+          mode="edit"
+          :init-data="convertSubscriptionToFormData(itemForUpdate)"
+          :plans="plans"
+          @submit="saveUpdated"
+          @cancel="cancelUpdating"
+      />
+    </Dialog>
+  </div>
+</template>
+
+
+<style scoped>
+.table-height {
+  height: calc(100vh - 14rem)
+}
+
+.table-width {
+  max-width: 100%;
+}
+</style>

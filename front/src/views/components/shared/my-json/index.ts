@@ -1,0 +1,1 @@
+export {default as MyJson} from "./my-json.vue"

@@ -1,0 +1,18 @@
+.my-h1{
+    font-size: 2rem;
+    font-family: Roboto, sans-serif;
+}
+
+:root{
+    --my-background: #f8fafc;
+    --my-primary: #10b981;
+    --my-primary-pressed: #d1fae5;
+}
+
+
+.card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    padding: 2rem;
+    border-radius: 10px;
+}
