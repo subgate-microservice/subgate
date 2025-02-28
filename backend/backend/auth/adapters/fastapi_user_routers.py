@@ -8,29 +8,29 @@ container = get_container()
 fastapi_users = container.fastapi_users()
 
 
-def include_fastapi_users_routers(app: FastAPI):
+def include_fastapi_users_routers(app: FastAPI, prefix="/api/v1"):
     app.include_router(
         fastapi_users.get_auth_router(auth_backend),
-        prefix="/api/v1/auth/jwt",
+        prefix=f"{prefix}/auth/jwt",
         tags=["auth"],
     )
     app.include_router(
         fastapi_users.get_register_router(UserRead, UserCreate),
-        prefix="/api/v1/auth",
+        prefix=f"{prefix}/auth",
         tags=["auth"],
     )
     app.include_router(
         fastapi_users.get_reset_password_router(),
-        prefix="/api/v1/auth",
+        prefix=f"{prefix}/auth",
         tags=["auth"],
     )
     app.include_router(
         fastapi_users.get_verify_router(UserRead),
-        prefix="/api/v1/auth",
+        prefix=f"{prefix}/auth",
         tags=["auth"],
     )
     app.include_router(
         fastapi_users.get_users_router(UserRead, UserUpdate),
-        prefix="/api/v1/users",
+        prefix=f"{prefix}/users",
         tags=["users"],
     )

@@ -8,11 +8,8 @@ import {
   PlanFormDataValidationResult,
   validatePlanFormData
 } from "./services.ts";
-import {v4 as uuidv4} from "uuid";
 import {
-  BillingCycleCode,
-  getAllBillingCycles,
-  getBillingCycleByCode
+  Period,
 } from "../../../../other/billing-cycle";
 import {getAllCurrencies, getCurrencyByCode} from "../../../../other/currency";
 
@@ -26,7 +23,7 @@ const p = withDefaults(defineProps<P>(), {
     title: "Hello World!",
     price: 110,
     currency: getCurrencyByCode("USD"),
-    billingCycle: getBillingCycleByCode(BillingCycleCode.enum.Monthly),
+    billingCycle: Period.enum.Monthly,
     description: "Test description",
     level: 1,
     features: "My first feature",
@@ -45,12 +42,12 @@ const e = defineEmits<{
 const inputSchema = ref(convertPlanFormDataToInputSchema(p.initData))
 const validationResult: Ref<PlanFormDataValidationResult> = ref(blankPlanFormDataValidationResult())
 
-const allCycles = getAllBillingCycles()
+const allCycles = [Period.enum.Annual, Period.enum.Daily]
 
 // Usage Rate
 const onAddUsageRate = () => {
   inputSchema.value.usageRates.push(
-      {availableUnits: 0, resource: "", unit: "", renewCycle: inputSchema.value.billingCycle}
+      {availableUnits: 0, code: "", unit: "", renewCycle: inputSchema.value.billingCycle, title: ""}
   )
 }
 const onDeleteUsageRate = (item: UsageRate) => {
@@ -60,14 +57,15 @@ const onDeleteUsageRate = (item: UsageRate) => {
 // Discount
 const createNewDiscount = () => {
   inputSchema.value.discounts.push({
-    id: uuidv4(),
+    title: "",
+    code: "",
     description: "",
     size: 0,
     validUntil: new Date(),
   })
 }
 const deleteDiscount = (value: Discount) => {
-  inputSchema.value.discounts = inputSchema.value.discounts.filter(item => item.id != value.id)
+  inputSchema.value.discounts = inputSchema.value.discounts.filter(item => item.code != value.code)
 }
 
 
@@ -208,27 +206,27 @@ const onCancel = () => {
         <div v-for="item in inputSchema.usageRates">
           <InputGroup class="mt-2">
             <IftaLabel class="flex-grow">
-              <InputText id="resource" v-model="item.resource" class="w-full"/>
-              <label for="resource">Resource</label>
+              <InputText id="code" v-model="item.code" class="w-full"/>
+              <label for="code">code</label>
             </IftaLabel>
             <IftaLabel class="w-1/4">
-              <InputText id="resource_unit" v-model="item.unit" class="w-full"/>
-              <label for="resource_unit">Unit</label>
+              <InputText id="code_unit" v-model="item.unit" class="w-full"/>
+              <label for="code_unit">Unit</label>
             </IftaLabel>
             <IftaLabel class="w-1/4">
-              <InputNumber id="resource_limit" v-model="item.availableUnits" class="w-full"/>
-              <label for="resource_limit">Limit</label>
+              <InputNumber id="code_limit" v-model="item.availableUnits" class="w-full"/>
+              <label for="code_limit">Limit</label>
             </IftaLabel>
 
             <IftaLabel>
               <Select
-                  :id="'usagePeriod' + item.resource"
+                  :id="'usagePeriod' + item.code"
                   option-label="title"
                   v-model="item.renewCycle"
                   :options="allCycles"
                   class="w-full"
               />
-              <label :for="'usagePeriod' + item.resource">Renew period</label>
+              <label :for="'usagePeriod' + item.code">Renew period</label>
             </IftaLabel>
 
             <Button
@@ -240,7 +238,7 @@ const onCancel = () => {
           </InputGroup>
           <Message
               severity="error" size="small" variant="simple" class="mt-1"
-              v-for="err in validationResult.usageRates[item.resource]"
+              v-for="err in validationResult.usageRates[item.code]"
           >
             {{ err }}
           </Message>
@@ -258,19 +256,19 @@ const onCancel = () => {
           There are no discounts
         </div>
 
-        <div v-for="item in inputSchema.discounts" :key="item.id">
+        <div v-for="item in inputSchema.discounts" :key="item.code">
           <InputGroup class="mt-2">
             <IftaLabel>
-              <InputText :id="'Desc' + item.id" v-model="item.description" class="w-full"/>
-              <label :for="'Desc' + item.id">Description</label>
+              <InputText :id="'Desc' + item.code" v-model="item.description" class="w-full"/>
+              <label :for="'Desc' + item.code">Description</label>
             </IftaLabel>
             <IftaLabel>
-              <InputNumber :id="'Amount' + item.id" v-model="item.size" class="w-full" suffix="%"/>
-              <label :for="'Amount' + item.id">Size</label>
+              <InputNumber :id="'Amount' + item.code" v-model="item.size" class="w-full" suffix="%"/>
+              <label :for="'Amount' + item.code">Size</label>
             </IftaLabel>
             <IftaLabel>
-              <DatePicker :id="'ValidUntil' + item.id" v-model="item.validUntil" class="w-full"/>
-              <label :for="'ValidUntil' + item.id">Expiration date</label>
+              <DatePicker :id="'ValidUntil' + item.code" v-model="item.validUntil" class="w-full"/>
+              <label :for="'ValidUntil' + item.code">Expiration date</label>
             </IftaLabel>
             <Button
                 icon="pi pi-trash"
@@ -279,7 +277,7 @@ const onCancel = () => {
                 @click="deleteDiscount(item)"
             />
           </InputGroup>
-          <Message severity="error" size="small" variant="simple" v-for="err in validationResult.discounts[item.id]"
+          <Message severity="error" size="small" variant="simple" v-for="err in validationResult.discounts[item.code]"
                    class="mt-1">
             {{ err }}
           </Message>

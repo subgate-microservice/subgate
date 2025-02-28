@@ -1,26 +1,19 @@
 import {z} from "zod";
 
-export const BillingCycleCode = z.enum([
+export const Period = z.enum([
     "Daily",
     "Weekly",
     "Monthly",
     "Quarterly",
     "Semiannual",
     "Annual",
+    "Lifetime",
 ])
 
-export const BillingCycle = z.object({
-    title: z.string(),
-    code: z.string(),
-    cycleInDays: z.number(),
-})
 
-export function getNextBillingDate(startDate: Date, cycle: BillingCycle) {
-    const newDate = new Date(startDate);
-    newDate.setDate(newDate.getDate() + cycle.cycleInDays);
-    return newDate;
+export function getNextBillingDate(_startDate: Date, _cycle: Period) {
+    throw Error("NotImpl")
 }
 
 
-export type BillingCycle = z.infer<typeof BillingCycle>
-export type BillingCycleCode = z.infer<typeof BillingCycleCode>
+export type Period = z.infer<typeof Period>

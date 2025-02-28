@@ -3,7 +3,7 @@ import {authRequest} from "../auth/auth-request.ts";
 import {safeArrayParsing, safeParsing} from "../utils/other.ts";
 import {Id} from "../core.ts";
 import {axiosInstance} from "../axios-instanse.ts";
-import {BillingCycle} from "../other/billing-cycle";
+import {Period} from "../other/billing-cycle";
 import {getCurrencyByCode} from "../other/currency";
 
 export interface PlanSchema {
@@ -11,11 +11,11 @@ export interface PlanSchema {
     title: string,
     price: number,
     currency: string,
-    billingCycle: BillingCycle,
+    billing_cycle: Period,
     description: string,
     level: number,
     features: string,
-    usageRates: UsageRate[],
+    usage_rates: UsageRate[],
     fields: Record<string, any>,
     discounts: Discount[],
     createdAt: Date,
@@ -28,11 +28,11 @@ export function deserializePlan(data: PlanSchema): Plan {
         title: data.title,
         price: data.price,
         currency: getCurrencyByCode(data.currency),
-        billingCycle: data.billingCycle,
+        billingCycle: data.billing_cycle,
         description: data.description,
         level: data.level,
         features: data.features,
-        usageRates: data.usageRates,
+        usageRates: data.usage_rates,
         discounts: data.discounts,
         fields: data.fields,
         createdAt: data.createdAt,
@@ -46,11 +46,11 @@ export function serializePlan(data: Plan): PlanSchema {
         title: data.title,
         price: data.price,
         currency: data.currency.code,
-        billingCycle: data.billingCycle,
+        billing_cycle: data.billingCycle,
         description: data.description,
         level: data.level,
         features: data.features,
-        usageRates: data.usageRates,
+        usage_rates: data.usageRates,
         discounts: data.discounts,
         fields: data.fields,
         createdAt: data.createdAt,
@@ -63,11 +63,11 @@ interface PlanCreateSchema {
     title: string,
     price: number,
     currency: string,
-    billingCycle: BillingCycle,
+    billing_cycle: Period,
     description: string,
     level: number,
     features: string,
-    usageRates: UsageRate[],
+    usage_rates: UsageRate[],
     discounts: Discount[],
     fields: Record<string, any>,
 }
@@ -77,11 +77,11 @@ export function serializePlanFormData(data: PlanFormData): PlanCreateSchema {
         title: data.title,
         price: data.price,
         currency: data.currency.code,
-        billingCycle: data.billingCycle,
+        billing_cycle: data.billingCycle,
         description: data.description,
         level: data.level,
         features: data.features,
-        usageRates: data.usageRates,
+        usage_rates: data.usageRates,
         discounts: data.discounts,
         fields: data.fields,
     }

@@ -6,7 +6,7 @@ import {
 import {v4, validate} from "uuid";
 import {fromError} from "zod-validation-error";
 import {Discount, getSelectedPlans, Plan} from "../../../../plan";
-import {BillingCycle, getAllBillingCycles} from "../../../../other/billing-cycle";
+import {Period} from "../../../../other/billing-cycle";
 
 export interface SelectionItem<T> {
     title: string,
@@ -19,12 +19,12 @@ export interface UsageInputSchema {
     unit: string,
     availableUnits: number,
     usedUnits: number,
-    renewCycle: SelectionItem<BillingCycle>,
+    renewCycle: SelectionItem<Period>,
 }
 
 export interface InputSchema {
     subscriberId: string,
-    selectedBillingCycle: SelectionItem<BillingCycle> | null,
+    selectedBillingCycle: SelectionItem<Period> | null,
     selectedPlan: SelectionItem<Plan> | null,
     selectedStatus: SelectionItem<SubscriptionStatus>,
     discounts: Discount[],
@@ -95,7 +95,7 @@ export function validateInputSchema(data: InputSchema): ValidationResult {
             Discount.parse(discount)
         } catch (err) {
             const discountValidationError = fromError(err)
-            result.discounts[discount.id] = discountValidationError.toString()
+            result.discounts[discount.code] = discountValidationError.toString()
                 .split("Validation error: ")[1]
                 .split(";")
             result.validated = false
@@ -129,7 +129,7 @@ function convertUsageToSchema(data: Usage): UsageInputSchema {
         unit: data.unit,
         availableUnits: data.availableUnits,
         usedUnits: data.usedUnits,
-        renewCycle: {title: data.renewCycle.title, code: data.renewCycle.code, value: data.renewCycle},
+        renewCycle: {title: data.renewCycle, code: data.renewCycle, value: data.renewCycle},
     }
 }
 
@@ -147,8 +147,8 @@ export function convertFormDataToInputSchema(data: SubscriptionFormData): InputS
     return {
         subscriberId: data.subscriberId,
         selectedBillingCycle: {
-            title: data.plan.billingCycle.title,
-            code: data.plan.billingCycle.code, value:
+            title: data.plan.billingCycle,
+            code: data.plan.billingCycle, value:
             data.plan.billingCycle,
         },
         selectedPlan: {
@@ -171,7 +171,7 @@ export function convertFormDataToInputSchema(data: SubscriptionFormData): InputS
 
 export function convertInputSchemaToFormData(schema: InputSchema): SubscriptionFormData {
     const plan = {...schema.selectedPlan!.value}
-    plan.billingCycle = {...schema.selectedBillingCycle!.value}
+    plan.billingCycle = schema.selectedBillingCycle!.value
     plan.discounts = schema.discounts
     return {
         lastBilling: schema.lastBilling,
@@ -219,8 +219,8 @@ export function getAllStatuses() {
 }
 
 export function getAllPeriods() {
-    const periods = getAllBillingCycles()
-    return periods.map(item => ({title: item.title, code: item.code, value: item}))
+    const periods = [Period.enum.Annual]
+    return periods.map(item => ({title: item, code: item, value: item}))
 }
 
 
@@ -231,13 +231,13 @@ export function createUsageObject(plans: Plan[]): Record<string, UsageInputSchem
         for (let usageRate of plan.usageRates) {
             result[plan.id].push(
                 {
-                    resource: usageRate.resource,
+                    resource: usageRate.code,
                     availableUnits: usageRate.availableUnits,
                     unit: usageRate.unit,
                     usedUnits: 0,
                     renewCycle: {
-                        title: usageRate.renewCycle.title,
-                        code: usageRate.renewCycle.code,
+                        title: usageRate.renewCycle,
+                        code: usageRate.renewCycle,
                         value: usageRate.renewCycle
                     },
                 }

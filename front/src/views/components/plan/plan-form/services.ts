@@ -1,9 +1,9 @@
 import {Discount, PlanFormData, UsageRate} from "../../../../plan";
 import {fromError} from "zod-validation-error";
 import {ZodError} from "zod";
-import {BillingCycle} from "../../../../other/billing-cycle";
 import {Currency} from "../../../../other/currency";
 import {safeArrayParsing} from "../../../../utils/other.ts";
+import {Period} from "../../../../other/billing-cycle";
 
 
 export interface PlanFormDataValidationResult {
@@ -24,7 +24,7 @@ export interface InputSchema {
     title: string,
     price: number,
     currency: Currency,
-    billingCycle: BillingCycle,
+    billingCycle: Period,
     description: string,
     level: number,
     features: string,
@@ -99,7 +99,7 @@ export function validatePlanFormData(data: InputSchema): PlanFormDataValidationR
             UsageRate.parse(usageRate)
         } catch (err) {
             const usageValidationError = fromError(err);
-            result.usageRates[usageRate.resource] = usageValidationError.toString()
+            result.usageRates[usageRate.code] = usageValidationError.toString()
                 .split("Validation error: ")[1]
                 .split(";")
             result.validated = false
@@ -111,7 +111,7 @@ export function validatePlanFormData(data: InputSchema): PlanFormDataValidationR
             Discount.parse(discount)
         } catch (err) {
             const discountValidationError = fromError(err)
-            result.discounts[discount.id] = discountValidationError.toString()
+            result.discounts[discount.code] = discountValidationError.toString()
                 .split("Validation error: ")[1]
                 .split(";")
             result.validated = false

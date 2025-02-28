@@ -16,18 +16,20 @@ class AuthGateway {
 
     async updateEmail(data: UpdateEmailForm) {
         console.log("updateEmail", data)
+        throw Error("NotImpl")
     }
 
     async verifyEmail(code: string) {
         console.log("verifyEmail", code)
+        throw Error("NotImpl")
     }
 
     async updatePassword(data: UpdatePasswordForm) {
         console.log("updatePassword", data)
+        throw Error("NotImpl")
     }
 
     async login(username: string, password: string) {
-        console.log("login")
         const url = `/auth/jwt/login`
         const headers = {
             "Content-Type": "application/x-www-form-urlencoded",
@@ -37,15 +39,12 @@ class AuthGateway {
         data.append("grant_type", "password")
         data.append("username", username)
         data.append("password", password)
-        data.append("scope", "")
-        data.append("scope", "");
-        data.append("client_id", "");
-        data.append("client_secret", "");
         await axiosInstance.post(url, data, {headers})
     }
 
     async logout() {
         console.log("logout")
+        throw Error("NotImpl")
     }
 }
 
@@ -57,6 +56,7 @@ export function getAuthGateway(): AuthGateway {
 export const useAuthStore = defineStore("useAuthStore", () => {
     const myself: Ref<AuthUser | null> = ref(null)
 
+    window.addEventListener("logout", () => myself.value = null)
 
     return {
         myself

@@ -1,7 +1,7 @@
 import {z} from "zod";
 import {Plan} from "../plan";
 import {recursive} from "../utils/other.ts";
-import {BillingCycle} from "../other/billing-cycle";
+import {Period} from "../other/billing-cycle";
 
 
 export const SubscriptionStatus = z.enum(["Active", "Paused"])
@@ -12,7 +12,7 @@ export const Usage = z.object({
     unit: z.string().min(1),
     availableUnits: z.number().gte(0),
     usedUnits: z.number().gte(0),
-    renewCycle: BillingCycle,
+    renewCycle: Period,
 }).strict()
 
 export const Subscription = z.object({
