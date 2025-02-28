@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import {useTopMenu} from "./store.ts";
 import {logout} from "../../../../auth";
+import {useRouter} from "vue-router";
 
 const store = useTopMenu()
+const router = useRouter()
 
 const onLogout = async () => {
   await logout()
+  await router.push({name: "Login"})
 }
 </script>
 

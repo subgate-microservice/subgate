@@ -13,6 +13,10 @@ class AuthGateway {
         return safeParsing(AuthUser, {id: userinfo.sub, email: userinfo.email})
     }
 
+    async preloadAuth() {
+        throw Error("NotImpl")
+    }
+
     async updateEmail(data: UpdateEmailForm) {
         const tokenInfo = getAsNotNullable(fiefAuth.getTokenInfo())
         await fiefClient.emailChange(tokenInfo.access_token, data.email)
@@ -28,12 +32,63 @@ class AuthGateway {
         await fiefClient.changePassword(tokenInfo.access_token, data.newPassword)
     }
 
-    async login() {
+    async login(_login?: string, _password?: string) {
         await goToFiefLoginPage()
     }
 
     async logout() {
         await fiefLogout()
+    }
+}
+
+class FastAPIUsersAuthGateway extends AuthGateway {
+    private authUser: AuthUser | null = null;
+
+    getCurrentAuth(): AuthUser | null {
+        return this.authUser
+    }
+
+    async preloadAuth() {
+        if (this.authUser === null) {
+            console.log("load myself")
+            const url = "/users/me"
+            const response = await axiosInstance.get(url)
+            this.authUser = AuthUser.parse({id: response.data.id, email: response.data.email})
+        }
+    }
+
+    async updateEmail(data: UpdateEmailForm) {
+        console.log("updateEmail", data)
+    }
+
+    async verifyEmail(code: string) {
+        console.log("verifyEmail", code)
+    }
+
+    async updatePassword(data: UpdatePasswordForm) {
+        console.log("updatePassword", data)
+    }
+
+    async login(username: string, password: string) {
+        console.log("login")
+        const url = `/auth/jwt/login`
+        const headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept": "application/json",
+        }
+        const data = new URLSearchParams();
+        data.append("grant_type", "password")
+        data.append("username", username)
+        data.append("password", password)
+        data.append("scope", "")
+        data.append("scope", "");
+        data.append("client_id", "");
+        data.append("client_secret", "");
+        await axiosInstance.post(url, data, {headers})
+    }
+
+    async logout() {
+        console.log("logout")
     }
 }
 
@@ -72,8 +127,8 @@ export class FakeAuthGateway extends AuthGateway {
     }
 }
 
-export function getAuthGateway() {
-    return new AuthGateway()
+export function getAuthGateway(): AuthGateway {
+    return new FastAPIUsersAuthGateway()
 }
 
 

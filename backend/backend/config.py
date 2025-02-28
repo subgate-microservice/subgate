@@ -20,7 +20,7 @@ ENCRYPTOR_PASS = os.getenv("ENCRYPTOR_PASS")
 
 POSTGRES_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
-USER_EMAIL = os.getenv("USER_EMAIL", "test@test.com")
-USER_PASSWORD = os.getenv("USER_EMAIL", "qwerty")
-USER_APIKEY = os.getenv("USER_APIKEY", "TEST_APIKEY_VALUE")
-USER_APIKEY_TITLE = os.getenv("USER_APIKEY_TITLE", "First apikey")
+USER_EMAIL = os.getenv("USER_EMAIL")
+USER_PASSWORD = os.getenv("USER_PASSWORD")
+USER_APIKEY = os.getenv("USER_APIKEY")
+USER_APIKEY_TITLE = os.getenv("USER_APIKEY_TITLE")

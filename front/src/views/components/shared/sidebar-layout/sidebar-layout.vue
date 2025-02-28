@@ -81,6 +81,7 @@ const sidebarWidth = "14rem"
   display: flex;
   justify-content: center;
   width: calc(100vw - 2 * v-bind(sidebarWidth));
+  height: calc(100vh - v-bind(headerHeight));
 }
 
 .inner-content{

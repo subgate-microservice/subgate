@@ -8,6 +8,7 @@ export const axiosInstance = axios.create(
         headers: {
             "Accept": "application/json",
             ...getAuthHeaders(),
-        }
+        },
+        withCredentials: true,
     }
 )

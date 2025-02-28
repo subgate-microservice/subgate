@@ -3,12 +3,13 @@ import SidebarLayout from "./views/components/shared/sidebar-layout/sidebar-layo
 import SidebarMenu from "./views/components/shared/sidebar-menu/sidebar-menu.vue";
 import {TopMenu, TopLogo} from "./views/components/shared/top-menu";
 import {Toast} from "primevue";
+import {isAuthenticated} from "./auth";
 </script>
 
 <template>
   <div>
-    <Toast />
-    <sidebar-layout>
+    <Toast/>
+    <sidebar-layout v-if="isAuthenticated()">
       <template #logo>
         <top-logo class="pl-3"/>
       </template>
@@ -23,6 +24,9 @@ import {Toast} from "primevue";
         <router-view/>
       </template>
     </sidebar-layout>
+    <div class="h-screen" v-else>
+      <router-view/>
+    </div>
   </div>
 </template>
 
@@ -31,7 +35,6 @@ import {Toast} from "primevue";
   margin: 0;
   padding: 0;
   font-family: SansSerif, Arial, sans-serif;
-
 }
 
 </style>

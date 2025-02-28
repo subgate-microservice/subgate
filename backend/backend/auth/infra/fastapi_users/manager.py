@@ -2,7 +2,7 @@ import uuid
 from typing import Optional, AsyncGenerator
 
 from fastapi import Request, Depends
-from fastapi_users import BaseUserManager, FastAPIUsers, UUIDIDMixin, models, schemas
+from fastapi_users import BaseUserManager, FastAPIUsers, UUIDIDMixin, models
 from fastapi_users.authentication import (
     AuthenticationBackend,
     JWTStrategy, CookieTransport,
@@ -10,7 +10,6 @@ from fastapi_users.authentication import (
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from backend.auth.domain.auth_user import AuthUser
 from backend.auth.infra.fastapi_users.database import User
 
 SECRET = "SECRET"
@@ -19,19 +18,6 @@ SECRET = "SECRET"
 class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     reset_password_token_secret = SECRET
     verification_token_secret = SECRET
-
-    async def create(
-            self,
-            user_create: schemas.UC,
-            safe: bool = False,
-            request: Optional[Request] = None,
-    ) -> AuthUser:
-        result = await super().create(user_create, safe, request)
-        return AuthUser(id=str(result.id))
-
-    async def get_by_email(self, user_email: str) -> AuthUser:
-        result = await super().get_by_email(user_email)
-        return AuthUser(id=str(result.id))
 
     async def on_after_register(self, user: User, request: Optional[Request] = None):
         print(f"User {user.id} has registered.")

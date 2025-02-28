@@ -5,6 +5,10 @@ export async function goToLogin() {
     await getAuthGateway().login()
 }
 
+export async function login(login: string, password: string) {
+    await getAuthGateway().login(login, password)
+}
+
 export async function logout() {
     await getAuthGateway().logout()
     const event = new Event("logout")
