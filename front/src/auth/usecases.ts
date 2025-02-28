@@ -1,9 +1,6 @@
 import {ApikeyFormData, UpdateEmailForm, UpdatePasswordForm} from "./domain.ts";
-import {getApikeyGateway, getAuthGateway} from "./gateways.ts";
+import {getApikeyGateway, getAuthGateway, useAuthStore} from "./gateways.ts";
 
-export async function goToLogin() {
-    await getAuthGateway().login()
-}
 
 export async function login(login: string, password: string) {
     await getAuthGateway().login(login, password)
@@ -29,21 +26,12 @@ export async function updatePassword(data: UpdatePasswordForm) {
 }
 
 export async function deleteAccount() {
-
+    throw Error("NotImpl")
 }
 
-export function getCurrentAuthNullable() {
-    return getAuthGateway().getCurrentAuth()
-}
-
-export function getCurrentAuth() {
-    const user = getCurrentAuthNullable()
-    if (!user) throw Error("CurrentUser is null")
-    return user
-}
 
 export function isAuthenticated() {
-    return getCurrentAuthNullable() !== null
+    return useAuthStore().myself !== null
 }
 
 export function getAllApikeys() {

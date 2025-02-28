@@ -6,7 +6,7 @@ import MyWebhooks from "./views/pages/my-webhooks.vue";
 import MyAccount from "./views/pages/my-account.vue";
 import MyApikeys from "./views/pages/my-apikeys.vue";
 import FastapiLogin from "./views/pages/fastapi-login.vue";
-import {getAuthGateway} from "./auth/gateways.ts";
+import {getAuthGateway, useAuthStore} from "./auth/gateways.ts";
 
 
 export const router = createRouter({
@@ -84,11 +84,11 @@ router.beforeEach(async (to,) => {
     // Незалогиненный пользователь на странице сайта => отправить на страницу логина
     if (!publicRoutes.has(to.name as string) && !isAuthenticated()) {
         try {
-            await getAuthGateway().preloadAuth()
+            useAuthStore().myself = await getAuthGateway().getMyself()
+            return
         } catch (err) {
             return {name: "Login"}
         }
-        return
     }
 
     // Залогиненный пользователь на странице логина => отправить на главную

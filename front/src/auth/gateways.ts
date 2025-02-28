@@ -1,60 +1,17 @@
 import {Apikey, ApikeyFormData, AuthUser, UpdateEmailForm, UpdatePasswordForm} from "./domain.ts";
-import {getAsNotNullable, safeArrayParsing, safeParsing} from "../utils/other.ts";
-import {fiefAuth, fiefClient, goToFiefLoginPage, fiefLogout} from "./fief.ts";
+import {safeArrayParsing, safeParsing} from "../utils/other.ts";
 import {v4} from "uuid";
 import {authRequest} from "./auth-request.ts";
 import {axiosInstance} from "../axios-instanse.ts";
+import {defineStore} from "pinia";
+import {ref, Ref} from "vue";
 
 
 class AuthGateway {
-    getCurrentAuth(): AuthUser | null {
-        const userinfo = fiefAuth.getUserinfo()
-        if (userinfo === null) return null
-        return safeParsing(AuthUser, {id: userinfo.sub, email: userinfo.email})
-    }
-
-    async preloadAuth() {
-        throw Error("NotImpl")
-    }
-
-    async updateEmail(data: UpdateEmailForm) {
-        const tokenInfo = getAsNotNullable(fiefAuth.getTokenInfo())
-        await fiefClient.emailChange(tokenInfo.access_token, data.email)
-    }
-
-    async verifyEmail(code: string) {
-        const tokenInfo = getAsNotNullable(fiefAuth.getTokenInfo())
-        await fiefClient.emailVerify(tokenInfo.access_token, code)
-    }
-
-    async updatePassword(data: UpdatePasswordForm) {
-        const tokenInfo = getAsNotNullable(fiefAuth.getTokenInfo())
-        await fiefClient.changePassword(tokenInfo.access_token, data.newPassword)
-    }
-
-    async login(_login?: string, _password?: string) {
-        await goToFiefLoginPage()
-    }
-
-    async logout() {
-        await fiefLogout()
-    }
-}
-
-class FastAPIUsersAuthGateway extends AuthGateway {
-    private authUser: AuthUser | null = null;
-
-    getCurrentAuth(): AuthUser | null {
-        return this.authUser
-    }
-
-    async preloadAuth() {
-        if (this.authUser === null) {
-            console.log("load myself")
-            const url = "/users/me"
-            const response = await axiosInstance.get(url)
-            this.authUser = AuthUser.parse({id: response.data.id, email: response.data.email})
-        }
+    async getMyself(): Promise<AuthUser> {
+        const url = "/users/me"
+        const response = await axiosInstance.get(url)
+        return AuthUser.parse({id: response.data.id, email: response.data.email})
     }
 
     async updateEmail(data: UpdateEmailForm) {
@@ -92,45 +49,19 @@ class FastAPIUsersAuthGateway extends AuthGateway {
     }
 }
 
-export class FakeAuthGateway extends AuthGateway {
-    private readonly currentUser: AuthUser;
-    private loggedIn: boolean
-
-    constructor() {
-        super()
-        this.currentUser = {id: "91a517f0-6d78-4fe9-acaa-ac10fa8f139b", email: "fake@gmail.com"}
-        this.loggedIn = true
-    }
-
-    getCurrentAuth(): AuthUser | null {
-        return this.loggedIn ? {...this.currentUser} : null
-    }
-
-    async updateEmail(data: UpdateEmailForm): Promise<void> {
-        console.log(data)
-    }
-
-    async verifyEmail(code: string): Promise<void> {
-        console.log(code)
-    }
-
-    async updatePassword(data: UpdatePasswordForm): Promise<void> {
-        console.log(data)
-    }
-
-    async login() {
-        this.loggedIn = true
-    }
-
-    async logout(): Promise<void> {
-        this.loggedIn = false
-    }
-}
-
 export function getAuthGateway(): AuthGateway {
-    return new FastAPIUsersAuthGateway()
+    return new AuthGateway()
 }
 
+
+export const useAuthStore = defineStore("useAuthStore", () => {
+    const myself: Ref<AuthUser | null> = ref(null)
+
+
+    return {
+        myself
+    }
+})
 
 class ApikeyGateway {
     async getAll(): Promise<Apikey[]> {

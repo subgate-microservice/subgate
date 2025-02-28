@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {ref} from 'vue';
 import {Password, InputText} from "primevue";
-import {isAuthenticated, login} from "../../../auth";
+import {login} from "../../../auth";
 import {useRouter} from "vue-router";
 
 const router = useRouter()
