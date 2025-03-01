@@ -1,1 +1,0 @@
-export {default as PlanForm} from "../../../../core/forms/plan-form.vue"

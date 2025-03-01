@@ -1,1 +1,0 @@
-export {default as PlanInfo} from "./plan-info.vue"

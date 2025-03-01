@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import {Fieldset, DataTable, Column} from "primevue";
-import {MyJson} from "../../shared/my-json";
-import {getAmountString} from "../../../../other/currency";
-import {CopyButton} from "../../shared/copy-button";
-import {dateToString} from "../../../../utils/other.ts";
-import {Plan} from "../../../../core/domain.ts";
+import {MyJson} from "../../views/components/shared/my-json";
+import {CopyButton} from "../../views/components/shared/copy-button";
+import {dateToString} from "../../utils/other.ts";
+import {Plan} from "../domain.ts";
 
 const p = defineProps<{
   item: Plan,
