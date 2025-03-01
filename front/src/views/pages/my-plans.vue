@@ -43,11 +43,12 @@ const saveUpdatedPlan = async (data: PlanUpdate) => {
 }
 
 // Delete plan
-const selectedPlans: Ref<Plan[]> = ref([])
 const deleteOnePlan = async (item: Plan) => {
   await deletePlanById(item.id)
   findAndDelete(item, plans.value, x => x.id)
 }
+
+const selectedPlans: Ref<Plan[]> = ref([])
 const deleteSelected = async () => {
   const sby = {ids: selectedPlans.value.map(item => item.id)}
   await deleteSelectedPlans(sby)
