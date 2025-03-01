@@ -4,7 +4,7 @@ import {authRequest} from "../auth/auth-request.ts";
 import {axiosInstance} from "../axios-instanse.ts";
 import {planValidator} from "./validators.ts";
 
-export class PlanService {
+export class PlanRepo {
     async create(item: PlanCreate): Promise<Plan> {
         const url = "/plan"
         const data = toSnakeCase(item)

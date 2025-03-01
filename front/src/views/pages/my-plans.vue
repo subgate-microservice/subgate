@@ -12,7 +12,7 @@ import {findAndDelete, findAndReplace} from "../../utils/array-utils.ts";
 import {getAmountString} from "../../other/currency";
 import {ExpandedMenu} from "../components/shared/settings-menu";
 import {Plan, PlanCreate, PlanUpdate} from "../../core/domain.ts";
-import {PlanService} from "../../core/services.ts";
+import {PlanRepo} from "../../core/repositories.ts";
 import {PlanMapper} from "../../core/mappers.ts";
 
 
@@ -20,7 +20,7 @@ const topMenuStore = useTopMenu()
 topMenuStore.headerTitle = "Plans"
 
 const plans: Ref<Plan[]> = ref([])
-const planService = new PlanService()
+const planRepo = new PlanRepo()
 const planMapper = new PlanMapper()
 
 // View plan info
@@ -41,7 +41,7 @@ const cancelPlanCreating = () => {
   showCreatePlanDialog.value = false
 }
 const saveCreatedPlan = async (data: PlanCreate) => {
-  const created = await planService.create(data)
+  const created = await planRepo.create(data)
   plans.value = [...plans.value, created]
   showCreatePlanDialog.value = false
 }
@@ -55,7 +55,7 @@ const startPlanUpdating = (item: Plan) => {
   showUpdatePlanDialog.value = true
 }
 const saveUpdatedPlan = async (data: PlanUpdate) => {
-  await planService.update(data)
+  await planRepo.update(data)
   findAndReplace(data, plans.value, x => x.id)
   planForUpdate.value = null
   showUpdatePlanDialog.value = false
@@ -81,7 +81,7 @@ const deleteSelected = async () => {
 
 
 onMounted(async () => {
-  plans.value = await planService.getAll()
+  plans.value = await planRepo.getAll()
 });
 
 
