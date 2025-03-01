@@ -1,87 +1,51 @@
 <script setup lang="ts">
 import {Ref, ref} from 'vue';
-import {Discount, PlanFormData, UsageRate} from "../../../../plan";
 import {InputGroup} from "primevue";
-import {
-  blankPlanFormDataValidationResult, convertInputSchemaToPlanFormData,
-  convertPlanFormDataToInputSchema,
-  PlanFormDataValidationResult,
-  validatePlanFormData
-} from "./services.ts";
-import {
-  Period,
-} from "../../../../other/billing-cycle";
-import {getAllCurrencies, getCurrencyByCode} from "../../../../other/currency";
+
 import PeriodSelector from "../../../../core/components/period-selector.vue";
 import DiscountManager from "../../../../core/components/discount-manager.vue";
 import UsageRateManager from "../../../../core/components/usage-rate-manager.vue";
+import {isEmpty, recursive} from "../../../../utils/other.ts";
+import {PlanCreateErrors, PlanCreateValidationResult, validatePlanCreate} from "../../../../core/validators.ts";
+import {Period, PlanCreate} from "../../../../core/domain.ts";
 
 
 interface P {
-  initData?: PlanFormData,
+  initData?: PlanCreate,
 }
 
 const p = withDefaults(defineProps<P>(), {
   initData: () => ({
-    title: "Hello World!",
-    price: 110,
-    currency: getCurrencyByCode("USD"),
+    title: "string",
+    price: 100,
+    currency: "USD",
     billingCycle: Period.enum.Monthly,
-    description: "Test description",
-    level: 1,
-    features: "My first feature",
+    description: "",
+    level: 10,
+    features: "",
     usageRates: [],
+    fields: {},
     discounts: [],
-    fields: {name: "Jack",},
   })
 })
 
 const e = defineEmits<{
-  (e: "submit", data: PlanFormData): void,
+  (e: "submit", data: PlanCreate): void,
   (e: "cancel"): void,
 }>()
 
 
-const inputSchema = ref(convertPlanFormDataToInputSchema(p.initData))
-const validationResult: Ref<PlanFormDataValidationResult> = ref(blankPlanFormDataValidationResult())
+const inputSchema = ref(recursive(p.initData))
+const validationResult: Ref<PlanCreateValidationResult> = ref(PlanCreateErrors())
 
 
-// Usage Rate
-const onAddUsageRate = () => {
-  inputSchema.value.usageRates.push(
-      {
-        title: "",
-        code: "",
-        unit: "",
-        availableUnits: 0,
-        renewCycle: inputSchema.value.billingCycle,
-      }
-  )
-}
-const onDeleteUsageRate = (item: UsageRate) => {
-  inputSchema.value.usageRates = inputSchema.value.usageRates.filter(x => x !== item)
-}
-
-// Discount
-const createNewDiscount = () => {
-  inputSchema.value.discounts.push({
-    title: "",
-    code: "",
-    description: "",
-    size: 0,
-    validUntil: new Date(),
-  })
-}
-const deleteDiscount = (value: Discount) => {
-  inputSchema.value.discounts = inputSchema.value.discounts.filter(item => item.code != value.code)
-}
-
+const valid = ref({discounts: true})
 
 const onSubmit = () => {
-  validationResult.value = validatePlanFormData(inputSchema.value)
-  if (validationResult.value.validated) {
-    const data = convertInputSchemaToPlanFormData(inputSchema.value)
-    e("submit", data)
+  validationResult.value = validatePlanCreate(inputSchema.value)
+  if (!isEmpty(validationResult.value)) {
+    console.log("success")
+    // e("submit", data)
   } else {
     console.error(validationResult.value)
   }
@@ -137,8 +101,7 @@ const onCancel = () => {
           <IftaLabel class="w-1/4">
             <Select
                 v-model="inputSchema.currency"
-                :options="getAllCurrencies()"
-                optionLabel="name"
+                :options="['USD', 'EUR']"
                 placeholder="Currency"
                 id="Currency"
             />
@@ -176,28 +139,9 @@ const onCancel = () => {
       </div>
 
 
-      <!--JsonFields text area-->
-      <div class="w-full h-[10rem]">
-        <IftaLabel class="h-full">
-          <Textarea
-              id="json_input"
-              v-model="inputSchema.fields"
-              style="resize: none;"
-              class="w-full h-full"
-              placeholder="Enter json data"
-          />
-          <label for="json_input">Fields</label>
-        </IftaLabel>
-        <Message severity="error" size="small" variant="simple" v-for="err in validationResult.fields" class="mt-1">
-          {{ err }}
-        </Message>
-      </div>
-
-      <!--UsageLimits-->
       <usage-rate-manager :usage-rates="inputSchema.usageRates"/>
-
-      <!--Discounts-->
-      <discount-manager :discounts="inputSchema.discounts"/>
+      <discount-manager :discounts="inputSchema.discounts" v-model:validated="valid.discounts"/>
+      {{ valid.discounts }}
 
       <div class="flex flex-wrap gap-2">
         <Button

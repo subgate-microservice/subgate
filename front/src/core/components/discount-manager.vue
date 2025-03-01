@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import {InputGroup} from "primevue";
 import {Discount} from "../domain.ts";
-import {ref, Ref} from "vue";
+import {computed, watch} from "vue";
+import {z} from "zod";
+import {fromError} from "zod-validation-error";
 
 interface P {
-  discounts: Discount[]
+  discounts?: Discount[]
 }
 
 const p = withDefaults(defineProps<P>(), {
   discounts: () => [],
 })
-
-const validationErrors: Ref<Record<string, string[]>> = ref({})
 
 const addDiscount = () => {
   p.discounts.push({
@@ -25,6 +25,36 @@ const addDiscount = () => {
 const removeDiscount = (value: Discount) => {
   p.discounts.splice(p.discounts.indexOf(value), 1)
 }
+
+const validated = defineModel("validated", {default: true})
+
+const validationErrors = computed(() => {
+  const result: Record<any, any> = {}
+
+  const validator = z.object({
+    title: z.string().min(2),
+    code: z.string().min(2),
+    description: z.string().optional(),
+    size: z.number(),
+    validUntil: z.date(),
+  })
+
+  for (let discount of p.discounts) {
+    try {
+      validator.parse(discount)
+    } catch (err) {
+      const discountValidationError = fromError(err)
+      result[discount.code] = discountValidationError
+          .toString()
+          .split("Validation error: ")[1]
+          .split(";")
+    }
+  }
+  return result
+})
+
+watch(validationErrors, () => validated.value = Object.keys(validationErrors.value).length <= 0)
+
 </script>
 
 <template>
@@ -73,8 +103,13 @@ const removeDiscount = (value: Discount) => {
             @click="removeDiscount(item)"
         />
       </InputGroup>
-      <Message severity="error" size="small" variant="simple" v-for="err in validationErrors[item.code]"
-               class="mt-1">
+      <Message
+          v-for="err in validationErrors[item.code]"
+          severity="error"
+          size="small"
+          variant="simple"
+          class="mt-1"
+      >
         {{ err }}
       </Message>
     </div>
