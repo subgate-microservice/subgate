@@ -37,8 +37,8 @@ const saveCreatedPlan = async (data: PlanCreate) => {
 
 
 const saveUpdatedPlan = async (data: PlanUpdate) => {
-  await planRepo.update(data)
-  findAndReplace(data, plans.value, x => x.id)
+  const updated = await planRepo.update(data)
+  findAndReplace(updated, plans.value, x => x.id)
   updateDialog.finishUpdate()
 }
 
