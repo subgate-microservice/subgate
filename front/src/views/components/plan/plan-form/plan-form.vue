@@ -57,7 +57,7 @@ watch(simpleFieldErrors, () => {
 });
 
 const onSubmit = () => {
-  if (Object.values(valid.value).every(Boolean)) emit("submit", formData.value);
+  if (Object.values(valid.value).every(v => v)) emit("submit", formData.value);
 };
 </script>
 
