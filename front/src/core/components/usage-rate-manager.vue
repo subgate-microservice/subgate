@@ -1,21 +1,18 @@
 <script setup lang="ts">
-
-import {InputGroup} from "primevue";
-import PeriodSelector from "./period-selector.vue";
-import {Period, UsageRate} from "../domain.ts";
-import {computed, watch} from "vue";
+import { computed, watch } from "vue";
 import {z} from "zod";
-import {fromError} from "zod-validation-error";
+import { fromError } from "zod-validation-error";
+import { InputGroup, InputText, InputNumber, Button, Message } from "primevue";
+import PeriodSelector from "./period-selector.vue";
+import { Period, UsageRate } from "../domain.ts";
 
-interface P {
-  usageRates?: UsageRate[]
-  basePeriod?: Period,
+interface Props {
+  usageRates: UsageRate[];
+  basePeriod: Period;
 }
 
-const p = withDefaults(defineProps<P>(), {
-  usageRates: () => [],
-  basePeriod: Period.enum.Monthly,
-})
+const p = defineProps<Props>();
+const validated = defineModel("validated", { default: true });
 
 const addRate = () => {
   p.usageRates.push({
@@ -24,41 +21,40 @@ const addRate = () => {
     unit: "",
     availableUnits: 0,
     renewCycle: p.basePeriod,
-  })
-}
+  });
+};
 
-const removeRate = (rate: UsageRate) => {
-  p.usageRates.splice(p.usageRates.indexOf(rate), 1)
-}
+const removeRate = (item: UsageRate) => {
+  const index = p.usageRates.indexOf(item)
+  p.usageRates.splice(index, 1);
+};
 
-const validated = defineModel("validated", {default: true})
-
+const validator = z.object({
+  title: z.string().min(2, "Title must be at least 2 characters"),
+  code: z.string().min(2, "Code must be at least 2 characters"),
+  unit: z.string().min(2, "Unit must be at least 2 characters")
+});
 
 const validationErrors = computed(() => {
-  const result: Record<any, any> = {}
-
-  const validator = z.object({
-    title: z.string().min(2),
-    code: z.string().min(2),
-  })
-
-  for (let rate of p.usageRates) {
+  return p.usageRates.map((rate) => {
     try {
-      validator.parse(rate)
+      validator.parse(rate);
+      return [];
     } catch (err) {
-      const rateValidationError = fromError(err)
-      result[rate.code] = rateValidationError
+      return fromError(err)
           .toString()
           .split("Validation error: ")[1]
-          .split(";")
+          .split(";");
     }
-  }
-  return result
-})
-watch(validationErrors, () => validated.value = Object.keys(validationErrors.value).length <= 0)
+  });
+});
 
 
+watch(validationErrors, () => {
+  validated.value = validationErrors.value.every((err) => !err);
+});
 </script>
+
 
 <template>
   <div class="w-full mt-4">
@@ -71,7 +67,7 @@ watch(validationErrors, () => validated.value = Object.keys(validationErrors.val
       There are no usage rate parameters
     </div>
 
-    <div v-for="item in p.usageRates">
+    <div v-for="(item, i) in p.usageRates">
       <InputGroup class="mt-2">
 
         <IftaLabel class="flex-grow">
@@ -106,8 +102,8 @@ watch(validationErrors, () => validated.value = Object.keys(validationErrors.val
         />
       </InputGroup>
       <Message
-          severity="error" size="small" variant="simple" class="mt-1"
-          v-for="err in validationErrors[item.code]"
+          v-for="err in validationErrors[i]"
+          severity="error" size="small" class="mt-1"
       >
         {{ err }}
       </Message>
@@ -115,6 +111,4 @@ watch(validationErrors, () => validated.value = Object.keys(validationErrors.val
   </div>
 </template>
 
-<style scoped>
-
-</style>
+<style scoped></style>

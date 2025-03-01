@@ -103,7 +103,11 @@ const onSubmit = () => {
       <label>Features</label>
     </IftaLabel>
 
-    <UsageRateManager v-model:validated="valid.usageRates" :usage-rates="formData.usageRates" />
+    <UsageRateManager
+        v-model:validated="valid.usageRates"
+        :usage-rates="formData.usageRates"
+        :base-period="formData.billingCycle"
+    />
     <DiscountManager v-model:validated="valid.discounts" :discounts="formData.discounts" />
 
     <div class="flex flex-wrap gap-2">
