@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import {computed, Ref, ref, watch} from 'vue';
 import { InputGroup } from "primevue";
-import PeriodSelector from "../../../../core/components/period-selector.vue";
-import DiscountManager from "../../../../core/components/discount-manager.vue";
-import UsageRateManager from "../../../../core/components/usage-rate-manager.vue";
-import { recursive } from "../../../../utils/other.ts";
-import { Period, PlanCreate } from "../../../../core/domain.ts";
+import PeriodSelector from "../components/period-selector.vue";
+import DiscountManager from "../components/discount-manager.vue";
+import UsageRateManager from "../components/usage-rate-manager.vue";
+import { recursive } from "../../utils/other.ts";
+import { Period, PlanCreate } from "../domain.ts";
 import { z, ZodError } from "zod";
 
 interface Props {
@@ -19,7 +19,7 @@ const defaultData: PlanCreate = {
   title: "string",
   price: 100,
   currency: "USD",
-  billingCycle: Period.enum.Monthly,
+  billingCycle: Period.enum.monthly,
   description: "",
   level: 10,
   features: "",
@@ -28,7 +28,7 @@ const defaultData: PlanCreate = {
   discounts: [],
 };
 
-const formData = ref(recursive(props.initData ?? defaultData));
+const formData: Ref<PlanCreate> = ref(recursive(props.initData ?? defaultData));
 const valid = ref({ discounts: true, simpleFields: true, usageRates: true });
 
 const validator = z.object({

@@ -6,22 +6,24 @@ import {ToolbarButtons} from "../components/shared/toolbar-menu";
 import {
   formToPlan,
   planToForm,
-  createPlan, deletePlanById, deleteSelectedPlans, getSelectedPlans,
-  Plan,
+  deletePlanById, deleteSelectedPlans,
   PlanFormData,
   updatePlan
 } from "../../plan";
 import {PlanInfo} from "../components/plan/plan-info";
-import {PlanForm} from "../components/plan/plan-form";
+import PlanForm from "../../core/forms/plan-form.vue";
 import {findAndDelete, findAndReplace} from "../../utils/array-utils.ts";
 import {getAmountString} from "../../other/currency";
 import {ExpandedMenu} from "../components/shared/settings-menu";
+import {Plan, PlanCreate} from "../../core/domain.ts";
+import {PlanService} from "../../core/services.ts";
 
 
 const topMenuStore = useTopMenu()
 topMenuStore.headerTitle = "Plans"
 
 const plans: Ref<Plan[]> = ref([])
+const planService = new PlanService()
 
 // View plan info
 const showPlanInfo = ref(false)
@@ -33,15 +35,15 @@ const openFullInfo = (item: Plan) => {
 
 
 // Create plan
-const showCreatePlanDialog = ref(true)
+const showCreatePlanDialog = ref(false)
 const startCreating = () => {
   showCreatePlanDialog.value = true
 }
 const cancelPlanCreating = () => {
   showCreatePlanDialog.value = false
 }
-const saveCreatedPlan = async (data: PlanFormData) => {
-  const created = await createPlan(data)
+const saveCreatedPlan = async (data: PlanCreate) => {
+  const created = await planService.create(data)
   plans.value = [...plans.value, created]
   showCreatePlanDialog.value = false
 }
@@ -87,7 +89,7 @@ const deleteSelected = async () => {
 
 
 onMounted(async () => {
-  plans.value = await getSelectedPlans({})
+  plans.value = await planService.getAll()
 });
 
 
@@ -153,7 +155,7 @@ const COLUMN_STYLES = {
             {{ getAmountString(slotProps.data.currency, slotProps.data.price) }}
           </template>
         </Column>
-        <Column field="billingCycle.title" header="Billing cycle" :style="COLUMN_STYLES.billingCycleCol"></Column>
+        <Column field="billingCycle" header="Billing cycle" :style="COLUMN_STYLES.billingCycleCol"></Column>
         <Column field="level" header="Level" :style="COLUMN_STYLES.levelCol"></Column>
         <Column :style="COLUMN_STYLES.toolbarCol">
           <template #header>

@@ -1,13 +1,13 @@
 import {z} from "zod";
 
 export const Period = z.enum([
-    "Daily",
-    "Weekly",
-    "Monthly",
-    "Quarterly",
-    "Semiannual",
-    "Annual",
-    "Lifetime",
+    "daily",
+    "weekly",
+    "monthly",
+    "quarterly",
+    "semiannual",
+    "annual",
+    "lifetime",
 ])
 export type Period = z.infer<typeof Period>
 
