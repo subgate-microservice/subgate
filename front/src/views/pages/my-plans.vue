@@ -178,6 +178,6 @@ const COLUMN_STYLES = {
 
 <style scoped>
 .table-height {
-  height: calc(100vh - 14rem);
+  height: calc(100vh - 7rem);
 }
 </style>
