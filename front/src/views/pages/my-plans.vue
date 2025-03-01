@@ -4,19 +4,16 @@ import {DataTable, Column, Drawer} from "primevue";
 import {useTopMenu} from "../components/shared/top-menu";
 import {ToolbarButtons} from "../components/shared/toolbar-menu";
 import {
-  formToPlan,
-  planToForm,
   deletePlanById, deleteSelectedPlans,
-  PlanFormData,
-  updatePlan
 } from "../../plan";
 import {PlanInfo} from "../components/plan/plan-info";
 import PlanForm from "../../core/forms/plan-form.vue";
 import {findAndDelete, findAndReplace} from "../../utils/array-utils.ts";
 import {getAmountString} from "../../other/currency";
 import {ExpandedMenu} from "../components/shared/settings-menu";
-import {Plan, PlanCreate} from "../../core/domain.ts";
+import {Plan, PlanCreate, PlanUpdate} from "../../core/domain.ts";
 import {PlanService} from "../../core/services.ts";
+import {PlanMapper} from "../../core/mappers.ts";
 
 
 const topMenuStore = useTopMenu()
@@ -24,6 +21,7 @@ topMenuStore.headerTitle = "Plans"
 
 const plans: Ref<Plan[]> = ref([])
 const planService = new PlanService()
+const planMapper = new PlanMapper()
 
 // View plan info
 const showPlanInfo = ref(false)
@@ -51,20 +49,14 @@ const saveCreatedPlan = async (data: PlanCreate) => {
 
 // Update plan
 const showUpdatePlanDialog = ref(false)
-const planForUpdate: Ref<Plan | null> = ref(null)
+const planForUpdate: Ref<PlanUpdate | null> = ref(null)
 const startPlanUpdating = (item: Plan) => {
-  planForUpdate.value = item
+  planForUpdate.value = planMapper.toPlanUpdate(item)
   showUpdatePlanDialog.value = true
 }
-const saveUpdatedPlan = async (data: PlanFormData) => {
-  const updatedItem = formToPlan(
-      data,
-      planForUpdate.value!.id,
-      planForUpdate.value!.createdAt,
-      planForUpdate.value!.updatedAt,
-  )
-  await updatePlan(updatedItem)
-  findAndReplace(updatedItem, plans.value, x => x.id)
+const saveUpdatedPlan = async (data: PlanUpdate) => {
+  await planService.update(data)
+  findAndReplace(data, plans.value, x => x.id)
   planForUpdate.value = null
   showUpdatePlanDialog.value = false
 }
@@ -189,7 +181,7 @@ const COLUMN_STYLES = {
     <Dialog header="Update plan" v-model:visible="showUpdatePlanDialog" modal>
       <plan-form
           v-if="planForUpdate"
-          :init-data="planToForm(planForUpdate)"
+          :init-data="planForUpdate"
           @submit="saveUpdatedPlan"
           @cancel="cancelUpdatePlan"
       />

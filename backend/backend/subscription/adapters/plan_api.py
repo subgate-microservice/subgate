@@ -20,14 +20,14 @@ async def create_one(
         plan_create: PlanCreate,
         auth_user: AuthUser = Depends(auth_closure),
         container: Bootstrap = Depends(get_container),
-) -> str:
+) -> PlanId:
     async with container.unit_of_work_factory().create_uow() as uow:
         plan = plan_create.to_plan(auth_user.id)
         await create_plan(plan, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
     container.telegraph().wake_worker()
-    return "Ok"
+    return plan.id
 
 
 @plan_router.get("/{plan_id}")

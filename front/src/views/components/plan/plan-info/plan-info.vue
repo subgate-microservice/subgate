@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import {Fieldset, DataTable, Column} from "primevue";
-import {Plan} from "../../../../plan";
 import {MyJson} from "../../shared/my-json";
 import {getAmountString} from "../../../../other/currency";
 import {CopyButton} from "../../shared/copy-button";
 import {dateToString} from "../../../../utils/other.ts";
+import {Plan} from "../../../../core/domain.ts";
 
 const p = defineProps<{
   item: Plan,
@@ -43,7 +43,7 @@ const p = defineProps<{
         <li class="flex items-center py-4 px-2 border-t border-surface flex-wrap">
           <div class="text-surface-500 dark:text-surface-300 w-6/12 md:w-2/12 font-medium">Price</div>
           <div class="text-surface-900 dark:text-surface-0 w-full md:w-8/12 md:order-none order-1">
-            {{ getAmountString(p.item.currency, p.item.price) }}
+            {{ p.item.price }} {{ p.item.currency }}
           </div>
         </li>
 
