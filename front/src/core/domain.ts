@@ -98,7 +98,7 @@ export interface Subscription {
     planInfo: PlanInfo
     billingInfo: BillingInfo
     status: SubscriptionStatus
-    pausedFrom?: Date
+    pausedFrom?: Date | null
     autorenew: boolean
     usages: Usage[]
     discounts: Discount[]

@@ -6,7 +6,7 @@ import {
     Subscription,
     SubscriptionCreate,
     SubscriptionStatus,
-    Usage
+    Usage, UsageRate
 } from "./domain.ts";
 import {v4} from "uuid";
 
@@ -29,6 +29,19 @@ export function blankUsage(): Usage {
         lastRenew: new Date(),
         usedUnits: 0,
         renewCycle: Period.enum.lifetime,
+    }
+}
+
+
+export function usageFromUsageRate(rate: UsageRate): Usage {
+    return {
+        title: rate.title,
+        code: rate.code,
+        unit: rate.unit,
+        availableUnits: rate.availableUnits,
+        renewCycle: rate.renewCycle,
+        lastRenew: new Date(),
+        usedUnits: 0,
     }
 }
 
@@ -59,7 +72,7 @@ export function blankSubscription(): Subscription {
         planInfo: blankPlanInfo(),
         billingInfo: blankBillingInfo(),
         status: SubscriptionStatus.Active,
-        pausedFrom: undefined,
+        pausedFrom: null,
         discounts: [],
         usages: [],
         fields: {},
@@ -76,7 +89,7 @@ export function blankSubscriptionCreate(): SubscriptionCreate {
         planInfo: blankPlanInfo(),
         billingInfo: blankBillingInfo(),
         status: SubscriptionStatus.Active,
-        pausedFrom: undefined,
+        pausedFrom: null,
         discounts: [],
         usages: [],
         fields: {},

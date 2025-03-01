@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {onMounted, ref, Ref} from "vue";
+import {ref, Ref} from "vue";
 import {recursive} from "../../../../utils/other.ts";
 import {
   SubscriptionCreate,
@@ -8,6 +8,9 @@ import {
 import {blankSubscriptionCreate} from "../../../../core/factories.ts";
 import PlanSelector from "./plan-selector.vue";
 import DiscountManager from "../../../../core/components/discount-manager.vue";
+import UsageRateManager from "../../../../core/components/usage-rate-manager.vue";
+import StatusSelector from "./status-selector.vue";
+import BillingInfo from "./billing-info.vue";
 
 
 const e = defineEmits<{
@@ -27,16 +30,12 @@ const validator = ref({discounts: true})
 
 
 const onSubmit = () => {
-  throw Error("NotImpl")
+  console.log(formData.value)
 };
 
 const onCancel = () => {
   e("cancel")
 }
-
-onMounted(async () => {
-
-})
 
 </script>
 
@@ -50,19 +49,32 @@ onMounted(async () => {
           <label for="subscriberId">Subscriber ID</label>
         </IftaLabel>
 
-        <!--Selected plan-->
-        <plan-selector/>
+        <plan-selector
+            :init-plan-id="formData.planInfo.id"
+            v-model:billing-info="formData.billingInfo"
+            v-model:usage-rates="formData.usages"
+            v-model:discounts="formData.discounts"
+        />
 
+        <status-selector
+            v-model:status="formData.status"
+            v-model:paused-from="formData.pausedFrom"
+        />
 
-        <div>
-          <!--Autorenew-->
-          <div class="flex gap-1 align-middle">
-            <Checkbox inputId="autorenew" binary v-model="formData.autorenew"/>
-            <label for="autorenew" class="cursor-pointer select-none"> Autorenew </label>
-          </div>
-        </div>
+        <billing-info
+            v-model:price="formData.billingInfo.price"
+            v-model:currency="formData.billingInfo.currency"
+            v-model:billing-cycle="formData.billingInfo.billingCycle"
+        />
 
-        <discount-manager :discounts="formData.discounts" v-model:validated="validator.discounts"/>
+        <discount-manager
+            :discounts="formData.discounts"
+            v-model:validated="validator.discounts"
+        />
+        <usage-rate-manager
+            :base-period="formData.billingInfo.billingCycle"
+            :usage-rates="formData.usages"
+        />
 
         <!--Navigate-->
         <div class="flex flex-wrap gap-2 mt-4">
