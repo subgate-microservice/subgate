@@ -14,6 +14,7 @@ import {ExpandedMenu} from "../components/shared/settings-menu";
 import {Plan, PlanCreate, PlanUpdate} from "../../core/domain.ts";
 import {PlanRepo} from "../../core/repositories.ts";
 import {PlanMapper} from "../../core/mappers.ts";
+import {useCreateDialogManager, useUpdateDialogManager} from "../../core/services.ts";
 
 
 const topMenuStore = useTopMenu()
@@ -23,46 +24,22 @@ const plans: Ref<Plan[]> = ref([])
 const planRepo = new PlanRepo()
 const planMapper = new PlanMapper()
 
-// View plan info
-const showPlanInfo = ref(false)
-const planWithFullInfo: Ref<Plan | null> = ref(null);
-const openFullInfo = (item: Plan) => {
-  planWithFullInfo.value = item
-  showPlanInfo.value = true
-}
+const createDialog = useCreateDialogManager()
+const updateDialog = useUpdateDialogManager<PlanUpdate>()
+const infoDialog = useUpdateDialogManager<Plan>()
 
 
-// Create plan
-const showCreatePlanDialog = ref(false)
-const startCreating = () => {
-  showCreatePlanDialog.value = true
-}
-const cancelPlanCreating = () => {
-  showCreatePlanDialog.value = false
-}
 const saveCreatedPlan = async (data: PlanCreate) => {
   const created = await planRepo.create(data)
   plans.value = [...plans.value, created]
-  showCreatePlanDialog.value = false
+  createDialog.closeDialog()
 }
 
 
-// Update plan
-const showUpdatePlanDialog = ref(false)
-const planForUpdate: Ref<PlanUpdate | null> = ref(null)
-const startPlanUpdating = (item: Plan) => {
-  planForUpdate.value = planMapper.toPlanUpdate(item)
-  showUpdatePlanDialog.value = true
-}
 const saveUpdatedPlan = async (data: PlanUpdate) => {
   await planRepo.update(data)
   findAndReplace(data, plans.value, x => x.id)
-  planForUpdate.value = null
-  showUpdatePlanDialog.value = false
-}
-const cancelUpdatePlan = () => {
-  planForUpdate.value = null
-  showUpdatePlanDialog.value = false
+  updateDialog.finishUpdate()
 }
 
 // Delete plan
@@ -152,7 +129,7 @@ const COLUMN_STYLES = {
         <Column :style="COLUMN_STYLES.toolbarCol">
           <template #header>
             <toolbar-buttons
-                @new="startCreating"
+                @new="createDialog.openDialog()"
                 @delete="deleteSelected"
                 :disabled-delete="selectedPlans.length === 0"
                 class="justify-end w-full"
@@ -160,8 +137,8 @@ const COLUMN_STYLES = {
           </template>
           <template #body="slotProps">
             <expanded-menu
-                @more="openFullInfo(slotProps.data)"
-                @edit="startPlanUpdating(slotProps.data)"
+                @more="infoDialog.startUpdate(slotProps.data)"
+                @edit="updateDialog.startUpdate(planMapper.toPlanUpdate(slotProps.data))"
                 @delete="deleteOnePlan(slotProps.data)"
                 class="justify-end"
             />
@@ -170,20 +147,28 @@ const COLUMN_STYLES = {
       </DataTable>
 
     </div>
-    <Drawer v-model:visible="showPlanInfo" position="right" style="width: 60rem; max-width: 100vw">
-      <plan-info v-if="planWithFullInfo" :item="planWithFullInfo"/>
+    <Drawer
+        v-model:visible="infoDialog.state.showFlag"
+        position="right"
+        style="width: 60rem; max-width: 100vw"
+    >
+      <plan-info v-if="infoDialog.state.target" :item="infoDialog.state.target"/>
     </Drawer>
 
-    <Dialog header="New plan" v-model:visible="showCreatePlanDialog" modal>
-      <plan-form @submit="saveCreatedPlan" @cancel="cancelPlanCreating"/>
+    <Dialog
+        header="New plan"
+        v-model:visible="createDialog.state.showFlag"
+        modal
+    >
+      <plan-form @submit="saveCreatedPlan" @cancel="createDialog.closeDialog()"/>
     </Dialog>
 
-    <Dialog header="Update plan" v-model:visible="showUpdatePlanDialog" modal>
+    <Dialog header="Update plan" v-model:visible="updateDialog.state.showFlag" modal>
       <plan-form
-          v-if="planForUpdate"
-          :init-data="planForUpdate"
+          v-if="updateDialog.state.target"
+          :init-data="updateDialog.state.target"
           @submit="saveUpdatedPlan"
-          @cancel="cancelUpdatePlan"
+          @cancel="updateDialog.finishUpdate()"
       />
     </Dialog>
   </div>
