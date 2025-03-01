@@ -74,7 +74,7 @@ export interface PlanUpdate extends PlanCreate {
 }
 
 
-interface PlanInfo {
+export interface PlanInfo {
     id: string
     title: string
     description: string
@@ -84,7 +84,7 @@ interface PlanInfo {
 
 }
 
-interface BillingInfo {
+export interface BillingInfo {
     price: number
     currency: string
     billingCycle: Period
@@ -108,13 +108,17 @@ export interface Subscription {
 }
 
 export interface SubscriptionCreate {
-    subscriber_id: string
+    subscriberId: string
     planInfo: PlanInfo
     billingInfo: BillingInfo
     status: SubscriptionStatus
-    pausedFrom?: Date
+    pausedFrom?: Date | null
     autorenew: boolean
     usages: Usage[]
     discounts: Discount[]
     fields?: Record<string, any>
+}
+
+export interface SubscriptionUpdate extends SubscriptionCreate {
+    id: string
 }

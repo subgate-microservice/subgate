@@ -118,13 +118,3 @@ export class Debounce {
 export function dateToString(date: Date): string {
     return date.toLocaleDateString()
 }
-
-
-export function isEmpty(data: object): boolean {
-    return Object.keys(data).length === 0
-}
-
-export function getValue(obj: object, key: string, defaultValue?: any){
-    // @ts-ignore
-    return key in obj ? obj[key] : defaultValue
-}

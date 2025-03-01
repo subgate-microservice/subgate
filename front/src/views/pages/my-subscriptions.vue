@@ -21,7 +21,7 @@ import {findAndDelete, findAndReplace} from "../../utils/array-utils.ts";
 import {ExpandedMenu} from "../components/shared/settings-menu";
 import {CopyWrapper} from "../components/shared/copy-button";
 import {StatusTag} from "../components/subscription/status-tag";
-import {getNextBillingDate} from "../../other/billing-cycle";
+import {useCreateDialogManager} from "../../core/services.ts";
 
 
 const topMenuStore = useTopMenu()
@@ -30,19 +30,13 @@ topMenuStore.headerTitle = "Subscriptions"
 const subscriptions: Ref<Subscription[]> = ref([])
 const plans: Ref<Plan[]> = ref([])
 
+const createDialog = useCreateDialogManager()
 
-// Create subscription
-const showCreateDialog = ref(false)
-const startCreating = () => {
-  showCreateDialog.value = true
-}
-const cancelCreating = () => {
-  showCreateDialog.value = false
-}
+
 const saveCreated = async (item: SubscriptionFormData) => {
   const created = await createSubscription(item)
   subscriptions.value = [...subscriptions.value, created]
-  showCreateDialog.value = false
+  createDialog.closeDialog()
 }
 
 // View subscription
@@ -167,7 +161,7 @@ const TABLE_STYLES = {
         </Column>
         <Column field="" header="Next billing" :style="TABLE_STYLES.nextBillingCol">
           <template #body="slotProps">
-            {{ getNextBillingDate(slotProps.data.lastBilling, slotProps.data.plan.billingCycle).toLocaleDateString() }}
+            Next Billing Date {{slotProps}}
           </template>
         </Column>
         <Column field="status" header="Status" :style="TABLE_STYLES.statusCol">
@@ -178,7 +172,7 @@ const TABLE_STYLES = {
         <Column :style="TABLE_STYLES.toolbarCol">
           <template #header>
             <toolbar-buttons
-                @new="startCreating"
+                @new="createDialog.openDialog()"
                 @delete="deleteSelected"
                 :disabled-delete="selected.length === 0"
                 class="justify-end w-full"
@@ -199,10 +193,10 @@ const TABLE_STYLES = {
     <Drawer v-model:visible="showInfoWindow" position="right" style="width: 60rem;">
       <subscription-info :subscription="itemFowFullInfo" v-if="itemFowFullInfo"/>
     </Drawer>
-    <Dialog header="New subscription" v-model:visible="showCreateDialog" modal>
+    <Dialog header="New subscription" v-model:visible="createDialog.state.showFlag" modal>
       <subscription-form
           @submit="saveCreated"
-          @cancel="cancelCreating"
+          @cancel="createDialog.closeDialog()"
           mode="new"
       />
     </Dialog>
