@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import {computed, Ref, ref, watch} from 'vue';
-import { InputGroup } from "primevue";
+import {InputGroup} from "primevue";
 import PeriodSelector from "../components/period-selector.vue";
 import DiscountManager from "../components/discount-manager.vue";
 import UsageRateManager from "../components/usage-rate-manager.vue";
-import { recursive } from "../../utils/other.ts";
-import { Period, PlanCreate } from "../domain.ts";
-import { z, ZodError } from "zod";
+import {recursive} from "../../utils/other.ts";
+import {Period, PlanCreate} from "../domain.ts";
+import {z, ZodError} from "zod";
 
 interface Props {
   initData?: PlanCreate;
@@ -29,7 +29,7 @@ const defaultData: PlanCreate = {
 };
 
 const formData: Ref<PlanCreate> = ref(recursive(props.initData ?? defaultData));
-const valid = ref({ discounts: true, simpleFields: true, usageRates: true });
+const valid = ref({discounts: true, simpleFields: true, usageRates: true});
 
 const validator = z.object({
   title: z.string().min(2),
@@ -57,7 +57,12 @@ watch(simpleFieldErrors, () => {
 });
 
 const onSubmit = () => {
-  if (Object.values(valid.value).every(v => v)) emit("submit", formData.value);
+  const isValidated = Object.values(valid.value).every(v => v)
+  if (isValidated) {
+    emit("submit", formData.value)
+  } else {
+    console.warn(valid.value)
+  }
 };
 </script>
 
@@ -65,41 +70,41 @@ const onSubmit = () => {
   <div class="w-[50rem] h-full flex flex-wrap gap-4">
     <div class="flex flex-col gap-3 flex-1">
       <IftaLabel>
-        <InputText v-model="formData.title" class="w-full" />
+        <InputText v-model="formData.title" class="w-full"/>
         <label>Title</label>
         <Message v-if="simpleFieldErrors.title" severity="error">{{ simpleFieldErrors.title }}</Message>
       </IftaLabel>
 
       <IftaLabel>
-        <InputNumber v-model="formData.level" class="w-full" />
+        <InputNumber v-model="formData.level" class="w-full"/>
         <label>Level</label>
         <Message v-if="simpleFieldErrors.level" severity="error">{{ simpleFieldErrors.level }}</Message>
       </IftaLabel>
 
       <IftaLabel>
-        <Textarea v-model="formData.description" class="w-full" rows="3" style="resize: none" />
+        <Textarea v-model="formData.description" class="w-full" rows="3" style="resize: none"/>
         <label>Description</label>
       </IftaLabel>
 
       <InputGroup>
         <IftaLabel class="w-1/4">
-          <InputNumber v-model="formData.price" :minFractionDigits="2" :maxFractionDigits="5" />
+          <InputNumber v-model="formData.price" :minFractionDigits="2" :maxFractionDigits="5"/>
           <label>Price</label>
         </IftaLabel>
 
         <IftaLabel class="w-1/4">
-          <Select v-model="formData.currency" :options="['USD', 'EUR']" placeholder="Currency" />
+          <Select v-model="formData.currency" :options="['USD', 'EUR']" placeholder="Currency"/>
           <label>Currency</label>
         </IftaLabel>
 
-        <PeriodSelector v-model="formData.billingCycle" class="w-2/4" label="Billing cycle" />
+        <PeriodSelector v-model="formData.billingCycle" class="w-2/4" label="Billing cycle"/>
       </InputGroup>
       <Message v-if="simpleFieldErrors.price" severity="error">{{ simpleFieldErrors.price }}</Message>
 
     </div>
 
     <IftaLabel class="w-full h-[10rem]">
-      <Textarea v-model="formData.features" class="w-full h-full" placeholder="Enter features, one per line" />
+      <Textarea v-model="formData.features" class="w-full h-full" placeholder="Enter features, one per line"/>
       <label>Features</label>
     </IftaLabel>
 
@@ -108,11 +113,11 @@ const onSubmit = () => {
         :usage-rates="formData.usageRates"
         :base-period="formData.billingCycle"
     />
-    <DiscountManager v-model:validated="valid.discounts" :discounts="formData.discounts" />
+    <DiscountManager v-model:validated="valid.discounts" :discounts="formData.discounts"/>
 
     <div class="flex flex-wrap gap-2">
-      <Button label="Submit" @click="onSubmit" />
-      <Button label="Cancel" outlined @click="$emit('cancel')" />
+      <Button label="Submit" @click="onSubmit"/>
+      <Button label="Cancel" outlined @click="$emit('cancel')"/>
     </div>
   </div>
 </template>

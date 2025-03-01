@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed, watch } from "vue";
+import {computed, watch} from "vue";
 import {z} from "zod";
-import { fromError } from "zod-validation-error";
-import { InputGroup, InputText, InputNumber, Button, Message } from "primevue";
+import {fromError} from "zod-validation-error";
+import {InputGroup, InputText, InputNumber, Button, Message} from "primevue";
 import PeriodSelector from "./period-selector.vue";
-import { Period, UsageRate } from "../domain.ts";
+import {Period, UsageRate} from "../domain.ts";
 
 interface Props {
   usageRates: UsageRate[];
@@ -12,7 +12,7 @@ interface Props {
 }
 
 const p = defineProps<Props>();
-const validated = defineModel("validated", { default: true });
+const validated = defineModel("validated", {default: true});
 
 const addRate = () => {
   p.usageRates.push({
@@ -51,7 +51,7 @@ const validationErrors = computed(() => {
 
 
 watch(validationErrors, () => {
-  validated.value = validationErrors.value.every((err) => !err);
+  validated.value = validationErrors.value.every((errors) => errors.length === 0);
 });
 </script>
 
