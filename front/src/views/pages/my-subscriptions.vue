@@ -1,40 +1,39 @@
 <script setup lang="ts">
 import {ref, onMounted, Ref} from 'vue';
 import {DataTable, Column, Drawer} from "primevue";
+
 import {
-  convertFormDataToSubscription, convertSubscriptionToFormData,
-  Subscription,
-  SubscriptionFormData
-} from "../../subscription/domain.ts";
-import {
-  createSubscription, deleteSelectedSubscriptions,
+  deleteSelectedSubscriptions,
   deleteSubscriptionById,
-  getSelectedSubscriptions,
-  updateSubscription
 } from "../../subscription/usecases.ts";
 import {SubscriptionInfo} from "../components/subscription/subscription-info";
 import {useTopMenu} from "../components/shared/top-menu";
 import {ToolbarButtons} from "../components/shared/toolbar-menu";
-import {SubscriptionForm} from "../components/subscription/subcription-form";
-import {getSelectedPlans, Plan} from "../../plan";
 import {findAndDelete, findAndReplace} from "../../utils/array-utils.ts";
 import {ExpandedMenu} from "../components/shared/settings-menu";
 import {CopyWrapper} from "../components/shared/copy-button";
 import {StatusTag} from "../components/subscription/status-tag";
-import {useCreateDialogManager} from "../../core/services.ts";
+import {useCreateDialogManager, useUpdateDialogManager} from "../../core/services.ts";
+import {SubscriptionRepo} from "../../core/repositories.ts";
+import {Subscription, SubscriptionUpdate} from "../../core/domain.ts";
+import {SubscriptionMapper} from "../../core/mappers.ts";
+import {SubscriptionForm} from "../components/subscription/subcription-form";
 
 
 const topMenuStore = useTopMenu()
 topMenuStore.headerTitle = "Subscriptions"
 
+const subRepo = new SubscriptionRepo()
+const subMapper = new SubscriptionMapper()
+
 const subscriptions: Ref<Subscription[]> = ref([])
-const plans: Ref<Plan[]> = ref([])
 
 const createDialog = useCreateDialogManager()
+const updateDialog = useUpdateDialogManager<Subscription>()
 
 
-const saveCreated = async (item: SubscriptionFormData) => {
-  const created = await createSubscription(item)
+const saveCreated = async (item: SubscriptionUpdate) => {
+  const created = await subRepo.create(item)
   subscriptions.value = [...subscriptions.value, created]
   createDialog.closeDialog()
 }
@@ -48,22 +47,10 @@ const openFullInfo = (item: Subscription) => {
 }
 
 
-// Update subscription
-const showUpdateDialog = ref(false)
-const itemForUpdate: Ref<Subscription | null> = ref(null)
-const startUpdating = (item: Subscription) => {
-  itemForUpdate.value = item
-  showUpdateDialog.value = true
-}
-const cancelUpdating = () => {
-  showUpdateDialog.value = false
-}
-const saveUpdated = async (item: SubscriptionFormData) => {
-  const updatedItem = convertFormDataToSubscription(item, itemForUpdate.value!.id)
-  await updateSubscription(updatedItem)
-  findAndReplace(updatedItem, subscriptions.value, x => x.id)
-  itemForUpdate.value = null
-  showUpdateDialog.value = false
+const saveUpdated = async (item: SubscriptionUpdate) => {
+  const updated = await subRepo.update(item)
+  findAndReplace(updated, subscriptions.value, x => x.id)
+  updateDialog.finishUpdate()
 }
 
 
@@ -84,8 +71,7 @@ const deleteSelected = async () => {
 
 
 onMounted(async () => {
-  subscriptions.value = await getSelectedSubscriptions({})
-  plans.value = await getSelectedPlans({})
+  subscriptions.value = await subRepo.getSelected()
 });
 
 
@@ -161,7 +147,7 @@ const TABLE_STYLES = {
         </Column>
         <Column field="" header="Next billing" :style="TABLE_STYLES.nextBillingCol">
           <template #body="slotProps">
-            Next Billing Date {{slotProps}}
+            Next Billing Date
           </template>
         </Column>
         <Column field="status" header="Status" :style="TABLE_STYLES.statusCol">
@@ -181,7 +167,7 @@ const TABLE_STYLES = {
           <template #body="slotProps">
             <expanded-menu
                 @more="openFullInfo(slotProps.data)"
-                @edit="startUpdating(slotProps.data)"
+                @edit="updateDialog.startUpdate(slotProps.data)"
                 @delete="deleteOne(slotProps.data)"
                 class="justify-end"
             />
@@ -193,21 +179,22 @@ const TABLE_STYLES = {
     <Drawer v-model:visible="showInfoWindow" position="right" style="width: 60rem;">
       <subscription-info :subscription="itemFowFullInfo" v-if="itemFowFullInfo"/>
     </Drawer>
+
     <Dialog header="New subscription" v-model:visible="createDialog.state.showFlag" modal>
       <subscription-form
           @submit="saveCreated"
           @cancel="createDialog.closeDialog()"
-          mode="new"
+          mode="create"
       />
     </Dialog>
-    <Dialog header="Update subscription" v-model:visible="showUpdateDialog" modal>
+
+    <Dialog header="Update subscription" v-model:visible="updateDialog.state.showFlag" modal>
       <subscription-form
-          v-if="itemForUpdate"
-          mode="edit"
-          :init-data="convertSubscriptionToFormData(itemForUpdate)"
-          :plans="plans"
+          v-if="updateDialog.state.target"
+          mode="update"
+          :init-data="subMapper.toSubUpdate(updateDialog.state.target)"
           @submit="saveUpdated"
-          @cancel="cancelUpdating"
+          @cancel="updateDialog.finishUpdate()"
       />
     </Dialog>
   </div>

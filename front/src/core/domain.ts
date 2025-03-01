@@ -107,7 +107,8 @@ export interface Subscription {
     updatedAt: Date
 }
 
-export interface SubscriptionCreate {
+export interface SubscriptionUpdate {
+    id: string
     subscriberId: string
     planInfo: PlanInfo
     billingInfo: BillingInfo
@@ -117,8 +118,4 @@ export interface SubscriptionCreate {
     usages: Usage[]
     discounts: Discount[]
     fields?: Record<string, any>
-}
-
-export interface SubscriptionUpdate extends SubscriptionCreate {
-    id: string
 }

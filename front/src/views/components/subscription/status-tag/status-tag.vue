@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import {SubscriptionStatus} from "../../../../subscription/domain.ts";
 import {Tag} from "primevue"
+import {SubscriptionStatus} from "../../../../core/domain.ts";
 
 interface P {
   status: SubscriptionStatus,
@@ -10,9 +10,9 @@ const p = defineProps<P>()
 
 const getSeverity = (item: SubscriptionStatus) => {
   switch (item) {
-    case SubscriptionStatus.enum.Active:
+    case SubscriptionStatus.Active:
       return "success"
-    case SubscriptionStatus.enum.Paused:
+    case SubscriptionStatus.Paused:
       return "warn"
     default:
       throw Error(`SwitchError ${item}`)

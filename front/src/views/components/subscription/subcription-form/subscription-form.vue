@@ -2,10 +2,9 @@
 import {ref, Ref} from "vue";
 import {recursive} from "../../../../utils/other.ts";
 import {
-  SubscriptionCreate,
   SubscriptionUpdate,
 } from "../../../../core/domain.ts";
-import {blankSubscriptionCreate} from "../../../../core/factories.ts";
+import {blankSubscriptionForm} from "../../../../core/factories.ts";
 import PlanSelector from "./plan-selector.vue";
 import DiscountManager from "../../../../core/components/discount-manager.vue";
 import UsageRateManager from "../../../../core/components/usage-rate-manager.vue";
@@ -14,23 +13,25 @@ import BillingInfo from "./billing-info.vue";
 
 
 const e = defineEmits<{
-  (e: "submit", data: SubscriptionCreate): void,
+  (e: "submit", data: SubscriptionUpdate): void,
   (e: "cancel"): void,
 }>()
 
 const p = defineProps<{
   initData?: SubscriptionUpdate
+  mode: "create" | "update",
 }>()
-const defaultValue = blankSubscriptionCreate()
+const defaultValue = blankSubscriptionForm()
 
 
-const formData: Ref<SubscriptionCreate> = ref(recursive(p.initData) ?? defaultValue)
+const formData: Ref<SubscriptionUpdate> = ref(recursive(p.initData) ?? defaultValue)
 
 const validator = ref({discounts: true})
 
 
 const onSubmit = () => {
   console.log(formData.value)
+  e("submit", formData.value)
 };
 
 const onCancel = () => {
@@ -50,7 +51,7 @@ const onCancel = () => {
         </IftaLabel>
 
         <plan-selector
-            :init-plan-id="formData.planInfo.id"
+            :init-plan-id="p.mode === 'update' ? formData.planInfo.id : undefined"
             v-model:billing-info="formData.billingInfo"
             v-model:usage-rates="formData.usages"
             v-model:discounts="formData.discounts"

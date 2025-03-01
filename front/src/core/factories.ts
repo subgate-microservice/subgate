@@ -4,7 +4,7 @@ import {
     Period,
     PlanInfo,
     Subscription,
-    SubscriptionCreate,
+    SubscriptionUpdate,
     SubscriptionStatus,
     Usage, UsageRate
 } from "./domain.ts";
@@ -83,8 +83,9 @@ export function blankSubscription(): Subscription {
     }
 }
 
-export function blankSubscriptionCreate(): SubscriptionCreate {
+export function blankSubscriptionForm(): SubscriptionUpdate {
     return {
+        id: v4(),
         subscriberId: "AnySubscriberID",
         planInfo: blankPlanInfo(),
         billingInfo: blankBillingInfo(),
