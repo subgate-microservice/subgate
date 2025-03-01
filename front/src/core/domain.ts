@@ -11,8 +11,14 @@ export const Period = z.enum([
 ])
 export type Period = z.infer<typeof Period>
 
+export enum SubscriptionStatus {
+    Active = "active",
+    Paused = "paused",
+    Expired = "expired"
+}
 
-export interface UsageRate{
+
+export interface UsageRate {
     title: string
     code: string
     unit: string
@@ -20,7 +26,13 @@ export interface UsageRate{
     renewCycle: Period
 }
 
-export interface Discount{
+export interface Usage extends UsageRate {
+    usedUnits: number
+    lastRenew: Date
+}
+
+
+export interface Discount {
     title: string
     code: string
     description?: string
@@ -44,7 +56,7 @@ export interface Plan {
     updatedAt: Date
 }
 
-export interface PlanCreate{
+export interface PlanCreate {
     title: string
     price: number
     currency: string
@@ -57,6 +69,52 @@ export interface PlanCreate{
     discounts: Discount[]
 }
 
-export interface PlanUpdate extends PlanCreate{
+export interface PlanUpdate extends PlanCreate {
     id: string
+}
+
+
+interface PlanInfo {
+    id: string
+    title: string
+    description: string
+    level: number
+    features: string
+
+
+}
+
+interface BillingInfo {
+    price: number
+    currency: string
+    billingCycle: Period
+    lastBilling: Date
+    savedDays: number
+}
+
+export interface Subscription {
+    id: string
+    subscriberId: string
+    planInfo: PlanInfo
+    billingInfo: BillingInfo
+    status: SubscriptionStatus
+    pausedFrom?: Date
+    autorenew: boolean
+    usages: Usage[]
+    discounts: Discount[]
+    fields: Record<string, any>
+    createdAt: Date
+    updatedAt: Date
+}
+
+export interface SubscriptionCreate {
+    subscriber_id: string
+    planInfo: PlanInfo
+    billingInfo: BillingInfo
+    status: SubscriptionStatus
+    pausedFrom?: Date
+    autorenew: boolean
+    usages: Usage[]
+    discounts: Discount[]
+    fields?: Record<string, any>
 }
