@@ -3,17 +3,18 @@
 import {InputGroup} from "primevue";
 import PeriodSelector from "./period-selector.vue";
 import {Period, UsageRate} from "../domain.ts";
+import {computed, watch} from "vue";
+import {z} from "zod";
+import {fromError} from "zod-validation-error";
 
 interface P {
   usageRates?: UsageRate[]
   basePeriod?: Period,
-  validationErrors?: Record<string, string[]>
 }
 
 const p = withDefaults(defineProps<P>(), {
   usageRates: () => [],
   basePeriod: Period.enum.Monthly,
-  validationErrors: () => ({}),
 })
 
 const addRate = () => {
@@ -29,6 +30,33 @@ const addRate = () => {
 const removeRate = (rate: UsageRate) => {
   p.usageRates.splice(p.usageRates.indexOf(rate), 1)
 }
+
+const validated = defineModel("validated", {default: true})
+
+
+const validationErrors = computed(() => {
+  const result: Record<any, any> = {}
+
+  const validator = z.object({
+    title: z.string().min(2),
+    code: z.string().min(2),
+  })
+
+  for (let rate of p.usageRates) {
+    try {
+      validator.parse(rate)
+    } catch (err) {
+      const rateValidationError = fromError(err)
+      result[rate.code] = rateValidationError
+          .toString()
+          .split("Validation error: ")[1]
+          .split(";")
+    }
+  }
+  return result
+})
+watch(validationErrors, () => validated.value = Object.keys(validationErrors.value).length <= 0)
+
 
 </script>
 
@@ -79,7 +107,7 @@ const removeRate = (rate: UsageRate) => {
       </InputGroup>
       <Message
           severity="error" size="small" variant="simple" class="mt-1"
-          v-for="err in p.validationErrors[item.code]"
+          v-for="err in validationErrors[item.code]"
       >
         {{ err }}
       </Message>

@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import {Ref, ref} from 'vue';
+import {computed, ref, watch} from 'vue';
 import {InputGroup} from "primevue";
 
 import PeriodSelector from "../../../../core/components/period-selector.vue";
 import DiscountManager from "../../../../core/components/discount-manager.vue";
 import UsageRateManager from "../../../../core/components/usage-rate-manager.vue";
-import {isEmpty, recursive} from "../../../../utils/other.ts";
-import {PlanCreateErrors, PlanCreateValidationResult, validatePlanCreate} from "../../../../core/validators.ts";
+import {recursive} from "../../../../utils/other.ts";
 import {Period, PlanCreate} from "../../../../core/domain.ts";
+import {z, ZodError} from "zod";
 
 
 interface P {
@@ -36,24 +36,59 @@ const e = defineEmits<{
 
 
 const inputSchema = ref(recursive(p.initData))
-const validationResult: Ref<PlanCreateValidationResult> = ref(PlanCreateErrors())
+const valid = ref({discounts: true, simpleFields: true, usageRates: true})
 
 
-const valid = ref({discounts: true})
+const simpleFieldErrors = computed(() => {
+  const validator = z.object({
+    title: z.string(),
+    price: z.number(),
+    currency: z.string(),
+    billingCycle: Period,
+    description: z.string().nullable(),
+    level: z.number(),
+    features: z.string().nullable(),
+  })
+
+  const result: Record<string, string[]> = {
+    title: [],
+    price: [],
+    currency: [],
+    billingCycle: [],
+    description: [],
+    level: [],
+    features: [],
+  }
+
+  try {
+    validator.parse(inputSchema.value)
+  } catch (err) {
+    if (err instanceof ZodError) {
+      for (let issue of err.errors) {
+        const fieldName = issue.path[0]
+        result[fieldName].push(fieldName + ": " + issue.message)
+      }
+    }
+  }
+  return result
+})
+watch(simpleFieldErrors, () => {
+  valid.value.simpleFields = Object.keys(simpleFieldErrors.value).filter(v => v.length > 0).length === 0
+})
 
 const onSubmit = () => {
-  validationResult.value = validatePlanCreate(inputSchema.value)
-  if (!isEmpty(validationResult.value)) {
-    console.log("success")
-    // e("submit", data)
+  const isValid = Object.values(valid.value).filter(v => !v).length === 0
+  if (isValid) {
+    console.log("Success")
   } else {
-    console.error(validationResult.value)
+    console.log("validationError")
   }
-};
+}
 
 const onCancel = () => {
-  e("cancel")
+
 }
+
 </script>
 
 <template>
@@ -65,7 +100,7 @@ const onCancel = () => {
         <IftaLabel>
           <InputText id="title" v-model="inputSchema.title" class="w-full"/>
           <label for="title">Title</label>
-          <Message severity="error" size="small" variant="simple" v-for="err in validationResult.title" class="mt-1">
+          <Message severity="error" size="small" variant="simple" v-for="err in simpleFieldErrors.title" class="mt-1">
             {{ err }}
           </Message>
         </IftaLabel>
@@ -73,7 +108,7 @@ const onCancel = () => {
         <IftaLabel>
           <InputNumber id="level" v-model="inputSchema.level" class="w-full"/>
           <label for="period">Level</label>
-          <Message severity="error" size="small" variant="simple" v-for="err in validationResult.level" class="mt-1">
+          <Message severity="error" size="small" variant="simple" v-for="err in simpleFieldErrors.level" class="mt-1">
             {{ err }}
           </Message>
         </IftaLabel>
@@ -115,7 +150,7 @@ const onCancel = () => {
         <div class="mt-1">
           <Message
               severity="error" size="small" variant="simple"
-              v-for="err in [...validationResult.price, ...validationResult.currency, ...validationResult.billingCycle]"
+              v-for="err in [...simpleFieldErrors.price, ...simpleFieldErrors.currency, ...simpleFieldErrors.billingCycle]"
           >
             {{ err }}
           </Message>
@@ -138,10 +173,8 @@ const onCancel = () => {
         </IftaLabel>
       </div>
 
-
-      <usage-rate-manager :usage-rates="inputSchema.usageRates"/>
+      <usage-rate-manager :usage-rates="inputSchema.usageRates" v-model:validated="valid.usageRates"/>
       <discount-manager :discounts="inputSchema.discounts" v-model:validated="valid.discounts"/>
-      {{ valid.discounts }}
 
       <div class="flex flex-wrap gap-2">
         <Button
