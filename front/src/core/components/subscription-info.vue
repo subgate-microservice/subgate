@@ -4,6 +4,8 @@ import {CopyButton} from "../../views/components/shared/copy-button";
 import {dateToString} from "../../utils/other.ts";
 import {Subscription} from "../domain.ts";
 import StatusTag from "./status-tag.vue";
+import {capitalize} from "vue";
+import {getNextBilling} from "../services.ts";
 
 const p = defineProps<{
   subscription: Subscription,
@@ -52,7 +54,7 @@ const p = defineProps<{
         <li class="flex items-center py-4 px-2 border-t border-surface flex-wrap">
           <div class="text-surface-500 dark:text-surface-300 w-6/12 md:w-2/12 font-medium">Billing cycle</div>
           <div class="text-surface-900 dark:text-surface-0 w-full md:w-8/12 md:order-none order-1">
-            {{ p.subscription.billingInfo.billingCycle }}
+            {{ capitalize(p.subscription.billingInfo.billingCycle) }}
           </div>
         </li>
 
@@ -72,7 +74,17 @@ const p = defineProps<{
         <li class="flex items-center py-4 px-2 border-t border-surface flex-wrap">
           <div class="text-surface-500 dark:text-surface-300 w-6/12 md:w-2/12 font-medium">Next billing</div>
           <div class="text-surface-900 dark:text-surface-0 w-full md:w-8/12 md:order-none order-1">
-            Next billing date
+            {{ dateToString(getNextBilling(p.subscription)) }}
+          </div>
+        </li>
+
+        <li
+            v-if="p.subscription.billingInfo.savedDays > 0"
+            class="flex items-center py-4 px-2 border-t border-surface flex-wrap"
+        >
+          <div class="text-surface-500 dark:text-surface-300 w-6/12 md:w-2/12 font-medium">Saved days</div>
+          <div class="text-surface-900 dark:text-surface-0 w-full md:w-8/12 md:order-none order-1">
+            {{ p.subscription.billingInfo.savedDays }}
           </div>
         </li>
 
