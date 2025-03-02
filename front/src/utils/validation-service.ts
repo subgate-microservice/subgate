@@ -8,7 +8,7 @@ interface ValidationState {
     validate: () => void;
 }
 
-export function useValidation<T>(
+export function useValidationService<T>(
     formData: Ref<T>,
     validators: Record<string, ZodSchema<any>>,
     validateOnChange = false

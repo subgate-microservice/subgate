@@ -27,11 +27,14 @@ const defaultData: PlanCreate = {
   usageRates: [],
   fields: {},
   discounts: [],
-};
+}
 
 const formData: Ref<PlanCreate> = ref(recursive(props.initData ?? defaultData));
 const valid = ref({discounts: true, simpleFields: true, usageRates: true});
 const showValidationErrors = ref(false)
+
+
+
 
 const validator = z.object({
   title: z.string().min(2),

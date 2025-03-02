@@ -56,6 +56,16 @@ export const planValidator = z.object({
 }).strict()
 
 
+export const planCreateValidator = z.object({
+    title: z.string().min(2),
+    price: z.number().positive(),
+    currency: z.string(),
+    billingCycle: periodValidator,
+    description: z.string().nullable(),
+    level: z.number().positive(),
+    features: z.string().nullable(),
+}).strict()
+
 const planInfoValidator = z.object({
     id: z.string(),
     title: z.string(),

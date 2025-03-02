@@ -5,7 +5,7 @@ import {recursive} from "../../../utils/other.ts";
 import {WebhookCU} from "../../domain.ts";
 import {blankWebhookCU} from "../../factories.ts";
 import {webhookCUValidator} from "../../validators.ts";
-import {useValidation} from "../../../utils/validation-service.ts";
+import {useValidationService} from "../../../utils/validation-service.ts";
 
 const p = defineProps<{
   webhookCU?: WebhookCU,
@@ -15,12 +15,10 @@ const e = defineEmits(["submit", "cancel"])
 
 const formData: Ref<WebhookCU> = ref(recursive(p.initData) ?? blankWebhookCU())
 
-const validators = {
+const validator = useValidationService(formData, {
   targetUrl: webhookCUValidator.shape.targetUrl,
   eventCode: webhookCUValidator.shape.eventCode,
-}
-
-const validator = useValidation(formData, validators, false)
+})
 
 const onSubmit = () => {
   validator.validate()
