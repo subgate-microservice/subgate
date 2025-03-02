@@ -80,6 +80,7 @@ const onCancel = () => {
               v-if="simpleFieldErrors.subscriberId && showValidationErrors"
               severity="error"
               class="mt-1"
+              size="small"
           >
             {{ simpleFieldErrors.subscriberId }}
           </Message>
