@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import {Fieldset, DataTable, Column} from "primevue";
-import {CopyButton} from "../../shared/copy-button";
-import {StatusTag} from "../status-tag";
-import {dateToString} from "../../../../utils/other.ts";
-import {Subscription} from "../../../../core/domain.ts";
+import {CopyButton} from "../../views/components/shared/copy-button";
+import {dateToString} from "../../utils/other.ts";
+import {Subscription} from "../domain.ts";
+import StatusTag from "./status-tag.vue";
 
 const p = defineProps<{
   subscription: Subscription,

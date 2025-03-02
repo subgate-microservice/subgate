@@ -1,5 +1,15 @@
 import {z} from "zod";
-import {Period} from "./domain.ts";
+
+
+export const periodValidator = z.enum([
+    "daily",
+    "weekly",
+    "monthly",
+    "quarterly",
+    "semiannual",
+    "annual",
+    "lifetime",
+])
 
 
 export const discountValidator = z.object({
@@ -16,7 +26,7 @@ export const usageRateValidator = z.object({
     code: z.string().min(2),
     unit: z.string().min(2),
     availableUnits: z.number().positive(),
-    renewCycle: Period,
+    renewCycle: periodValidator,
 }).strict()
 
 export const usageValidator = z.object({
@@ -24,7 +34,7 @@ export const usageValidator = z.object({
     code: z.string().min(2),
     unit: z.string().min(2),
     availableUnits: z.number().positive(),
-    renewCycle: Period,
+    renewCycle: periodValidator,
     lastRenew: z.coerce.date(),
     usedUnits: z.number(),
 }).strict()
@@ -34,7 +44,7 @@ export const planValidator = z.object({
     title: z.string().min(2),
     price: z.number().positive(),
     currency: z.string().min(2),
-    billingCycle: Period,
+    billingCycle: periodValidator,
     description: z.string().optional().nullable(),
     level: z.number().positive().int(),
     features: z.string().optional().nullable(),
@@ -57,7 +67,7 @@ const planInfoValidator = z.object({
 const billingInfoValidator = z.object({
     price: z.number(),
     currency: z.string(),
-    billingCycle: Period,
+    billingCycle: periodValidator,
     lastBilling: z.coerce.date(),
     savedDays: z.number(),
 }).strict()

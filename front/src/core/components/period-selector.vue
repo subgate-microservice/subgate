@@ -7,17 +7,17 @@ const p = defineProps<{
 }>()
 
 const allCycles = ref([
-  Period.enum.daily,
-  Period.enum.weekly,
-  Period.enum.monthly,
-  Period.enum.quarterly,
-  Period.enum.semiannual,
-  Period.enum.annual,
-  Period.enum.lifetime,
+  Period.Daily,
+  Period.Weekly,
+  Period.Monthly,
+  Period.Quarterly,
+  Period.Semiannual,
+  Period.Annual,
+  Period.Lifetime,
 ])
 
 
-const modelValue = defineModel({default: Period.enum.monthly})
+const modelValue = defineModel({default: Period.Monthly})
 </script>
 
 <template>

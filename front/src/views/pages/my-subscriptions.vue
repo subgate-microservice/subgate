@@ -1,18 +1,19 @@
 <script setup lang="ts">
-import {ref, onMounted, Ref} from 'vue';
+import {ref, onMounted, Ref, capitalize} from 'vue';
 import {DataTable, Column, Drawer} from "primevue";
-import {SubscriptionInfo} from "../components/subscription/subscription-info";
 import {useTopMenu} from "../components/shared/top-menu";
 import {ToolbarButtons} from "../components/shared/toolbar-menu";
 import {findAndDelete, findAndReplace} from "../../utils/array-utils.ts";
 import {ExpandedMenu} from "../components/shared/settings-menu";
 import {CopyWrapper} from "../components/shared/copy-button";
-import {StatusTag} from "../components/subscription/status-tag";
-import {useCreateDialogManager, useUpdateDialogManager} from "../../core/services.ts";
+import {getNextBilling, useCreateDialogManager, useUpdateDialogManager} from "../../core/services.ts";
 import {SubscriptionRepo} from "../../core/repositories.ts";
 import {Subscription, SubscriptionUpdate} from "../../core/domain.ts";
 import {SubscriptionMapper} from "../../core/mappers.ts";
 import {SubscriptionForm} from "../../core/forms/subcription-form";
+import {dateToString} from "../../utils/other.ts";
+import StatusTag from "../../core/components/status-tag.vue";
+import SubscriptionInfo from "../../core/components/subscription-info.vue";
 
 
 const topMenuStore = useTopMenu()
@@ -126,7 +127,11 @@ const TABLE_STYLES = {
           </template>
         </Column>
         <Column field="planInfo.title" header="Plan" :style="TABLE_STYLES.planTitleCol"></Column>
-        <Column field="plan.billingCycle.title" header="Billing cycle" :style="TABLE_STYLES.billingCycleCol"></Column>
+        <Column field="billingInfo.billingCycle" header="Billing cycle" :style="TABLE_STYLES.billingCycleCol">
+          <template #body="slotProps">
+            {{ capitalize(slotProps.data.billingInfo.billingCycle) }}
+          </template>
+        </Column>
         <Column field="" header="Created" :style="TABLE_STYLES.createdCol">
           <template #body="slotProps">
             {{ slotProps.data.createdAt.toLocaleDateString() }}
@@ -134,7 +139,7 @@ const TABLE_STYLES = {
         </Column>
         <Column field="" header="Next billing" :style="TABLE_STYLES.nextBillingCol">
           <template #body="slotProps">
-            Next Billing Date
+            {{ dateToString(getNextBilling(slotProps.data)) }}
           </template>
         </Column>
         <Column field="status" header="Status" :style="TABLE_STYLES.statusCol">

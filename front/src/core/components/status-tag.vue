@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {Tag} from "primevue"
-import {SubscriptionStatus} from "../../../../core/domain.ts";
+import {SubscriptionStatus} from "../domain.ts";
+import {capitalize} from "vue";
 
 interface P {
   status: SubscriptionStatus,
@@ -21,7 +22,7 @@ const getSeverity = (item: SubscriptionStatus) => {
 </script>
 
 <template>
-  <Tag :value="p.status" :severity="getSeverity(p.status)"/>
+  <Tag :value="capitalize(p.status)" :severity="getSeverity(p.status)"/>
 </template>
 
 <style scoped>

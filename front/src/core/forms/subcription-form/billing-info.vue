@@ -6,7 +6,7 @@ import {Period} from "../../domain.ts";
 
 const priceValue = defineModel("price", {default: 0})
 const currencyValue = defineModel("currency", {default: "USD"})
-const billingCycleValue = defineModel("billingCycle", {default: Period.enum.monthly})
+const billingCycleValue = defineModel("billingCycle", {default: Period.Monthly})
 </script>
 
 <template>
