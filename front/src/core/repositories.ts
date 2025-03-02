@@ -43,8 +43,12 @@ export class PlanRepo {
 
     async deleteSelected(sby: PlanSby): Promise<void> {
         const url = `/plan`
-        const params = {data: sby}
-        await authRequest(axiosInstance.delete, url, params)
+
+        const params = new URLSearchParams();
+        if (sby.ids) sby.ids.forEach(id => params.append("ids", id))
+
+        const config: AxiosRequestConfig = {params}
+        await authRequest(axiosInstance.delete, url, config)
     }
 }
 
