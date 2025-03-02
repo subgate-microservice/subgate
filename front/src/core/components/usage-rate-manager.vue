@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, watch} from "vue";
+import {computed, ModelRef, watch} from "vue";
 import {z} from "zod";
 import {fromError} from "zod-validation-error";
 import {InputGroup, InputText, InputNumber, Button, Message} from "primevue";
@@ -7,15 +7,16 @@ import PeriodSelector from "./period-selector.vue";
 import {Period, UsageRate} from "../domain.ts";
 
 interface Props {
-  usageRates: UsageRate[];
-  basePeriod: Period;
+  basePeriod: Period
+  showErrors: boolean
 }
 
 const p = defineProps<Props>();
 const validated = defineModel("validated", {default: true});
+const usageRates: ModelRef<UsageRate[]> = defineModel("usageRates", {default: () => []})
 
 const addRate = () => {
-  p.usageRates.push({
+  usageRates.value.push({
     title: "",
     code: "",
     unit: "",
@@ -25,8 +26,7 @@ const addRate = () => {
 };
 
 const removeRate = (item: UsageRate) => {
-  const index = p.usageRates.indexOf(item)
-  p.usageRates.splice(index, 1);
+  usageRates.value = usageRates.value.filter(rate => rate.code !== item.code)
 };
 
 const validator = z.object({
@@ -36,7 +36,7 @@ const validator = z.object({
 });
 
 const validationErrors = computed(() => {
-  return p.usageRates.map((rate) => {
+  return usageRates.value.map((rate) => {
     try {
       validator.parse(rate);
       return [];
@@ -63,11 +63,11 @@ watch(validationErrors, () => {
       <i class="pi pi-plus-circle h-fit self-center cursor-pointer" @click="addRate"/>
     </div>
 
-    <div v-if="p.usageRates.length === 0" class="mt-1">
+    <div v-if="usageRates.length === 0" class="mt-1">
       There are no usage rate parameters
     </div>
 
-    <div v-for="(item, i) in p.usageRates">
+    <div v-for="(item, i) in usageRates">
       <InputGroup class="mt-2">
 
         <IftaLabel class="flex-grow">
@@ -102,6 +102,7 @@ watch(validationErrors, () => {
         />
       </InputGroup>
       <Message
+          v-if="p.showErrors"
           v-for="err in validationErrors[i]"
           severity="error" size="small" class="mt-1"
       >

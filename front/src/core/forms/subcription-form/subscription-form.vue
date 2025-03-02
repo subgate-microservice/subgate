@@ -26,12 +26,17 @@ const defaultValue = blankSubscriptionForm()
 
 const formData: Ref<SubscriptionUpdate> = ref(recursive(p.initData) ?? defaultValue)
 
-const validator = ref({discounts: true})
-
+const valid = ref({discounts: true, usages: true})
+const showValidationErrors = ref(false)
 
 const onSubmit = () => {
-  console.log(formData.value)
-  e("submit", formData.value)
+  const isValidated = Object.values(valid.value).every(v => v)
+  if (isValidated) {
+    e("submit", formData.value)
+    showValidationErrors.value = false
+  } else {
+    showValidationErrors.value = true
+  }
 };
 
 const onCancel = () => {
@@ -71,11 +76,13 @@ const onCancel = () => {
 
         <discount-manager
             :discounts="formData.discounts"
-            v-model:validated="validator.discounts"
+            v-model:validated="valid.discounts"
         />
         <usage-rate-manager
+            :show-errors="showValidationErrors"
             :base-period="formData.billingInfo.billingCycle"
-            :usage-rates="formData.usages"
+            v-model:usage-rates="formData.usages"
+            v-model:validated="valid.usages"
         />
 
         <!--Navigate-->

@@ -30,6 +30,7 @@ const defaultData: PlanCreate = {
 
 const formData: Ref<PlanCreate> = ref(recursive(props.initData ?? defaultData));
 const valid = ref({discounts: true, simpleFields: true, usageRates: true});
+const showValidationErrors = ref(false)
 
 const validator = z.object({
   title: z.string().min(2),
@@ -60,8 +61,9 @@ const onSubmit = () => {
   const isValidated = Object.values(valid.value).every(v => v)
   if (isValidated) {
     emit("submit", formData.value)
+    showValidationErrors.value = false
   } else {
-    console.warn(valid.value)
+    showValidationErrors.value = true
   }
 };
 </script>
@@ -109,9 +111,10 @@ const onSubmit = () => {
     </IftaLabel>
 
     <UsageRateManager
+        v-model:usage-rates="formData.usageRates"
         v-model:validated="valid.usageRates"
-        :usage-rates="formData.usageRates"
         :base-period="formData.billingCycle"
+        :show-errors="showValidationErrors"
     />
     <DiscountManager v-model:validated="valid.discounts" :discounts="formData.discounts"/>
 
