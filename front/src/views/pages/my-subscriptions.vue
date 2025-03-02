@@ -1,11 +1,6 @@
 <script setup lang="ts">
 import {ref, onMounted, Ref} from 'vue';
 import {DataTable, Column, Drawer} from "primevue";
-
-import {
-  deleteSelectedSubscriptions,
-  deleteSubscriptionById,
-} from "../../subscription/usecases.ts";
 import {SubscriptionInfo} from "../components/subscription/subscription-info";
 import {useTopMenu} from "../components/shared/top-menu";
 import {ToolbarButtons} from "../components/shared/toolbar-menu";
@@ -49,12 +44,12 @@ const saveUpdated = async (item: SubscriptionUpdate) => {
 // Delete subscription
 const selected: Ref<Subscription[]> = ref([]);
 const deleteOne = async (item: Subscription) => {
-  await deleteSubscriptionById(item.id)
+  await subRepo.deleteById(item.id)
   findAndDelete(item, subscriptions.value, x => x.id)
 }
 const deleteSelected = async () => {
   const sby = {ids: selected.value.map(x => x.id)}
-  await deleteSelectedSubscriptions(sby)
+  await subRepo.deleteSelected(sby)
 
   const hashes = new Set(sby.ids)
   subscriptions.value = subscriptions.value.filter(x => !hashes.has(x.id))

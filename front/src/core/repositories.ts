@@ -4,6 +4,10 @@ import {authRequest} from "../auth/auth-request.ts";
 import {axiosInstance} from "../axios-instanse.ts";
 import {planValidator, subscriptionValidator} from "./validators.ts";
 
+export interface PlanSby {
+    ids?: string[],
+}
+
 export class PlanRepo {
     async create(item: PlanCreate): Promise<Plan> {
         const url = "/plan"
@@ -29,6 +33,17 @@ export class PlanRepo {
         const url = `/plan/${planId}`
         const response = await authRequest(axiosInstance.get, url)
         return safeParsing(planValidator, toCamelCase(response.data))
+    }
+
+    async deleteById(planId: string): Promise<void> {
+        const url = `/plan/${planId}`
+        await authRequest(axiosInstance.delete, url)
+    }
+
+    async deleteSelected(sby: PlanSby): Promise<void> {
+        const url = `/plan`
+        const params = {data: sby}
+        await authRequest(axiosInstance.delete, url, params)
     }
 }
 
@@ -63,5 +78,16 @@ export class SubscriptionRepo {
         const url = "/subscription"
         const response = await authRequest(axiosInstance.get, url)
         return safeArrayParsing(subscriptionValidator, toCamelCase(response.data))
+    }
+
+    async deleteById(subId: string): Promise<void> {
+        const url = `/subscription/${subId}`
+        await authRequest(axiosInstance.delete, url)
+    }
+
+    async deleteSelected(sby: SubscriptionSby): Promise<void> {
+        const url = "/subscription"
+        const params = {data: sby}
+        await authRequest(axiosInstance.delete, url, params)
     }
 }

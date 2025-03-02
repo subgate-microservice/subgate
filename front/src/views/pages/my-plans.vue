@@ -3,9 +3,6 @@ import {ref, onMounted, Ref} from 'vue';
 import {DataTable, Column, Drawer} from "primevue";
 import {useTopMenu} from "../components/shared/top-menu";
 import {ToolbarButtons} from "../components/shared/toolbar-menu";
-import {
-  deletePlanById, deleteSelectedPlans,
-} from "../../plan";
 import PlanForm from "../../core/forms/plan-form.vue";
 import PlanInfo from "../../core/components/plan-info.vue";
 import {findAndDelete, findAndReplace} from "../../utils/array-utils.ts";
@@ -44,14 +41,14 @@ const saveUpdatedPlan = async (data: PlanUpdate) => {
 
 // Delete plan
 const deleteOnePlan = async (item: Plan) => {
-  await deletePlanById(item.id)
+  await planRepo.deleteById(item.id)
   findAndDelete(item, plans.value, x => x.id)
 }
 
 const selectedPlans: Ref<Plan[]> = ref([])
 const deleteSelected = async () => {
   const sby = {ids: selectedPlans.value.map(item => item.id)}
-  await deleteSelectedPlans(sby)
+  await planRepo.deleteSelected(sby)
   const hashes = new Set(sby.ids)
   plans.value = plans.value.filter(item => !hashes.has(item.id))
   selectedPlans.value = []
