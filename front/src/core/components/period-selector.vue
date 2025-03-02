@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import {ref} from "vue";
+import {capitalize, ref} from "vue";
 import {Period} from "../domain.ts";
-import {v4} from "uuid";
 
 const p = defineProps<{
   label: string
@@ -17,16 +16,30 @@ const allCycles = ref([
   Period.enum.lifetime,
 ])
 
+
 const modelValue = defineModel({default: Period.enum.monthly})
 </script>
 
 <template>
   <IftaLabel>
     <Select
-        :id="v4()"
         v-model="modelValue"
         :options="allCycles"
-    />
+    >
+      <template #value="slotProps">
+        <div v-if="slotProps.value" class="flex items-center">
+          <div>{{ capitalize(slotProps.value) }}</div>
+        </div>
+        <span v-else>
+            {{ slotProps.placeholder }}
+        </span>
+      </template>
+      <template #option="slotProps">
+        <div class="flex items-center">
+          <div>{{ capitalize(slotProps.option) }}</div>
+        </div>
+      </template>
+    </Select>
     <label for="period">{{ p.label }}</label>
   </IftaLabel>
 </template>
