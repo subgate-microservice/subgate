@@ -1,1 +1,0 @@
-export {default as WebhookForm} from "./webhook-form.vue"

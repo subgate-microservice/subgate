@@ -6,7 +6,7 @@ import {ToolbarButtons} from "../components/shared/toolbar-menu";
 import {findAndDelete, findAndReplace} from "../../utils/array-utils.ts";
 import {ExpandedMenu} from "../components/shared/settings-menu";
 import {CopyWrapper} from "../components/shared/copy-button";
-import {getNextBilling, useCreateDialogManager, useUpdateDialogManager} from "../../core/services.ts";
+import {getNextBilling} from "../../core/services.ts";
 import {SubscriptionRepo} from "../../core/repositories.ts";
 import {Subscription, SubscriptionUpdate} from "../../core/domain.ts";
 import {SubscriptionMapper} from "../../core/mappers.ts";
@@ -14,6 +14,7 @@ import {SubscriptionForm} from "../../core/forms/subcription-form";
 import {dateToString} from "../../utils/other.ts";
 import StatusTag from "../../core/components/status-tag.vue";
 import SubscriptionInfo from "../../core/components/subscription-info.vue";
+import {useCreateDialogManager, useUpdateDialogManager} from "../../utils/dialog-manager.ts";
 
 
 const topMenuStore = useTopMenu()

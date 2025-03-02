@@ -5,69 +5,47 @@ import {useTopMenu} from "../components/shared/top-menu";
 import {ToolbarButtons} from "../components/shared/toolbar-menu";
 import {findAndDelete, findAndReplace} from "../../utils/array-utils.ts";
 import {ExpandedMenu} from "../components/shared/settings-menu";
-import {
-  convertFormDataToWebhook, convertWebhookToFormData, createWebhook,
-  deleteSelectedWebhooks,
-  deleteWebhookById, getSelectedWebhooks,
-  updateWebhook,
-  Webhook,
-  WebhookFormData
-} from "../../webhook";
-import {WebhookForm} from "../components/webhook/webhook-form";
 import {CopyWrapper} from "../components/shared/copy-button";
+import {Webhook, WebhookCU} from "../../webhook/domain.ts";
+import {useCreateDialogManager, useUpdateDialogManager} from "../../utils/dialog-manager.ts";
+import {WebhookRepo} from "../../webhook/repositories.ts";
+import WebhookForm from "../../webhook/forms/webhook-form/webhook-form.vue";
 
 
 const topMenuStore = useTopMenu()
 topMenuStore.headerTitle = "Webhooks"
 
 const items: Ref<Webhook[]> = ref([])
+const webhookRepo = new WebhookRepo()
+
+const createDialog = useCreateDialogManager()
+const updateDialog = useUpdateDialogManager<Webhook>()
 
 
-// Create subscription
-const showCreateDialog = ref(false)
-const startCreating = () => {
-  showCreateDialog.value = true
-}
-const cancelCreating = () => {
-  showCreateDialog.value = false
-}
-const saveCreated = async (item: WebhookFormData) => {
-  const created = await createWebhook(item)
+const saveCreated = async (item: WebhookCU) => {
+  const created = await webhookRepo.createOne(item)
   items.value = [...items.value, created]
-  showCreateDialog.value = false
+  createDialog.closeDialog()
 }
 
 
 // Update
-const showUpdateDialog = ref(false)
-const itemForUpdate: Ref<Webhook | null> = ref(null)
-const startUpdating = (item: Webhook) => {
-  itemForUpdate.value = item
-  showUpdateDialog.value = true
-}
-const cancelUpdating = () => {
-  showUpdateDialog.value = false
-}
-const saveUpdated = async (item: WebhookFormData) => {
-  const updatedItem = convertFormDataToWebhook(
-      item, itemForUpdate.value!.id, itemForUpdate.value!.createdAt,)
-  await updateWebhook(updatedItem)
-  findAndReplace(updatedItem, items.value, x => x.id)
-  itemForUpdate.value = null
-  showUpdateDialog.value = false
+const saveUpdated = async (item: WebhookCU) => {
+  const updated = await webhookRepo.updateOne(item)
+  findAndReplace(updated, items.value, x => x.id)
+  updateDialog.finishUpdate()
 }
 
 
 // Delete
 const selected: Ref<Webhook[]> = ref([]);
 const deleteOne = async (item: Webhook) => {
-  await deleteWebhookById(item.id)
+  await webhookRepo.deleteById(item.id)
   findAndDelete(item, items.value, x => x.id)
 }
 const deleteSelected = async () => {
   const sby = {ids: selected.value.map(x => x.id)}
-  await deleteSelectedWebhooks(sby)
-
+  console.warn("NOT_IMPLEMENTED!")
   const hashes = new Set(sby.ids)
   items.value = items.value.filter(x => !hashes.has(x.id))
   selected.value = []
@@ -75,8 +53,8 @@ const deleteSelected = async () => {
 
 
 onMounted(async () => {
-  items.value = await getSelectedWebhooks({})
-});
+  items.value = await webhookRepo.getAll()
+})
 
 const TABLE_STYLES = {
   table: {
@@ -124,14 +102,14 @@ const TABLE_STYLES = {
         <Column field="targetUrl" header="Url" :style="TABLE_STYLES.urlCol">
           <template #body="slotProps">
             <copy-wrapper :text-for-copy="slotProps.data.targetUrl" message-after="Url was copied">
-              {{slotProps.data.targetUrl}}
+              {{ slotProps.data.targetUrl }}
             </copy-wrapper>
           </template>
         </Column>
         <Column field="eventCode" header="Event code" :style="TABLE_STYLES.eventCodeCol">
           <template #body="slotProps">
             <copy-wrapper :text-for-copy="slotProps.data.eventCode" message-after="Event code was copied">
-              {{slotProps.data.eventCode}}
+              {{ slotProps.data.eventCode }}
             </copy-wrapper>
           </template>
         </Column>
@@ -139,7 +117,7 @@ const TABLE_STYLES = {
         <Column :style="TABLE_STYLES.toolbarCol">
           <template #header>
             <toolbar-buttons
-                @new="startCreating"
+                @new="createDialog.openDialog()"
                 @delete="deleteSelected"
                 :disabled-delete="selected.length === 0"
                 class="justify-end w-full"
@@ -148,7 +126,7 @@ const TABLE_STYLES = {
           <template #body="slotProps">
             <expanded-menu
                 :show-view="false"
-                @edit="startUpdating(slotProps.data)"
+                @edit="updateDialog.startUpdate(slotProps.data)"
                 @delete="deleteOne(slotProps.data)"
                 class="justify-end"
             />
@@ -157,18 +135,16 @@ const TABLE_STYLES = {
       </DataTable>
 
     </div>
-    <Dialog header="New webhook" v-model:visible="showCreateDialog" modal>
+    <Dialog header="New webhook" modal v-model:visible="createDialog.state.showFlag">
       <webhook-form
           @submit="saveCreated"
-          @cancel="cancelCreating"
+          @cancel="createDialog.closeDialog()"
       />
     </Dialog>
-    <Dialog header="Update webhook" v-model:visible="showUpdateDialog" modal>
+    <Dialog header="Update webhook" modal v-model:visible="updateDialog.state.showFlag">
       <webhook-form
-          v-if="itemForUpdate"
-          :init-data="convertWebhookToFormData(itemForUpdate)"
           @submit="saveUpdated"
-          @cancel="cancelUpdating"
+          @cancel="updateDialog.finishUpdate()"
       />
     </Dialog>
   </div>

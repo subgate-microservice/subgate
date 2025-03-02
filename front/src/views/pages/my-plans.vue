@@ -10,7 +10,8 @@ import {ExpandedMenu} from "../components/shared/settings-menu";
 import {Plan, PlanCreate, PlanUpdate} from "../../core/domain.ts";
 import {PlanRepo} from "../../core/repositories.ts";
 import {PlanMapper} from "../../core/mappers.ts";
-import {getAmountString, useCreateDialogManager, useUpdateDialogManager} from "../../core/services.ts";
+import {getAmountString} from "../../core/services.ts";
+import {useCreateDialogManager, useUpdateDialogManager} from "../../utils/dialog-manager.ts";
 
 
 const topMenuStore = useTopMenu()
