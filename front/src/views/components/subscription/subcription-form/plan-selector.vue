@@ -3,11 +3,11 @@ import {ModelRef, onMounted, ref, Ref, watch} from "vue";
 import {
   BillingInfo,
   Discount,
-  Plan, UsageRate,
+  Plan, PlanInfo, UsageRate,
 } from "../../../../core/domain.ts";
 import {PlanRepo} from "../../../../core/repositories.ts";
 import {recursive} from "../../../../utils/other.ts";
-import {blankBillingInfo, usageFromUsageRate} from "../../../../core/factories.ts";
+import {blankBillingInfo, blankPlanInfo, usageFromUsageRate} from "../../../../core/factories.ts";
 
 const p = defineProps<{
   initPlanId?: string,
@@ -18,6 +18,7 @@ const selectedPlan: Ref<Plan | null> = ref(null)
 const usageRateModel: ModelRef<UsageRate[]> = defineModel("usageRates", {default: () => []})
 const discountModel: ModelRef<Discount[]> = defineModel("discounts", {default: () => []})
 const billingInfoModel: ModelRef<BillingInfo> = defineModel("billingInfo", {default: () => blankBillingInfo()})
+const planInfoModel: ModelRef<PlanInfo> = defineModel("planInfo", {default: () => blankPlanInfo()})
 
 watch(selectedPlan, () => {
   if (selectedPlan.value) {
@@ -30,6 +31,13 @@ watch(selectedPlan, () => {
       price: selectedPlan.value.price,
       savedDays: 0,
     }
+    planInfoModel.value = {
+      id: selectedPlan.value.id,
+      title: selectedPlan.value.title,
+      description: selectedPlan.value.description,
+      features: selectedPlan.value.features,
+      level: selectedPlan.value.level,
+    }
   }
 })
 
@@ -39,7 +47,16 @@ onMounted(async () => {
   allPlans.value = await new PlanRepo().getAll()
   if (p.initPlanId) {
     const target = allPlans.value.find(item => item.id === p.initPlanId)
-    if (target) {
+    if (target
+        && target.title === planInfoModel.value.title
+        && target.level == planInfoModel.value.level
+        && target.description == planInfoModel.value.description
+        && target.features === planInfoModel.value.features
+
+        && target.price === billingInfoModel.value.price
+        && target.currency === billingInfoModel.value.currency
+        && target.billingCycle === billingInfoModel.value.billingCycle
+    ) {
       selectedPlan.value = target
     }
   } else {

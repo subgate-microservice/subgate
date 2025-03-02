@@ -30,6 +30,7 @@ const subscriptions: Ref<Subscription[]> = ref([])
 
 const createDialog = useCreateDialogManager()
 const updateDialog = useUpdateDialogManager<Subscription>()
+const infoDialog = useUpdateDialogManager<Subscription>()
 
 
 const saveCreated = async (item: SubscriptionUpdate) => {
@@ -37,15 +38,6 @@ const saveCreated = async (item: SubscriptionUpdate) => {
   subscriptions.value = [...subscriptions.value, created]
   createDialog.closeDialog()
 }
-
-// View subscription
-const showInfoWindow = ref(false)
-const itemFowFullInfo: Ref<Subscription | null> = ref(null)
-const openFullInfo = (item: Subscription) => {
-  itemFowFullInfo.value = item
-  showInfoWindow.value = true
-}
-
 
 const saveUpdated = async (item: SubscriptionUpdate) => {
   const updated = await subRepo.update(item)
@@ -138,7 +130,7 @@ const TABLE_STYLES = {
             </copy-wrapper>
           </template>
         </Column>
-        <Column field="plan.title" header="Plan" :style="TABLE_STYLES.planTitleCol"></Column>
+        <Column field="planInfo.title" header="Plan" :style="TABLE_STYLES.planTitleCol"></Column>
         <Column field="plan.billingCycle.title" header="Billing cycle" :style="TABLE_STYLES.billingCycleCol"></Column>
         <Column field="" header="Created" :style="TABLE_STYLES.createdCol">
           <template #body="slotProps">
@@ -166,7 +158,7 @@ const TABLE_STYLES = {
           </template>
           <template #body="slotProps">
             <expanded-menu
-                @more="openFullInfo(slotProps.data)"
+                @more="infoDialog.startUpdate(slotProps.data)"
                 @edit="updateDialog.startUpdate(slotProps.data)"
                 @delete="deleteOne(slotProps.data)"
                 class="justify-end"
@@ -176,8 +168,8 @@ const TABLE_STYLES = {
       </DataTable>
 
     </div>
-    <Drawer v-model:visible="showInfoWindow" position="right" style="width: 60rem;">
-      <subscription-info :subscription="itemFowFullInfo" v-if="itemFowFullInfo"/>
+    <Drawer v-model:visible="infoDialog.state.showFlag" position="right" style="width: 60rem;">
+      <subscription-info :subscription="infoDialog.state.target" v-if="infoDialog.state.target"/>
     </Drawer>
 
     <Dialog header="New subscription" v-model:visible="createDialog.state.showFlag" modal>

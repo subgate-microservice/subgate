@@ -55,6 +55,7 @@ const onCancel = () => {
             v-model:billing-info="formData.billingInfo"
             v-model:usage-rates="formData.usages"
             v-model:discounts="formData.discounts"
+            v-model:plan-info="formData.planInfo"
         />
 
         <status-selector

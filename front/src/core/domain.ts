@@ -77,11 +77,9 @@ export interface PlanUpdate extends PlanCreate {
 export interface PlanInfo {
     id: string
     title: string
-    description: string
+    description: string | null | undefined
     level: number
     features: string
-
-
 }
 
 export interface BillingInfo {

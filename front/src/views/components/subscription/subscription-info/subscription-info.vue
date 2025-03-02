@@ -1,3 +1,16 @@
+<script setup lang="ts">
+import {Fieldset, DataTable, Column} from "primevue";
+import {CopyButton} from "../../shared/copy-button";
+import {StatusTag} from "../status-tag";
+import {dateToString} from "../../../../utils/other.ts";
+import {Subscription} from "../../../../core/domain.ts";
+
+const p = defineProps<{
+  subscription: Subscription,
+}>()
+</script>
+
+
 <template>
   <div class="bg-surface-0 dark:bg-surface-950 p-5 md:p-10">
     <div class="bg-surface-0 dark:bg-surface-950">
@@ -32,14 +45,14 @@
         <li class="flex items-center py-4 px-2 border-t border-surface flex-wrap">
           <div class="text-surface-500 dark:text-surface-300 w-6/12 md:w-2/12 font-medium">Plan</div>
           <div class="text-surface-900 dark:text-surface-0 w-full md:w-8/12 md:order-none order-1">
-            {{ p.subscription.plan.title }}
+            {{ p.subscription.planInfo.title }}
           </div>
         </li>
 
         <li class="flex items-center py-4 px-2 border-t border-surface flex-wrap">
           <div class="text-surface-500 dark:text-surface-300 w-6/12 md:w-2/12 font-medium">Billing cycle</div>
           <div class="text-surface-900 dark:text-surface-0 w-full md:w-8/12 md:order-none order-1">
-            {{ p.subscription.plan.billingCycle.title }}
+            {{ p.subscription.billingInfo.billingCycle }}
           </div>
         </li>
 
@@ -53,13 +66,13 @@
         <li class="flex items-center py-4 px-2 border-t border-surface flex-wrap">
           <div class="text-surface-500 dark:text-surface-300 w-6/12 md:w-2/12 font-medium">Last billing</div>
           <div class="text-surface-900 dark:text-surface-0 w-full md:w-8/12 md:order-none order-1">
-            {{ dateToString(p.subscription.lastBilling) }}
+            {{ dateToString(p.subscription.billingInfo.lastBilling) }}
           </div>
         </li>
         <li class="flex items-center py-4 px-2 border-t border-surface flex-wrap">
           <div class="text-surface-500 dark:text-surface-300 w-6/12 md:w-2/12 font-medium">Next billing</div>
           <div class="text-surface-900 dark:text-surface-0 w-full md:w-8/12 md:order-none order-1">
-            {{ dateToString(getNextBillingDate(p.subscription.lastBilling, p.subscription.plan.billingCycle)) }}
+            Next billing date
           </div>
         </li>
 
@@ -68,9 +81,9 @@
 
       </ul>
 
-      <div v-if="p.subscription.plan.discounts.length" class="mt-4">
+      <div v-if="p.subscription.discounts.length" class="mt-4">
         <Fieldset legend="Discounts" :toggleable="true" :collapsed="true" style="width: 100%">
-          <DataTable :value="p.subscription.plan.discounts">
+          <DataTable :value="p.subscription.discounts">
             <Column field="description" header="Description"></Column>
             <Column field="size" header="Size">
               <template #body="slotProps">
@@ -104,16 +117,3 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import {Subscription} from "../../../../subscription/domain.ts";
-import {Fieldset, DataTable, Column} from "primevue";
-import {CopyButton} from "../../shared/copy-button";
-import {StatusTag} from "../status-tag";
-import {getNextBillingDate} from "../../../../other/billing-cycle";
-import {dateToString} from "../../../../utils/other.ts";
-
-const p = defineProps<{
-  subscription: Subscription,
-}>()
-</script>
