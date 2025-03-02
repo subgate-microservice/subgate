@@ -87,7 +87,7 @@ watch(validationErrors, () => {
         </IftaLabel>
 
         <IftaLabel class="w-1/4">
-          <InputNumber id="code_limit" v-model="item.availableUnits" class="w-full"/>
+          <InputNumber id="code_limit" v-model="item.availableUnits" class="w-full" :min="0"/>
           <label for="code_limit">Limit</label>
         </IftaLabel>
 

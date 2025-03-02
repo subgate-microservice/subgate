@@ -75,7 +75,7 @@ watch(validationErrors, () => {
         </IftaLabel>
 
         <IftaLabel class="w-1/4">
-          <InputNumber v-model="item.size" class="w-full" suffix="%"/>
+          <InputNumber v-model="item.size" class="w-full" suffix="%" :min="0"/>
           <label>Size</label>
         </IftaLabel>
 

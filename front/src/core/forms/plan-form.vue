@@ -79,7 +79,7 @@ const onSubmit = () => {
       </IftaLabel>
 
       <IftaLabel>
-        <InputNumber v-model="formData.level" class="w-full"/>
+        <InputNumber v-model="formData.level" class="w-full" :min="0"/>
         <label>Level</label>
         <Message v-if="simpleFieldErrors.level" severity="error">{{ simpleFieldErrors.level }}</Message>
       </IftaLabel>
@@ -91,7 +91,7 @@ const onSubmit = () => {
 
       <InputGroup>
         <IftaLabel class="w-1/4">
-          <InputNumber v-model="formData.price" :minFractionDigits="2" :maxFractionDigits="5"/>
+          <InputNumber v-model="formData.price" :minFractionDigits="2" :maxFractionDigits="5" :min="0"/>
           <label>Price</label>
         </IftaLabel>
 

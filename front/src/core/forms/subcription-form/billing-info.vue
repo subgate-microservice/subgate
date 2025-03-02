@@ -13,7 +13,7 @@ const billingCycleValue = defineModel("billingCycle", {default: Period.Monthly})
   <div class="flex flex-col gap-3 flex-1">
     <InputGroup>
       <IftaLabel class="w-1/4">
-        <InputNumber v-model="priceValue" :minFractionDigits="2" :maxFractionDigits="5"/>
+        <InputNumber v-model="priceValue" :minFractionDigits="2" :maxFractionDigits="5" :min="0"/>
         <label>Price</label>
       </IftaLabel>
 
