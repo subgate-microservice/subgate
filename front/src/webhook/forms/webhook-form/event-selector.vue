@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import {EVENT_CODES} from "../../enums.ts";
 
+const modelValue = defineModel({default: null})
 </script>
 
 <template>
@@ -7,9 +9,9 @@
     <Select
         id="eventSelector"
         class="w-full"
-        :options="['any_event']"
-        optionLabel="name"
-        placeholder="Event code"
+        :options="EVENT_CODES"
+        placeholder="Select"
+        v-model="modelValue"
     />
     <label for="eventSelector">Event code</label>
   </IftaLabel>

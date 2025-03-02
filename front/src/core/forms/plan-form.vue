@@ -66,7 +66,7 @@ const onSubmit = () => {
   } else {
     showValidationErrors.value = true
   }
-};
+}
 </script>
 
 <template>
