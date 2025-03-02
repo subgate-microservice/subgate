@@ -7,6 +7,7 @@ import UsageRateManager from "../components/usage-rate-manager.vue";
 import {recursive} from "../../utils/other.ts";
 import {Period, PlanCreate} from "../domain.ts";
 import {z, ZodError} from "zod";
+import {periodValidator} from "../validators.ts";
 
 interface Props {
   initData?: PlanCreate;
@@ -19,7 +20,7 @@ const defaultData: PlanCreate = {
   title: "string",
   price: 100,
   currency: "USD",
-  billingCycle: Period.enum.monthly,
+  billingCycle: Period.Monthly,
   description: "",
   level: 10,
   features: "",
@@ -36,7 +37,7 @@ const validator = z.object({
   title: z.string().min(2),
   price: z.number().positive(),
   currency: z.string(),
-  billingCycle: Period,
+  billingCycle: periodValidator,
   description: z.string().nullable(),
   level: z.number().positive(),
   features: z.string().nullable(),

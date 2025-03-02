@@ -53,3 +53,7 @@ export function getNextBilling(target: Subscription): Date {
     result.setDate(result.getDate() + days)
     return result
 }
+
+export function getAmountString(currency: string, amount: number): string {
+    return `${amount} ${currency}`
+}

@@ -1,17 +1,16 @@
 <script setup lang="ts">
-import {ref, onMounted, Ref} from 'vue';
+import {ref, onMounted, Ref, capitalize} from 'vue';
 import {DataTable, Column, Drawer} from "primevue";
 import {useTopMenu} from "../components/shared/top-menu";
 import {ToolbarButtons} from "../components/shared/toolbar-menu";
 import PlanForm from "../../core/forms/plan-form.vue";
 import PlanInfo from "../../core/components/plan-info.vue";
 import {findAndDelete, findAndReplace} from "../../utils/array-utils.ts";
-import {getAmountString} from "../../other/currency";
 import {ExpandedMenu} from "../components/shared/settings-menu";
 import {Plan, PlanCreate, PlanUpdate} from "../../core/domain.ts";
 import {PlanRepo} from "../../core/repositories.ts";
 import {PlanMapper} from "../../core/mappers.ts";
-import {useCreateDialogManager, useUpdateDialogManager} from "../../core/services.ts";
+import {getAmountString, useCreateDialogManager, useUpdateDialogManager} from "../../core/services.ts";
 
 
 const topMenuStore = useTopMenu()
@@ -122,7 +121,11 @@ const COLUMN_STYLES = {
             {{ getAmountString(slotProps.data.currency, slotProps.data.price) }}
           </template>
         </Column>
-        <Column field="billingCycle" header="Billing cycle" :style="COLUMN_STYLES.billingCycleCol"></Column>
+        <Column field="billingCycle" header="Billing cycle" :style="COLUMN_STYLES.billingCycleCol">
+          <template #body="slotProps">
+              {{capitalize(slotProps.data.billingCycle)}}
+          </template>
+        </Column>
         <Column field="level" header="Level" :style="COLUMN_STYLES.levelCol"></Column>
         <Column :style="COLUMN_STYLES.toolbarCol">
           <template #header>
