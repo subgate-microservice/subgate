@@ -8,7 +8,7 @@ const eventCodeValidator = z.enum(EVENT_CODES, {
 export const webhookValidator = z.object({
     id: z.string(),
     eventCode: z.string(),
-    targetUrl: z.string().url(),
+    targetUrl: z.string(),
     delays: z.number().min(0).array(),
     createdAt: z.coerce.date(),
     updatedAt: z.coerce.date(),

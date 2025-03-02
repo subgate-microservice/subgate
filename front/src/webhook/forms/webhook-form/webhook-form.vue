@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import EventSelector from "./event-selector.vue";
-import {computed, Ref, ref, watch} from "vue";
+import {Ref, ref} from "vue";
 import {recursive} from "../../../utils/other.ts";
 import {WebhookCU} from "../../domain.ts";
 import {blankWebhookCU} from "../../factories.ts";
-import {ZodError} from "zod";
 import {webhookCUValidator} from "../../validators.ts";
+import {useValidation} from "../../../utils/validation-service.ts";
 
 const p = defineProps<{
   webhookCU?: WebhookCU,
@@ -15,38 +15,24 @@ const e = defineEmits(["submit", "cancel"])
 
 const formData: Ref<WebhookCU> = ref(recursive(p.initData) ?? blankWebhookCU())
 
-const valid = ref({simpleFields: true})
-const showValidationErrors = ref(false)
-
-const simpleFieldErrors = computed(() => {
-  try {
-    webhookCUValidator.parse(formData.value);
-    return {};
-  } catch (err) {
-    return err instanceof ZodError
-        ? Object.fromEntries(err.errors.map(e => [e.path[0], e.message]))
-        : {};
-  }
-});
-
-watch(simpleFieldErrors, () => {
-  valid.value.simpleFields = Object.keys(simpleFieldErrors.value).length === 0;
-}, {immediate: true});
-
-const onSubmit = () => {
-  const isValidated = Object.values(valid.value).every(v => v)
-  if (isValidated) {
-    e("submit", formData.value)
-    showValidationErrors.value = false
-  } else {
-    showValidationErrors.value = true
-  }
+const validators = {
+  targetUrl: webhookCUValidator.shape.targetUrl,
+  eventCode: webhookCUValidator.shape.eventCode,
 }
 
+const validator = useValidation(formData, validators, false)
+
+const onSubmit = () => {
+  validator.validate()
+  if (validator.isValidated) {
+    e("submit", formData.value)
+  }
+}
 
 const onCancel = async () => {
   e("cancel")
 }
+
 </script>
 
 <template>
@@ -62,11 +48,11 @@ const onCancel = async () => {
             />
             <label for="urlInput">Url</label>
             <Message
-                v-if="simpleFieldErrors.targetUrl && showValidationErrors"
+                v-if="validator.errors.targetUrl && validator.isShowErrors"
                 severity="error"
                 class="mt-1"
             >
-              {{ simpleFieldErrors.targetUrl }}
+              {{ validator.errors.targetUrl }}
             </Message>
           </IftaLabel>
         </div>
@@ -74,11 +60,11 @@ const onCancel = async () => {
         <div>
           <event-selector v-model="formData.eventCode"/>
           <Message
-              v-if="simpleFieldErrors.eventCode && showValidationErrors"
+              v-if="validator.errors.eventCode && validator.isShowErrors"
               severity="error"
               class="mt-1"
           >
-            {{ simpleFieldErrors.eventCode }}
+            {{ validator.errors.eventCode }}
           </Message>
         </div>
 
@@ -90,6 +76,6 @@ const onCancel = async () => {
     </div>
   </div>
 </template>
-<style scoped>
 
+<style scoped>
 </style>
