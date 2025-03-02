@@ -3,6 +3,7 @@ import {safeArrayParsing, safeParsing, toCamelCase, toSnakeCase} from "../utils/
 import {authRequest} from "../auth/auth-request.ts";
 import {axiosInstance} from "../axios-instanse.ts";
 import {planValidator, subscriptionValidator} from "./validators.ts";
+import {AxiosRequestConfig} from "axios";
 
 export interface PlanSby {
     ids?: string[],
@@ -49,7 +50,7 @@ export class PlanRepo {
 
 
 export interface SubscriptionSby {
-
+    ids?: string[]
 }
 
 export class SubscriptionRepo {
@@ -87,7 +88,11 @@ export class SubscriptionRepo {
 
     async deleteSelected(sby: SubscriptionSby): Promise<void> {
         const url = "/subscription"
-        const params = {data: sby}
-        await authRequest(axiosInstance.delete, url, params)
+
+        const params = new URLSearchParams();
+        if (sby.ids) sby.ids.forEach(id => params.append("ids", id))
+
+        const config: AxiosRequestConfig = {params}
+        await authRequest(axiosInstance.delete, url, config)
     }
 }
