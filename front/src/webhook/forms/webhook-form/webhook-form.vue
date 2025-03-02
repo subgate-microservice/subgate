@@ -6,6 +6,7 @@ import {WebhookCU} from "../../domain.ts";
 import {blankWebhookCU} from "../../factories.ts";
 import {useValidator} from "../../../utils/validator.ts";
 import {webhookCUValidator} from "../../validators.ts";
+import {createWebhookCUFormValidator} from "./validation-service.ts";
 
 const p = defineProps<{
   webhookCU?: WebhookCU,
@@ -15,8 +16,8 @@ const e = defineEmits(["submit", "cancel"])
 
 const formData: Ref<WebhookCU> = ref(recursive(p.initData) ?? blankWebhookCU())
 
-const validator = useValidator(formData)
-validator.addZodValidator(webhookCUValidator)
+const validator = createWebhookCUFormValidator(formData)
+
 
 const onSubmit = () => {
   validator.validate()
