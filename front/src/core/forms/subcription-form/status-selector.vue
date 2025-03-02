@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {ModelRef, ref, watch} from "vue";
+import {capitalize, ModelRef, ref, watch} from "vue";
 import {SubscriptionStatus,} from "../../domain.ts";
 
 
@@ -29,7 +29,21 @@ watch(statusValue, () => {
           v-model="statusValue"
           :options="allStatuses"
           class="w-full"
-      />
+      >
+        <template #value="slotProps">
+          <div v-if="slotProps.value" class="flex items-center">
+            <div>{{ capitalize(slotProps.value) }}</div>
+          </div>
+          <span v-else>
+            {{ slotProps.placeholder }}
+        </span>
+        </template>
+        <template #option="slotProps">
+          <div class="flex items-center">
+            <div>{{ capitalize(slotProps.option) }}</div>
+          </div>
+        </template>
+      </Select>
       <label for="StatusSelector">Status</label>
     </IftaLabel>
 
