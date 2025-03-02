@@ -28,7 +28,7 @@ export function blankUsage(): Usage {
         availableUnits: 100,
         lastRenew: new Date(),
         usedUnits: 0,
-        renewCycle: Period.enum.lifetime,
+        renewCycle: Period.Lifetime,
     }
 }
 
@@ -57,7 +57,7 @@ export function blankPlanInfo(): PlanInfo {
 
 export function blankBillingInfo(): BillingInfo {
     return {
-        billingCycle: Period.enum.monthly,
+        billingCycle: Period.Monthly,
         currency: "USD",
         lastBilling: new Date(),
         price: 100,

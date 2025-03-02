@@ -24,7 +24,7 @@ async def create_subscription(
         subscription_create: SubscriptionCreate,
         auth_user: AuthUser = Depends(auth_closure),
         container: Bootstrap = Depends(get_container),
-) -> str:
+) -> SubId:
     # todo вернуть permission service
     async with container.unit_of_work_factory().create_uow() as uow:
         subscription = subscription_create.to_subscription(auth_user.id)
@@ -32,7 +32,7 @@ async def create_subscription(
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
     container.telegraph().wake_worker()
-    return "Ok"
+    return subscription.id
 
 
 @subscription_router.get("/")
