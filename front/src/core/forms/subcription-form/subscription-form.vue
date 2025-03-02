@@ -75,9 +75,11 @@ const onCancel = () => {
         />
 
         <discount-manager
-            :discounts="formData.discounts"
+            :show-validation-errors="showValidationErrors"
             v-model:validated="valid.discounts"
+            v-model:discounts="formData.discounts"
         />
+
         <usage-rate-manager
             :show-errors="showValidationErrors"
             :base-period="formData.billingInfo.billingCycle"

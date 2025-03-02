@@ -1,19 +1,20 @@
 <script setup lang="ts">
-import {computed, watch} from "vue";
+import {computed, ModelRef, watch} from "vue";
 import {fromError} from "zod-validation-error";
 import {InputGroup, InputText, InputNumber, Button, Message} from "primevue";
 import {Discount} from "../domain.ts";
 import {discountValidator} from "../validators.ts";
 
 interface Props {
-  discounts: Discount[];
+  showValidationErrors: boolean
 }
 
 const p = defineProps<Props>();
 const validated = defineModel("validated", {default: true});
+const discountsModel: ModelRef<Discount[]> = defineModel("discounts", {default: () => []})
 
 const addDiscount = () => {
-  p.discounts.push({
+  discountsModel.value.push({
     title: "",
     code: "",
     size: 0,
@@ -23,12 +24,11 @@ const addDiscount = () => {
 };
 
 const removeDiscount = (item: Discount) => {
-  const index = p.discounts.indexOf(item);
-  p.discounts.splice(index, 1);
+  discountsModel.value = discountsModel.value.filter(disc => disc.code !== item.code)
 };
 
 const validationErrors = computed(() =>
-    p.discounts.map((discount) => {
+    discountsModel.value.map((discount) => {
       try {
         discountValidator.parse(discount);
         return [];
@@ -53,11 +53,11 @@ watch(validationErrors, () => {
       <i class="pi pi-plus-circle h-fit self-center cursor-pointer" @click="addDiscount"/>
     </div>
 
-    <div v-if="p.discounts.length === 0" class="mt-1">
+    <div v-if="discountsModel.length === 0" class="mt-1">
       There are no discounts
     </div>
 
-    <div v-for="(item, i) in p.discounts">
+    <div v-for="(item, i) in discountsModel">
       <InputGroup class="mt-2">
         <IftaLabel class="flex-grow">
           <InputText v-model="item.title" class="w-full"/>
@@ -87,7 +87,13 @@ watch(validationErrors, () => {
         <Button icon="pi pi-trash" style="width: 5rem;" severity="contrast" @click="() => removeDiscount(item)"/>
       </InputGroup>
 
-      <Message v-for="err in validationErrors[i]" severity="error" size="small" class="mt-1">
+      <Message
+          v-if="p.showValidationErrors"
+          v-for="err in validationErrors[i]"
+          severity="error"
+          size="small"
+          class="mt-1"
+      >
         {{ err }}
       </Message>
     </div>

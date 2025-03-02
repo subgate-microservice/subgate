@@ -116,7 +116,11 @@ const onSubmit = () => {
         :base-period="formData.billingCycle"
         :show-errors="showValidationErrors"
     />
-    <DiscountManager v-model:validated="valid.discounts" :discounts="formData.discounts"/>
+    <DiscountManager
+        v-model:validated="valid.discounts"
+        v-model:discounts="formData.discounts"
+        :show-validation-errors="showValidationErrors"
+    />
 
     <div class="flex flex-wrap gap-2">
       <Button label="Submit" @click="onSubmit"/>
