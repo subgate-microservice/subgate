@@ -7,7 +7,7 @@ import {
   deletePlanById, deleteSelectedPlans,
 } from "../../plan";
 import PlanForm from "../../core/forms/plan-form.vue";
-import PlanInfo from "../../core/forms/plan-info.vue";
+import PlanInfo from "../../core/components/plan-info.vue";
 import {findAndDelete, findAndReplace} from "../../utils/array-utils.ts";
 import {getAmountString} from "../../other/currency";
 import {ExpandedMenu} from "../components/shared/settings-menu";

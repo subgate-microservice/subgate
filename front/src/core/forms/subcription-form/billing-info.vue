@@ -1,8 +1,8 @@
 <script setup lang="ts">
 
 import {InputGroup} from "primevue";
-import PeriodSelector from "../../../../core/components/period-selector.vue";
-import {Period} from "../../../../core/domain.ts";
+import PeriodSelector from "../../components/period-selector.vue";
+import {Period} from "../../domain.ts";
 
 const priceValue = defineModel("price", {default: 0})
 const currencyValue = defineModel("currency", {default: "USD"})

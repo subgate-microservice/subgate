@@ -17,7 +17,7 @@ import {useCreateDialogManager, useUpdateDialogManager} from "../../core/service
 import {SubscriptionRepo} from "../../core/repositories.ts";
 import {Subscription, SubscriptionUpdate} from "../../core/domain.ts";
 import {SubscriptionMapper} from "../../core/mappers.ts";
-import {SubscriptionForm} from "../components/subscription/subcription-form";
+import {SubscriptionForm} from "../../core/forms/subcription-form";
 
 
 const topMenuStore = useTopMenu()

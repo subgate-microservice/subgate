@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import {ref, Ref} from "vue";
-import {recursive} from "../../../../utils/other.ts";
+import {recursive} from "../../../utils/other.ts";
 import {
   SubscriptionUpdate,
-} from "../../../../core/domain.ts";
-import {blankSubscriptionForm} from "../../../../core/factories.ts";
+} from "../../domain.ts";
+import {blankSubscriptionForm} from "../../factories.ts";
 import PlanSelector from "./plan-selector.vue";
-import DiscountManager from "../../../../core/components/discount-manager.vue";
-import UsageRateManager from "../../../../core/components/usage-rate-manager.vue";
+import DiscountManager from "../../components/discount-manager.vue";
+import UsageRateManager from "../../components/usage-rate-manager.vue";
 import StatusSelector from "./status-selector.vue";
 import BillingInfo from "./billing-info.vue";
 

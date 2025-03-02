@@ -4,10 +4,10 @@ import {
   BillingInfo,
   Discount,
   Plan, PlanInfo, UsageRate,
-} from "../../../../core/domain.ts";
-import {PlanRepo} from "../../../../core/repositories.ts";
-import {recursive} from "../../../../utils/other.ts";
-import {blankBillingInfo, blankPlanInfo, usageFromUsageRate} from "../../../../core/factories.ts";
+} from "../../domain.ts";
+import {PlanRepo} from "../../repositories.ts";
+import {recursive} from "../../../utils/other.ts";
+import {blankBillingInfo, blankPlanInfo, usageFromUsageRate} from "../../factories.ts";
 
 const p = defineProps<{
   initPlanId?: string,

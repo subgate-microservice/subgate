@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {ModelRef, ref, watch} from "vue";
-import {SubscriptionStatus,} from "../../../../core/domain.ts";
+import {SubscriptionStatus,} from "../../domain.ts";
 
 
 const allStatuses = ref([SubscriptionStatus.Active, SubscriptionStatus.Paused, SubscriptionStatus.Expired])
