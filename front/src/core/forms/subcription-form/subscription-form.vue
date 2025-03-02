@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {ref, Ref} from "vue";
+import {computed, ref, Ref, watch} from "vue";
 import {recursive} from "../../../utils/other.ts";
 import {
   SubscriptionUpdate,
@@ -10,6 +10,7 @@ import DiscountManager from "../../components/discount-manager.vue";
 import UsageRateManager from "../../components/usage-rate-manager.vue";
 import StatusSelector from "./status-selector.vue";
 import BillingInfo from "./billing-info.vue";
+import {z, ZodError} from "zod";
 
 
 const e = defineEmits<{
@@ -21,12 +22,30 @@ const p = defineProps<{
   initData?: SubscriptionUpdate
   mode: "create" | "update",
 }>()
+
 const defaultValue = blankSubscriptionForm()
-
-
 const formData: Ref<SubscriptionUpdate> = ref(recursive(p.initData) ?? defaultValue)
 
-const valid = ref({discounts: true, usages: true})
+const simpleFieldsValidator = z.object({
+  subscriberId: z.string().min(1),
+})
+
+const simpleFieldErrors = computed(() => {
+  try {
+    simpleFieldsValidator.parse(formData.value);
+    return {};
+  } catch (err) {
+    return err instanceof ZodError
+        ? Object.fromEntries(err.errors.map(e => [e.path[0], e.message]))
+        : {};
+  }
+});
+
+watch(simpleFieldErrors, () => {
+  valid.value.simpleFields = Object.keys(simpleFieldErrors.value).length === 0;
+});
+
+const valid = ref({discounts: true, usages: true, simpleFields: true})
 const showValidationErrors = ref(false)
 
 const onSubmit = () => {
@@ -51,8 +70,19 @@ const onCancel = () => {
 
       <div class="flex flex-col gap-3 flex-1 core-plan-info">
         <IftaLabel>
-          <InputText id="subscriberId" v-model="formData.subscriberId" class="w-full"/>
+          <InputText
+              id="subscriberId"
+              v-model="formData.subscriberId"
+              class="w-full"
+          />
           <label for="subscriberId">Subscriber ID</label>
+          <Message
+              v-if="simpleFieldErrors.subscriberId && showValidationErrors"
+              severity="error"
+              class="mt-1"
+          >
+            {{ simpleFieldErrors.subscriberId }}
+          </Message>
         </IftaLabel>
 
         <plan-selector
