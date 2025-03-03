@@ -1,42 +1,43 @@
-import {reactive, computed, Ref} from 'vue'
+import {computed, reactive, Ref} from 'vue'
 import {ZodObject} from "zod";
 
 export interface Validator {
-    isShow: boolean
-    isValidated: boolean
+    isValidated: Ref<boolean>
     validate: () => void
-    getErrors: (field: string) => string[]
-    addFieldValidator: (field: string, validator: (v: any) => string[]) => void
-    addZodValidator: (validator: ZodObject<any>) => void,
+    getFieldErrors: (field: string) => string[]
+    getAllErrors: () => string[]
 }
 
-export function useValidator<T>(formData: Ref<T>): Validator {
-    const fieldValidators: Record<string, ((value: any) => string[])[]> = reactive({})
-    const errors: Record<string, string[]> = reactive({})
-
-    function addFieldValidator(field: string, validator: (v: any) => string[]) {
-        if (!fieldValidators[field]) fieldValidators[field] = []
-        fieldValidators[field].push(validator)
-    }
+export function useValidatorService<T>(formData: Ref<T>, validator: ZodObject<T>): Validator {
+    const errors = reactive<Record<string, string[]>>({})
 
     function validate() {
-        Object.keys(fieldValidators).forEach(field => {
-            const validators = fieldValidators[field]
-            const fieldErrors = validators.flatMap(validator => validator(formData.value[field]))
-            if (fieldErrors.length) {
-                errors[field] = fieldErrors
-            } else {
-                delete errors[field]
-            }
-        })
+        Object.keys(errors).forEach(key => delete errors[key])
+
+        const result = validator.safeParse(formData.value)
+        if (!result.success) {
+            result.error.errors.forEach(error => {
+                const field = error.path.join(".")
+                if (!errors[field]) errors[field] = []
+                errors[field].push(error.message)
+            });
+        }
+    }
+
+    function getFieldErrors(field: string): string[] {
+        return errors[field] ?? []
+    }
+
+    function getAllErrors() {
+        return Object.values(errors).flat()
     }
 
     return {
-        isShow: computed(() => Object.keys(errors).length > 0),
-        isValidated: computed(() => Object.keys(errors).length === 0),
+        get isValidated() {
+            return Object.keys(errors).length === 0
+        },
         validate,
-        getErrors: (field) => errors[field] || [],
-        addFieldValidator,
+        getFieldErrors,
+        getAllErrors,
     }
 }
-

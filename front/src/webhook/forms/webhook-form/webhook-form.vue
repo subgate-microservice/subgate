@@ -4,9 +4,8 @@ import {Ref, ref} from "vue";
 import {recursive} from "../../../utils/other.ts";
 import {WebhookCU} from "../../domain.ts";
 import {blankWebhookCU} from "../../factories.ts";
-import {useValidator} from "../../../utils/validator.ts";
+import {useValidatorService} from "../../../utils/validator.ts";
 import {webhookCUValidator} from "../../validators.ts";
-import {createWebhookCUFormValidator} from "./validation-service.ts";
 
 const p = defineProps<{
   webhookCU?: WebhookCU,
@@ -16,13 +15,15 @@ const e = defineEmits(["submit", "cancel"])
 
 const formData: Ref<WebhookCU> = ref(recursive(p.initData) ?? blankWebhookCU())
 
-const validator = createWebhookCUFormValidator(formData)
+const validator = useValidatorService(formData, webhookCUValidator)
 
 
 const onSubmit = () => {
   validator.validate()
   if (validator.isValidated) {
-    // e("submit", formData.value)
+    e("submit", formData.value)
+  } else {
+    console.warn(validator.getAllErrors())
   }
 }
 
@@ -45,8 +46,7 @@ const onCancel = async () => {
             />
             <label for="urlInput">Url</label>
             <Message
-                v-if="validator.isShow"
-                v-for="msg in validator.getErrors('targetUrl')"
+                v-for="msg in validator.getFieldErrors('targetUrl')"
                 severity="error"
                 class="mt-1"
             >
@@ -58,8 +58,7 @@ const onCancel = async () => {
         <div>
           <event-selector v-model="formData.eventCode"/>
           <Message
-              v-if="validator.isShow"
-              v-for="msg in validator.getErrors('eventCode')"
+              v-for="msg in validator.getFieldErrors('eventCode')"
               severity="error"
               class="mt-1"
           >
