@@ -65,8 +65,3 @@ export const useAuthStore = defineStore("useAuthStore", () => {
         deleteAccount,
     }
 })
-
-
-export function isAuthenticated() {
-    return useAuthStore().isAuthenticated
-}
