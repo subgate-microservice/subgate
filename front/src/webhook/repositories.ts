@@ -3,6 +3,11 @@ import {safeArrayParsing, safeParsing, toCamelCase, toSnakeCase} from "../shared
 import {authRequest} from "../auth/auth-request.ts";
 import {axiosInstance} from "../axios-instanse.ts";
 import {webhookValidator} from "./validators.ts";
+import {AxiosRequestConfig} from "axios";
+
+export interface WebhookSby {
+    ids?: string[]
+}
 
 export class WebhookRepo {
     async createOne(data: WebhookCU): Promise<Webhook> {
@@ -36,8 +41,13 @@ export class WebhookRepo {
         await authRequest(axiosInstance.delete, url)
     }
 
-    async deleteAll(): Promise<void> {
+    async deleteSelected(sby: WebhookSby): Promise<void> {
         const url = "/webhook"
-        await authRequest(axiosInstance.delete, url)
+
+        const params = new URLSearchParams();
+        if (sby.ids) sby.ids.forEach(id => params.append("ids", id))
+
+        const config: AxiosRequestConfig = {params}
+        await authRequest(axiosInstance.delete, url, config)
     }
 }

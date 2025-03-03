@@ -45,7 +45,7 @@ const deleteOne = async (item: Webhook) => {
 }
 const deleteSelected = async () => {
   const sby = {ids: selected.value.map(x => x.id)}
-  await webhookRepo.deleteAll()
+  await webhookRepo.deleteSelected(sby)
   const hashes = new Set(sby.ids)
   items.value = items.value.filter(x => !hashes.has(x.id))
   selected.value = []
