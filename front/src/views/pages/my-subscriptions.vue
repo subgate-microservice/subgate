@@ -8,7 +8,7 @@ import {ExpandedMenu} from "../components/shared/settings-menu";
 import {CopyWrapper} from "../components/shared/copy-button";
 import {getNextBilling} from "../../core/services.ts";
 import {SubscriptionRepo} from "../../core/repositories.ts";
-import {Subscription, SubscriptionUpdate} from "../../core/domain.ts";
+import {Subscription, SubscriptionCU} from "../../core/domain.ts";
 import {SubscriptionMapper} from "../../core/mappers.ts";
 import {SubscriptionForm} from "../../core/forms/subcription-form";
 import {dateToString} from "../../utils/other.ts";
@@ -30,13 +30,13 @@ const updateDialog = useUpdateDialogManager<Subscription>()
 const infoDialog = useUpdateDialogManager<Subscription>()
 
 
-const saveCreated = async (item: SubscriptionUpdate) => {
+const saveCreated = async (item: SubscriptionCU) => {
   const created = await subRepo.create(item)
   subscriptions.value = [...subscriptions.value, created]
   createDialog.closeDialog()
 }
 
-const saveUpdated = async (item: SubscriptionUpdate) => {
+const saveUpdated = async (item: SubscriptionCU) => {
   const updated = await subRepo.update(item)
   findAndReplace(updated, subscriptions.value, x => x.id)
   updateDialog.finishUpdate()

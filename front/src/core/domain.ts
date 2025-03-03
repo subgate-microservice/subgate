@@ -99,7 +99,7 @@ export interface Subscription {
     updatedAt: Date
 }
 
-export interface SubscriptionUpdate {
+export interface SubscriptionCU {
     id: string
     subscriberId: string
     planInfo: PlanInfo

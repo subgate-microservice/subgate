@@ -102,3 +102,16 @@ export const subscriptionValidator = z.object({
     createdAt: z.coerce.date(),
     updatedAt: z.coerce.date(),
 }).strict()
+
+export const subscriptionCUValidator = z.object({
+    id: z.string(),
+    subscriberId: z.string().min(1),
+    planInfo: planInfoValidator,
+    billingInfo: billingInfoValidator,
+    status: subscriptionStatusValidator,
+    pausedFrom: z.coerce.date().nullable().optional(),
+    autorenew: z.boolean(),
+    usages: usageRateValidator.array(),
+    discounts: discountValidator.array(),
+    fields: z.any(),
+}).strict()

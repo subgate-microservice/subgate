@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import {computed, ref, Ref, watch} from "vue";
+import {ref, Ref} from "vue";
 import {recursive} from "../../../utils/other.ts";
 import {
-  SubscriptionUpdate,
+  SubscriptionCU,
 } from "../../domain.ts";
 import {blankSubscriptionCU} from "../../factories.ts";
 import PlanSelector from "./plan-selector.vue";
@@ -10,51 +10,30 @@ import DiscountManager from "../../components/discount-manager.vue";
 import UsageRateManager from "../../components/usage-rate-manager.vue";
 import StatusSelector from "./status-selector.vue";
 import BillingInfo from "./billing-info.vue";
-import {z, ZodError} from "zod";
+import {useValidatorService} from "../../../utils/validation-service.ts";
+import {subscriptionCUValidator} from "../../validators.ts";
 
 
 const e = defineEmits<{
-  (e: "submit", data: SubscriptionUpdate): void,
+  (e: "submit", data: SubscriptionCU): void,
   (e: "cancel"): void,
 }>()
 
 const p = defineProps<{
-  initData?: SubscriptionUpdate
+  initData?: SubscriptionCU
   mode: "create" | "update",
 }>()
 
-const defaultValue = blankSubscriptionCU()
-const formData: Ref<SubscriptionUpdate> = ref(recursive(p.initData) ?? defaultValue)
+const formData: Ref<SubscriptionCU> = ref(recursive(p.initData) ?? blankSubscriptionCU())
+const validator = useValidatorService(formData, subscriptionCUValidator)
 
-const simpleFieldsValidator = z.object({
-  subscriberId: z.string().min(1),
-})
-
-const simpleFieldErrors = computed(() => {
-  try {
-    simpleFieldsValidator.parse(formData.value);
-    return {};
-  } catch (err) {
-    return err instanceof ZodError
-        ? Object.fromEntries(err.errors.map(e => [e.path[0], e.message]))
-        : {};
-  }
-});
-
-watch(simpleFieldErrors, () => {
-  valid.value.simpleFields = Object.keys(simpleFieldErrors.value).length === 0;
-});
-
-const valid = ref({discounts: true, usages: true, simpleFields: true})
-const showValidationErrors = ref(false)
 
 const onSubmit = () => {
-  const isValidated = Object.values(valid.value).every(v => v)
-  if (isValidated) {
-    e("submit", formData.value)
-    showValidationErrors.value = false
+  validator.validate()
+  if (validator.isValidated) {
+    // e("submit", formData.value)
   } else {
-    showValidationErrors.value = true
+    console.warn()
   }
 };
 
@@ -77,12 +56,12 @@ const onCancel = () => {
           />
           <label for="subscriberId">Subscriber ID</label>
           <Message
-              v-if="simpleFieldErrors.subscriberId && showValidationErrors"
               severity="error"
               class="mt-1"
               size="small"
+              v-for="err in validator.getFieldErrors('subscriberId')"
           >
-            {{ simpleFieldErrors.subscriberId }}
+            {{ err }}
           </Message>
         </IftaLabel>
 
@@ -106,29 +85,22 @@ const onCancel = () => {
         />
 
         <discount-manager
-            :show-validation-errors="showValidationErrors"
-            v-model:validated="valid.discounts"
             v-model:discounts="formData.discounts"
+            :validator="validator"
+            field-prefix="discounts"
         />
 
         <usage-rate-manager
-            :show-errors="showValidationErrors"
             :base-period="formData.billingInfo.billingCycle"
+            :validator="validator"
+            field-prefix="usages"
             v-model:usage-rates="formData.usages"
-            v-model:validated="valid.usages"
         />
 
         <!--Navigate-->
         <div class="flex flex-wrap gap-2 mt-4">
-          <Button
-              label="Submit"
-              @click="onSubmit"
-          />
-          <Button
-              label="Cancel"
-              @click="onCancel"
-              outlined
-          />
+          <Button label="Submit" @click="onSubmit"/>
+          <Button label="Cancel" @click="onCancel" outlined/>
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-import {Plan, PlanCU, Subscription, SubscriptionUpdate} from "./domain.ts";
+import {Plan, PlanCU, Subscription, SubscriptionCU} from "./domain.ts";
 import {recursive} from "../utils/other.ts";
 
 export class PlanMapper {
@@ -23,7 +23,7 @@ export class PlanMapper {
 
 
 export class SubscriptionMapper{
-    toSubUpdate(target: Subscription): SubscriptionUpdate{
+    toSubUpdate(target: Subscription): SubscriptionCU{
         target = recursive(target)
         return {
             autorenew: target.autorenew,
