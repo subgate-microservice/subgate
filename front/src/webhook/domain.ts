@@ -11,5 +11,4 @@ export interface WebhookCU {
     id: string
     eventCode: string
     targetUrl: string
-    delays: number[]
 }

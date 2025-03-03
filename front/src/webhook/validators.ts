@@ -1,6 +1,7 @@
 import {z} from "zod";
 import {EVENT_CODES} from "./enums.ts";
 
+// @ts-ignore
 const eventCodeValidator = z.enum(EVENT_CODES, {
     message: "Invalid EventCode"
 })
