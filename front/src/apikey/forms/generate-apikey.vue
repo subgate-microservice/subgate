@@ -1,39 +1,35 @@
 <script setup lang="ts">
-import {Ref, ref} from "vue";
-import {Apikey, ApikeyFormData, createApikey} from "../../auth";
+import {ref} from "vue";
 import {CopyButton} from "../../shared/components/copy-button";
+import {Apikey, ApikeyCU} from "../domain.ts";
+import {blankApikeyCU} from "../factories.ts";
+import {ApikeyRepo} from "../repositories.ts";
+import {useValidatorService} from "../../shared/services/validation-service.ts";
+import {apikeyCUValidator} from "../validators.ts";
+import {useCreateDialogManager, useUpdateDialogManager} from "../../shared/services/dialog-manager.ts";
 
 const e = defineEmits<{
   (e: "apikeyCreated", item: Apikey): void,
 }>()
 
-// Apikey value once showing
-const showApikeyValueDialog = ref(false)
-const apikeyValue: Ref<string | null> = ref(null)
 
-const onCloseApikeyValueDialog = () => showApikeyValueDialog.value = false
+const createDialog = useCreateDialogManager()
+const showDialog = useUpdateDialogManager<string>()
 
-// New apikey
-const formData: Ref<ApikeyFormData> = ref({
-  title: "",
-})
-const showApikeyFormDialog = ref(false)
-const validationResults: Ref<ValidationResults> = ref({title: [], validated: true})
-
-
-const startCreating = () => {
-  showApikeyFormDialog.value = true
-}
+const formData = ref(blankApikeyCU())
+const validator = useValidatorService<ApikeyCU>(formData, apikeyCUValidator)
 
 const submitForm = async () => {
-  validationResults.value = validateApikeyFormData(formData.value)
-  if (validationResults.value.validated) {
-    const [apikey, value] = await createApikey(formData.value)
-    apikeyValue.value = value
-    showApikeyFormDialog.value = false
-    showApikeyValueDialog.value = true
-    formData.value = {title: ""}
+  validator.validate()
+  if (validator.isValidated) {
+    const [apikey, value] = await new ApikeyRepo().createOne(formData.value)
+    createDialog.closeDialog()
+    showDialog.startUpdate(value)
+
+    formData.value = blankApikeyCU()
     e("apikeyCreated", apikey)
+  } else {
+    console.warn(validator.getAllErrors())
   }
 }
 
@@ -45,11 +41,15 @@ const submitForm = async () => {
         label="New"
         icon="pi pi-plus-circle"
         class="w-max mt-2"
-        @click="startCreating"
+        @click="createDialog.openDialog()"
     />
 
-    <Dialog v-model:visible="showApikeyValueDialog" modal header="API Key" class="max-w-[30rem]"
-            @close="onCloseApikeyValueDialog">
+    <Dialog
+        v-model:visible="showDialog.state.showFlag"
+        modal header="API Key"
+        class="max-w-[30rem]"
+        @close="showDialog.finishUpdate()"
+    >
       <div>
         Please save this value because we show it once. If you forget it you will need to generate new one.
       </div>
@@ -57,10 +57,10 @@ const submitForm = async () => {
         <template #container>
           <div class="flex justify-between items-center pl-3">
             <div class="h-max">
-              {{ apikeyValue }}
+              {{ showDialog.state.target }}
             </div>
             <copy-button
-                :text-for-copy="apikeyValue!"
+                :text-for-copy="showDialog.state.target!"
                 message-after="API Key was copied"
             />
           </div>
@@ -69,7 +69,7 @@ const submitForm = async () => {
     </Dialog>
 
     <Dialog
-        v-model:visible="showApikeyFormDialog"
+        v-model:visible="createDialog.state.showFlag"
         modal header="New API key" class="max-w-[30rem]"
     >
       <div class="flex flex-wrap gap-2">
@@ -82,7 +82,11 @@ const submitForm = async () => {
             @click="submitForm"
         />
       </div>
-      <Message severity="error" size="small" variant="simple" v-for="err in validationResults.title" class="mt-1">
+      <Message
+          v-for="err in validator.getAllErrors()"
+          severity="error" size="small"
+          class="mt-1"
+      >
         {{ err }}
       </Message>
     </Dialog>

@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import {onMounted, ref, Ref} from "vue";
-import {Apikey, getAllApikeys} from "../../auth";
 import {useTopMenu} from "../../shared/components/top-menu";
 import ApikeyCard from "../components/apikey-card.vue";
 import GenerateApikey from "../forms/generate-apikey.vue";
+import {Apikey} from "../domain.ts";
+import {ApikeyRepo} from "../repositories.ts";
 
 
 const topMenuStore = useTopMenu()
 topMenuStore.headerTitle = "Apikeys"
+const apikeyRepo = new ApikeyRepo()
 
 const items: Ref<Apikey[]> = ref([])
 
@@ -20,7 +22,7 @@ const onApikeyDeleted = (item: Apikey) => {
 }
 
 onMounted(async () => {
-  items.value = await getAllApikeys()
+  items.value = await apikeyRepo.getAll()
 })
 </script>
 

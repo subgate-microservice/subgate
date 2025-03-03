@@ -1,4 +1,4 @@
-import {Apikey, ApikeyFormData, AuthUser, UpdateEmailForm, UpdatePasswordForm} from "./domain.ts";
+import {ApikeyFormData, AuthUser, UpdateEmailForm, UpdatePasswordForm} from "./domain.ts";
 import {safeArrayParsing, safeParsing} from "../shared/services/other.ts";
 import {v4} from "uuid";
 import {authRequest} from "./auth-request.ts";

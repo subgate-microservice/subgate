@@ -34,14 +34,7 @@ export function isAuthenticated() {
     return useAuthStore().myself !== null
 }
 
-export function getAllApikeys() {
-    return getApikeyGateway().getAll()
-}
 
 export function createApikey(data: ApikeyFormData) {
     return getApikeyGateway().createOne(data)
-}
-
-export function deleteApikeyById(id: string) {
-    return getApikeyGateway().deleteOneById(id)
 }

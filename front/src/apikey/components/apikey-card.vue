@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import {Apikey, deleteApikeyById} from "../../auth";
 import {dateToString} from "../../shared/services/other.ts";
 import {useConfirm} from "primevue/useconfirm";
+import {ApikeyRepo} from "../repositories.ts";
+import {Apikey} from "../domain.ts";
 
 interface P {
   apikey: Apikey,
@@ -32,7 +33,7 @@ const onDelete = async () => {
       severity: 'contrast'
     },
     accept: async () => {
-      await deleteApikeyById(p.apikey.id)
+      await new ApikeyRepo().deleteOneById(p.apikey.id)
       e("apikeyDeleted", p.apikey)
     },
     reject: () => {
