@@ -1,5 +1,5 @@
 import {Webhook, WebhookCU} from "./domain.ts";
-import {safeArrayParsing, safeParsing, toCamelCase, toSnakeCase} from "../utils/other.ts";
+import {safeArrayParsing, safeParsing, toCamelCase, toSnakeCase} from "../shared/services/other.ts";
 import {authRequest} from "../auth/auth-request.ts";
 import {axiosInstance} from "../axios-instanse.ts";
 import {webhookValidator} from "./validators.ts";

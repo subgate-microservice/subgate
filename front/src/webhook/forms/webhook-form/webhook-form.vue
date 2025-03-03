@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import EventSelector from "./event-selector.vue";
 import {Ref, ref} from "vue";
-import {recursive} from "../../../utils/other.ts";
+import {recursive} from "../../../shared/services/other.ts";
 import {WebhookCU} from "../../domain.ts";
 import {blankWebhookCU} from "../../factories.ts";
-import {useValidatorService} from "../../../utils/validation-service.ts";
+import {useValidatorService} from "../../../shared/services/validation-service.ts";
 import {webhookCUValidator} from "../../validators.ts";
 
 const p = defineProps<{
@@ -13,7 +13,7 @@ const p = defineProps<{
 
 const e = defineEmits(["submit", "cancel"])
 
-const formData: Ref<WebhookCU> = ref(recursive(p.initData) ?? blankWebhookCU())
+const formData: Ref<WebhookCU> = ref(recursive(p.webhookCU) ?? blankWebhookCU())
 
 const validator = useValidatorService(formData, webhookCUValidator)
 

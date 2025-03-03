@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import SidebarLayout from "./views/components/shared/sidebar-layout/sidebar-layout.vue";
-import SidebarMenu from "./views/components/shared/sidebar-menu/sidebar-menu.vue";
-import {TopMenu, TopLogo} from "./views/components/shared/top-menu";
 import {Toast} from "primevue";
 import {isAuthenticated} from "./auth";
+import SidebarLayout from "./shared/components/sidebar-layout/sidebar-layout.vue";
+import {TopLogo, TopMenu} from "./shared/components/top-menu";
+import SidebarMenu from "./shared/components/sidebar-menu/sidebar-menu.vue";
 </script>
 
 <template>

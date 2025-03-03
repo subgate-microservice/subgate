@@ -1,5 +1,5 @@
 import {Apikey, ApikeyFormData, AuthUser, UpdateEmailForm, UpdatePasswordForm} from "./domain.ts";
-import {safeArrayParsing, safeParsing} from "../utils/other.ts";
+import {safeArrayParsing, safeParsing} from "../shared/services/other.ts";
 import {v4} from "uuid";
 import {authRequest} from "./auth-request.ts";
 import {axiosInstance} from "../axios-instanse.ts";

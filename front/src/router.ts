@@ -1,11 +1,11 @@
 import {createRouter, createWebHistory} from "vue-router"
-import MyPlans from "./views/pages/my-plans.vue";
+import MyPlans from "./subscription/pages/my-plans.vue";
 import {isAuthenticated} from "./auth";
-import MySubscriptions from "./views/pages/my-subscriptions.vue";
-import MyWebhooks from "./views/pages/my-webhooks.vue";
-import MyAccount from "./views/pages/my-account.vue";
-import MyApikeys from "./views/pages/my-apikeys.vue";
-import FastapiLogin from "./views/pages/fastapi-login.vue";
+import MySubscriptions from "./subscription/pages/my-subscriptions.vue";
+import MyWebhooks from "./webhook/pages/my-webhooks.vue";
+import MyAccount from "./auth/pages/my-account.vue";
+import MyApikeys from "./apikey/pages/my-apikeys.vue";
+import FastapiLogin from "./auth/pages/fastapi-login.vue";
 import {getAuthGateway, useAuthStore} from "./auth/gateways.ts";
 
 
