@@ -44,7 +44,10 @@ export const useAuthStore = defineStore("useAuthStore", () => {
     }
 
     async function logout() {
-        console.log("logout")
+        const url = "/auth/jwt/logout"
+        await axiosInstance.post(url);
+        sessionStorage.removeItem("fastapiusersauth")
+        myself.value = null
     }
 
     async function deleteAccount() {

@@ -9,7 +9,7 @@ const auth = useAuthStore()
 
 const onLogout = async () => {
   await auth.logout()
-  await router.push({name: "login"})
+  await router.push({name: "Login"})
 }
 
 const onProfile = async () => {
