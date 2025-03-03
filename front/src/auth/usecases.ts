@@ -1,5 +1,5 @@
-import {ApikeyFormData, UpdateEmailForm, UpdatePasswordForm} from "./domain.ts";
-import {getApikeyGateway, getAuthGateway, useAuthStore} from "./gateways.ts";
+import {UpdateEmailForm, UpdatePasswordForm} from "./domain.ts";
+import {getAuthGateway, useAuthStore} from "./gateways.ts";
 
 
 export async function login(login: string, password: string) {
@@ -34,7 +34,3 @@ export function isAuthenticated() {
     return useAuthStore().myself !== null
 }
 
-
-export function createApikey(data: ApikeyFormData) {
-    return getApikeyGateway().createOne(data)
-}

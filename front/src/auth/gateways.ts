@@ -1,7 +1,4 @@
-import {ApikeyFormData, AuthUser, UpdateEmailForm, UpdatePasswordForm} from "./domain.ts";
-import {safeArrayParsing, safeParsing} from "../shared/services/other.ts";
-import {v4} from "uuid";
-import {authRequest} from "./auth-request.ts";
+import {AuthUser, UpdateEmailForm, UpdatePasswordForm} from "./domain.ts";
 import {axiosInstance} from "../axios-instanse.ts";
 import {defineStore} from "pinia";
 import {ref, Ref} from "vue";
@@ -62,44 +59,3 @@ export const useAuthStore = defineStore("useAuthStore", () => {
         myself
     }
 })
-
-class ApikeyGateway {
-    async getAll(): Promise<Apikey[]> {
-        return [
-            {id: "1", title: "Fake1", createdAt: new Date()},
-            {id: "2", title: "Fake2", createdAt: new Date()},
-            {id: "3", title: "Fake3", createdAt: new Date()},
-        ]
-    }
-
-    async createOne(data: ApikeyFormData): Promise<[Apikey, string]> {
-        return [{id: v4(), title: data.title, createdAt: new Date()}, v4()]
-    }
-
-    async deleteOneById(id: string): Promise<void> {
-        console.log(id)
-    }
-}
-
-class ApikeyGatewayReal extends ApikeyGateway {
-    async getAll(): Promise<Apikey[]> {
-        const url = `/apikey`
-        const response: Apikey[] = (await authRequest(axiosInstance.get, url)).data
-        return safeArrayParsing(Apikey, response)
-    }
-
-    async createOne(data: ApikeyFormData): Promise<[Apikey, string]> {
-        const url = `/apikey`
-        const response: [Apikey, string] = (await authRequest(axiosInstance.post, url, data)).data
-        return [safeParsing(Apikey, response[0]), response[1]]
-    }
-
-    async deleteOneById(id: string): Promise<void> {
-        const url = `/apikey/${id}`
-        await authRequest(axiosInstance.delete, url)
-    }
-}
-
-export function getApikeyGateway() {
-    return new ApikeyGatewayReal()
-}
