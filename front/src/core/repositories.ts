@@ -1,4 +1,4 @@
-import {Plan, PlanCreate, PlanUpdate, Subscription, SubscriptionUpdate} from "./domain.ts";
+import {Plan, PlanCU, PlanCU, Subscription, SubscriptionUpdate} from "./domain.ts";
 import {safeArrayParsing, safeParsing, toCamelCase, toSnakeCase} from "../utils/other.ts";
 import {authRequest} from "../auth/auth-request.ts";
 import {axiosInstance} from "../axios-instanse.ts";
@@ -10,14 +10,14 @@ export interface PlanSby {
 }
 
 export class PlanRepo {
-    async create(item: PlanCreate): Promise<Plan> {
+    async create(item: PlanCU): Promise<Plan> {
         const url = "/plan"
         const data = toSnakeCase(item)
         const response = await authRequest(axiosInstance.post, url, data)
         return await this.getById(response.data)
     }
 
-    async update(item: PlanUpdate): Promise<Plan> {
+    async update(item: PlanCU): Promise<Plan> {
         const url = `/plan/${item.id}`
         const data = toSnakeCase(item)
         await authRequest(axiosInstance.put, url, data)

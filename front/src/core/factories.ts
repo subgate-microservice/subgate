@@ -6,7 +6,7 @@ import {
     Subscription,
     SubscriptionUpdate,
     SubscriptionStatus,
-    Usage, UsageRate
+    Usage, UsageRate, PlanCU
 } from "./domain.ts";
 import {v4} from "uuid";
 
@@ -29,6 +29,22 @@ export function blankUsage(): Usage {
         lastRenew: new Date(),
         usedUnits: 0,
         renewCycle: Period.Lifetime,
+    }
+}
+
+export function blankPlanCU(): PlanCU {
+    return {
+        id: v4(),
+        title: "",
+        price: 0,
+        currency: "USD",
+        billingCycle: Period.Monthly,
+        description: "",
+        level: 10,
+        features: "",
+        usageRates: [],
+        fields: {},
+        discounts: [],
     }
 }
 
@@ -83,7 +99,7 @@ export function blankSubscription(): Subscription {
     }
 }
 
-export function blankSubscriptionForm(): SubscriptionUpdate {
+export function blankSubscriptionCU(): SubscriptionUpdate {
     return {
         id: v4(),
         subscriberId: "AnySubscriberID",

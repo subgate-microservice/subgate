@@ -7,7 +7,7 @@ import PlanForm from "../../core/forms/plan-form.vue";
 import PlanInfo from "../../core/components/plan-info.vue";
 import {findAndDelete, findAndReplace} from "../../utils/array-utils.ts";
 import {ExpandedMenu} from "../components/shared/settings-menu";
-import {Plan, PlanCreate, PlanUpdate} from "../../core/domain.ts";
+import {Plan, PlanCU} from "../../core/domain.ts";
 import {PlanRepo} from "../../core/repositories.ts";
 import {PlanMapper} from "../../core/mappers.ts";
 import {getAmountString} from "../../core/services.ts";
@@ -22,18 +22,18 @@ const planRepo = new PlanRepo()
 const planMapper = new PlanMapper()
 
 const createDialog = useCreateDialogManager()
-const updateDialog = useUpdateDialogManager<PlanUpdate>()
+const updateDialog = useUpdateDialogManager<PlanCU>()
 const infoDialog = useUpdateDialogManager<Plan>()
 
 
-const saveCreatedPlan = async (data: PlanCreate) => {
+const saveCreatedPlan = async (data: PlanCU) => {
   const created = await planRepo.create(data)
   plans.value = [...plans.value, created]
   createDialog.closeDialog()
 }
 
 
-const saveUpdatedPlan = async (data: PlanUpdate) => {
+const saveUpdatedPlan = async (data: PlanCU) => {
   const updated = await planRepo.update(data)
   findAndReplace(updated, plans.value, x => x.id)
   updateDialog.finishUpdate()

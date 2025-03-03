@@ -5,38 +5,27 @@ import PeriodSelector from "../components/period-selector.vue";
 import DiscountManager from "../components/discount-manager.vue";
 import UsageRateManager from "../components/usage-rate-manager.vue";
 import {recursive} from "../../utils/other.ts";
-import {Period, PlanCreate} from "../domain.ts";
+import {PlanCU} from "../domain.ts";
 import {planCUValidator} from "../validators.ts";
 import {useValidatorService} from "../../utils/validation-service.ts";
+import {blankPlanCU} from "../factories.ts";
 
 interface Props {
-  initData?: PlanCreate;
+  initData?: PlanCU;
 }
 
 const props = defineProps<Props>();
 const emit = defineEmits(["submit", "cancel"]);
 
-const defaultData: PlanCreate = {
-  title: "string",
-  price: 100,
-  currency: "USD",
-  billingCycle: Period.Monthly,
-  description: "",
-  level: 10,
-  features: "",
-  usageRates: [],
-  fields: {},
-  discounts: [],
-}
 
-const formData: Ref<PlanCreate> = ref(recursive(props.initData ?? defaultData))
+const formData: Ref<PlanCU> = ref(recursive(props.initData) ?? blankPlanCU())
 
 const validator = useValidatorService(formData, planCUValidator)
 
 const onSubmit = () => {
   validator.validate()
   if (validator.isValidated) {
-    // emit("submit", formData.value)
+    emit("submit", formData.value)
   } else {
     console.warn(validator.getAllErrors())
   }

@@ -54,7 +54,8 @@ export interface Plan {
     updatedAt: Date
 }
 
-export interface PlanCreate {
+export interface PlanCU {
+    id: string
     title: string
     price: number
     currency: string
@@ -66,11 +67,6 @@ export interface PlanCreate {
     fields: Record<string, any>
     discounts: Discount[]
 }
-
-export interface PlanUpdate extends PlanCreate {
-    id: string
-}
-
 
 export interface PlanInfo {
     id: string

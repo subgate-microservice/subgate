@@ -1,9 +1,9 @@
-import {Plan, PlanUpdate, Subscription, SubscriptionUpdate} from "./domain.ts";
+import {Plan, PlanCU, Subscription, SubscriptionUpdate} from "./domain.ts";
 import {recursive} from "../utils/other.ts";
 
 export class PlanMapper {
 
-    toPlanUpdate(target: Plan): PlanUpdate {
+    toPlanUpdate(target: Plan): PlanCU {
         target = recursive(target)
         return {
             billingCycle: target.billingCycle,

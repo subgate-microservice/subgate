@@ -4,7 +4,7 @@ import {recursive} from "../../../utils/other.ts";
 import {
   SubscriptionUpdate,
 } from "../../domain.ts";
-import {blankSubscriptionForm} from "../../factories.ts";
+import {blankSubscriptionCU} from "../../factories.ts";
 import PlanSelector from "./plan-selector.vue";
 import DiscountManager from "../../components/discount-manager.vue";
 import UsageRateManager from "../../components/usage-rate-manager.vue";
@@ -23,7 +23,7 @@ const p = defineProps<{
   mode: "create" | "update",
 }>()
 
-const defaultValue = blankSubscriptionForm()
+const defaultValue = blankSubscriptionCU()
 const formData: Ref<SubscriptionUpdate> = ref(recursive(p.initData) ?? defaultValue)
 
 const simpleFieldsValidator = z.object({

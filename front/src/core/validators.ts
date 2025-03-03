@@ -42,7 +42,7 @@ export const usageValidator = z.object({
 export const planValidator = z.object({
     id: z.string(),
     title: z.string().min(2),
-    price: z.number().positive(),
+    price: z.number().min(0),
     currency: z.string().min(2),
     billingCycle: periodValidator,
     description: z.string().optional().nullable(),
@@ -57,8 +57,9 @@ export const planValidator = z.object({
 
 
 export const planCUValidator = z.object({
+    id: z.string(),
     title: z.string().min(2),
-    price: z.number().positive(),
+    price: z.number().min(0),
     currency: z.string(),
     billingCycle: periodValidator,
     description: z.string().nullable(),
