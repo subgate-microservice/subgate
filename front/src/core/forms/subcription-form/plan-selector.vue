@@ -56,6 +56,9 @@ onMounted(async () => {
         && target.price === billingInfoModel.value.price
         && target.currency === billingInfoModel.value.currency
         && target.billingCycle === billingInfoModel.value.billingCycle
+
+        && String(target.discounts) === String(discountModel.value)
+        && String(target.usageRates) === String(usageRateModel.value)
     ) {
       selectedPlan.value = target
     }

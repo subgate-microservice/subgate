@@ -3,6 +3,7 @@ import {computed, ModelRef} from "vue";
 import {InputGroup, InputText, InputNumber, Button, Message} from "primevue";
 import {Discount} from "../domain.ts";
 import {ValidationService} from "../../utils/validation-service.ts";
+import {blankDiscount} from "../factories.ts";
 
 interface Props {
   validator: ValidationService
@@ -14,13 +15,7 @@ const p = defineProps<Props>();
 const discountsModel: ModelRef<Discount[]> = defineModel("discounts", {default: () => []})
 
 const addDiscount = () => {
-  discountsModel.value.push({
-    title: "",
-    code: "",
-    size: 0,
-    validUntil: new Date(),
-    description: "",
-  });
+  discountsModel.value.push(blankDiscount())
 };
 
 const removeDiscount = (item: Discount) => {

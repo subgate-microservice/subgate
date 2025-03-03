@@ -96,6 +96,8 @@ const p = defineProps<{
       <div v-if="p.subscription.discounts.length" class="mt-4">
         <Fieldset legend="Discounts" :toggleable="true" :collapsed="true" style="width: 100%">
           <DataTable :value="p.subscription.discounts">
+            <Column field="title" header="Title"></Column>
+            <Column field="code" header="Code"></Column>
             <Column field="description" header="Description"></Column>
             <Column field="size" header="Size">
               <template #body="slotProps">

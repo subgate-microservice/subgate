@@ -27,13 +27,12 @@ const p = defineProps<{
 const formData: Ref<SubscriptionCU> = ref(recursive(p.initData) ?? blankSubscriptionCU())
 const validator = useValidatorService(formData, subscriptionCUValidator)
 
-
 const onSubmit = () => {
   validator.validate()
   if (validator.isValidated) {
-    // e("submit", formData.value)
+    e("submit", formData.value)
   } else {
-    console.warn()
+    console.warn(validator.getAllErrors())
   }
 };
 
@@ -94,6 +93,7 @@ const onCancel = () => {
             :base-period="formData.billingInfo.billingCycle"
             :validator="validator"
             field-prefix="usages"
+            item-type="usage"
             v-model:usage-rates="formData.usages"
         />
 

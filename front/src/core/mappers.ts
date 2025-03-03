@@ -22,8 +22,8 @@ export class PlanMapper {
 }
 
 
-export class SubscriptionMapper{
-    toSubUpdate(target: Subscription): SubscriptionCU{
+export class SubscriptionMapper {
+    toSubUpdate(target: Subscription): SubscriptionCU {
         target = recursive(target)
         return {
             autorenew: target.autorenew,

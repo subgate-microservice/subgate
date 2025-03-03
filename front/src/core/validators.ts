@@ -111,7 +111,7 @@ export const subscriptionCUValidator = z.object({
     status: subscriptionStatusValidator,
     pausedFrom: z.coerce.date().nullable().optional(),
     autorenew: z.boolean(),
-    usages: usageRateValidator.array(),
+    usages: usageValidator.array(),
     discounts: discountValidator.array(),
     fields: z.any(),
 }).strict()

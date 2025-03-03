@@ -89,6 +89,7 @@ const onSubmit = () => {
         :base-period="formData.billingCycle"
         :validator="validator"
         field-prefix="usageRates"
+        item-type="usageRate"
     />
     <DiscountManager
         v-model:discounts="formData.discounts"

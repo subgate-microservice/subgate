@@ -12,20 +12,31 @@ import {v4} from "uuid";
 
 export function blankDiscount(): Discount {
     return {
-        title: "Black Friday",
-        code: "black",
-        size: 20,
+        title: "",
+        code: "",
+        size: 0,
         validUntil: new Date(),
-        description: "Any description",
+        description: "",
     }
 }
 
+export function blankUsageRate(): UsageRate {
+    return {
+        title: "",
+        code: "",
+        unit: "",
+        availableUnits: 0,
+        renewCycle: Period.Lifetime,
+    }
+}
+
+
 export function blankUsage(): Usage {
     return {
-        title: "First",
-        code: "first",
-        unit: "GB",
-        availableUnits: 100,
+        title: "",
+        code: "",
+        unit: "",
+        availableUnits: 0,
         lastRenew: new Date(),
         usedUnits: 0,
         renewCycle: Period.Lifetime,
@@ -60,6 +71,7 @@ export function usageFromUsageRate(rate: UsageRate): Usage {
         usedUnits: 0,
     }
 }
+
 
 export function blankPlanInfo(): PlanInfo {
     return {
