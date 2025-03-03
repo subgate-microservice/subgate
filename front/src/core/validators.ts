@@ -13,8 +13,8 @@ export const periodValidator = z.enum([
 
 
 export const discountValidator = z.object({
-    title: z.string().min(2, "Title must contains at least 2 symbols"),
-    code: z.string().min(2, "Code must contains at least 2 symbols"),
+    title: z.string().min(2, "Title must contain at least 2 symbols"),
+    code: z.string().min(2, "Code must contain at least 2 symbols"),
     description: z.string().optional().nullable(),
     size: z.number(),
     validUntil: z.coerce.date(),
@@ -22,9 +22,9 @@ export const discountValidator = z.object({
 
 
 export const usageRateValidator = z.object({
-    title: z.string().min(2, "Title must contains at least 2 symbols"),
-    code: z.string().min(2, "Code must contains at least 2 symbols"),
-    unit: z.string().min(2, "Unit must contains at least 2 symbols"),
+    title: z.string().min(2, "Title must contain at least 2 symbols"),
+    code: z.string().min(2, "Code must contain at least 2 symbols"),
+    unit: z.string().min(2, "Unit must contain at least 2 symbols"),
     availableUnits: z.number().positive("Available units must be positive"),
     renewCycle: periodValidator,
 }).strict()

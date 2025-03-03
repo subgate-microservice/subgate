@@ -90,7 +90,8 @@ const onSubmit = () => {
     </div>
 
     <IftaLabel class="w-full h-[10rem]">
-      <Textarea v-model="formData.features" class="w-full h-full" placeholder="Enter features, one per line"/>
+      <Textarea v-model="formData.features" class="w-full h-full" placeholder="Enter features, one per line"
+                style="resize: none" rows="3"/>
       <label>Features</label>
     </IftaLabel>
 
