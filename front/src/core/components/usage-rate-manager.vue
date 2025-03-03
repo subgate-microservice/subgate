@@ -1,18 +1,18 @@
 <script setup lang="ts">
-import {computed, ModelRef, watch} from "vue";
-import {z} from "zod";
-import {fromError} from "zod-validation-error";
+import {computed, ModelRef} from "vue";
 import {InputGroup, InputText, InputNumber, Button, Message} from "primevue";
 import PeriodSelector from "./period-selector.vue";
 import {Period, UsageRate} from "../domain.ts";
+import {ValidationService} from "../../utils/validation-service.ts";
 
 interface Props {
   basePeriod: Period
-  showErrors: boolean
+  validator: ValidationService
+  fieldPrefix: string
 }
 
-const p = defineProps<Props>();
-const validated = defineModel("validated", {default: true});
+const p = defineProps<Props>()
+
 const usageRates: ModelRef<UsageRate[]> = defineModel("usageRates", {default: () => []})
 
 const addRate = () => {
@@ -27,32 +27,22 @@ const addRate = () => {
 
 const removeRate = (item: UsageRate) => {
   usageRates.value = usageRates.value.filter(rate => rate.code !== item.code)
-};
+}
 
-const validator = z.object({
-  title: z.string().min(2, "Title must be at least 2 characters"),
-  code: z.string().min(2, "Code must be at least 2 characters"),
-  unit: z.string().min(2, "Unit must be at least 2 characters")
-});
-
-const validationErrors = computed(() => {
-  return usageRates.value.map((rate) => {
-    try {
-      validator.parse(rate);
-      return [];
-    } catch (err) {
-      return fromError(err)
-          .toString()
-          .split("Validation error: ")[1]
-          .split(";");
-    }
-  });
-});
-
-
-watch(validationErrors, () => {
-  validated.value = validationErrors.value.every((errors) => errors.length === 0);
-});
+const errors = computed(() => {
+  const result = []
+  for (let i = 0; i < usageRates.value.length; i++) {
+    const usageRateErrors = [
+      ...p.validator.getFieldErrors(`${p.fieldPrefix}.${i}.title`),
+      ...p.validator.getFieldErrors(`${p.fieldPrefix}.${i}.code`),
+      ...p.validator.getFieldErrors(`${p.fieldPrefix}.${i}.unit`),
+      ...p.validator.getFieldErrors(`${p.fieldPrefix}.${i}.availableUnits`),
+      ...p.validator.getFieldErrors(`${p.fieldPrefix}.${i}.renewCycle`),
+    ]
+    result.push(usageRateErrors)
+  }
+  return result
+})
 </script>
 
 
@@ -102,8 +92,7 @@ watch(validationErrors, () => {
         />
       </InputGroup>
       <Message
-          v-if="p.showErrors"
-          v-for="err in validationErrors[i]"
+          v-for="err in errors[i]"
           severity="error" size="small" class="mt-1"
       >
         {{ err }}

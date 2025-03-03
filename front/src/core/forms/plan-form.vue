@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import {computed, Ref, ref, watch} from 'vue';
+import {Ref, ref} from 'vue';
 import {InputGroup} from "primevue";
 import PeriodSelector from "../components/period-selector.vue";
 import DiscountManager from "../components/discount-manager.vue";
 import UsageRateManager from "../components/usage-rate-manager.vue";
 import {recursive} from "../../utils/other.ts";
 import {Period, PlanCreate} from "../domain.ts";
-import {z, ZodError} from "zod";
-import {periodValidator} from "../validators.ts";
+import {planCUValidator} from "../validators.ts";
+import {useValidatorService} from "../../utils/validation-service.ts";
 
 interface Props {
   initData?: PlanCreate;
@@ -29,45 +29,16 @@ const defaultData: PlanCreate = {
   discounts: [],
 }
 
-const formData: Ref<PlanCreate> = ref(recursive(props.initData ?? defaultData));
-const valid = ref({discounts: true, simpleFields: true, usageRates: true});
-const showValidationErrors = ref(false)
+const formData: Ref<PlanCreate> = ref(recursive(props.initData ?? defaultData))
 
-
-
-
-const validator = z.object({
-  title: z.string().min(2),
-  price: z.number().positive(),
-  currency: z.string(),
-  billingCycle: periodValidator,
-  description: z.string().nullable(),
-  level: z.number().positive(),
-  features: z.string().nullable(),
-});
-
-const simpleFieldErrors = computed(() => {
-  try {
-    validator.parse(formData.value);
-    return {};
-  } catch (err) {
-    return err instanceof ZodError
-        ? Object.fromEntries(err.errors.map(e => [e.path[0], e.message]))
-        : {};
-  }
-});
-
-watch(simpleFieldErrors, () => {
-  valid.value.simpleFields = Object.keys(simpleFieldErrors.value).length === 0;
-});
+const validator = useValidatorService(formData, planCUValidator)
 
 const onSubmit = () => {
-  const isValidated = Object.values(valid.value).every(v => v)
-  if (isValidated) {
-    emit("submit", formData.value)
-    showValidationErrors.value = false
+  validator.validate()
+  if (validator.isValidated) {
+    // emit("submit", formData.value)
   } else {
-    showValidationErrors.value = true
+    console.warn(validator.getAllErrors())
   }
 }
 </script>
@@ -78,13 +49,23 @@ const onSubmit = () => {
       <IftaLabel>
         <InputText v-model="formData.title" class="w-full"/>
         <label>Title</label>
-        <Message v-if="simpleFieldErrors.title" severity="error">{{ simpleFieldErrors.title }}</Message>
+        <Message
+            severity="error"
+            v-for="err in validator.getFieldErrors('title')"
+        >
+          {{ err }}
+        </Message>
       </IftaLabel>
 
       <IftaLabel>
         <InputNumber v-model="formData.level" class="w-full" :min="0"/>
         <label>Level</label>
-        <Message v-if="simpleFieldErrors.level" severity="error">{{ simpleFieldErrors.level }}</Message>
+        <Message
+            severity="error"
+            v-for="err in validator.getFieldErrors('level')"
+        >
+          {{ err }}
+        </Message>
       </IftaLabel>
 
       <IftaLabel>
@@ -105,7 +86,6 @@ const onSubmit = () => {
 
         <PeriodSelector v-model="formData.billingCycle" class="w-2/4" label="Billing cycle"/>
       </InputGroup>
-      <Message v-if="simpleFieldErrors.price" severity="error">{{ simpleFieldErrors.price }}</Message>
 
     </div>
 
@@ -116,14 +96,14 @@ const onSubmit = () => {
 
     <UsageRateManager
         v-model:usage-rates="formData.usageRates"
-        v-model:validated="valid.usageRates"
         :base-period="formData.billingCycle"
-        :show-errors="showValidationErrors"
+        :validator="validator"
+        field-prefix="usageRates"
     />
     <DiscountManager
-        v-model:validated="valid.discounts"
         v-model:discounts="formData.discounts"
-        :show-validation-errors="showValidationErrors"
+        :validator="validator"
+        field-prefix="discounts"
     />
 
     <div class="flex flex-wrap gap-2">

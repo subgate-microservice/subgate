@@ -13,8 +13,8 @@ export const periodValidator = z.enum([
 
 
 export const discountValidator = z.object({
-    title: z.string().min(2),
-    code: z.string().min(2),
+    title: z.string().min(2, "Title must contains at least 2 symbols"),
+    code: z.string().min(2, "Code must contains at least 2 symbols"),
     description: z.string().optional().nullable(),
     size: z.number(),
     validUntil: z.coerce.date(),
@@ -22,10 +22,10 @@ export const discountValidator = z.object({
 
 
 export const usageRateValidator = z.object({
-    title: z.string().min(2),
-    code: z.string().min(2),
-    unit: z.string().min(2),
-    availableUnits: z.number().positive(),
+    title: z.string().min(2, "Title must contains at least 2 symbols"),
+    code: z.string().min(2, "Code must contains at least 2 symbols"),
+    unit: z.string().min(2, "Unit must contains at least 2 symbols"),
+    availableUnits: z.number().positive("Available units must be positive"),
     renewCycle: periodValidator,
 }).strict()
 
@@ -56,14 +56,17 @@ export const planValidator = z.object({
 }).strict()
 
 
-export const planCreateValidator = z.object({
+export const planCUValidator = z.object({
     title: z.string().min(2),
     price: z.number().positive(),
     currency: z.string(),
     billingCycle: periodValidator,
     description: z.string().nullable(),
+    usageRates: usageRateValidator.array(),
+    discounts: discountValidator.array(),
     level: z.number().positive(),
     features: z.string().nullable(),
+    fields: z.any(),
 }).strict()
 
 const planInfoValidator = z.object({
@@ -97,4 +100,4 @@ export const subscriptionValidator = z.object({
     fields: z.any(),
     createdAt: z.coerce.date(),
     updatedAt: z.coerce.date(),
-})
+}).strict()

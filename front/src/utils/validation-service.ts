@@ -1,14 +1,14 @@
-import {computed, reactive, Ref} from 'vue'
+import {reactive, Ref} from 'vue'
 import {ZodObject} from "zod";
 
-export interface Validator {
+export interface ValidationService {
     isValidated: Ref<boolean>
     validate: () => void
     getFieldErrors: (field: string) => string[]
     getAllErrors: () => string[]
 }
 
-export function useValidatorService<T>(formData: Ref<T>, validator: ZodObject<T>): Validator {
+export function useValidatorService<T>(formData: Ref<T>, validator: ZodObject<T>): ValidationService {
     const errors = reactive<Record<string, string[]>>({})
 
     function validate() {

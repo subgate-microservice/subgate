@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import {computed, ModelRef, watch} from "vue";
-import {fromError} from "zod-validation-error";
+import {computed, ModelRef} from "vue";
 import {InputGroup, InputText, InputNumber, Button, Message} from "primevue";
 import {Discount} from "../domain.ts";
-import {discountValidator} from "../validators.ts";
+import {ValidationService} from "../../utils/validation-service.ts";
 
 interface Props {
-  showValidationErrors: boolean
+  validator: ValidationService
+  fieldPrefix: string
 }
 
 const p = defineProps<Props>();
-const validated = defineModel("validated", {default: true});
+
 const discountsModel: ModelRef<Discount[]> = defineModel("discounts", {default: () => []})
 
 const addDiscount = () => {
@@ -25,25 +25,22 @@ const addDiscount = () => {
 
 const removeDiscount = (item: Discount) => {
   discountsModel.value = discountsModel.value.filter(disc => disc.code !== item.code)
-};
+}
 
-const validationErrors = computed(() =>
-    discountsModel.value.map((discount) => {
-      try {
-        discountValidator.parse(discount);
-        return [];
-      } catch (err) {
-        return fromError(err)
-            .toString()
-            .split("Validation error: ")[1]
-            .split(";");
-      }
-    })
-);
-
-watch(validationErrors, () => {
-  validated.value = validationErrors.value.every((errors) => errors.length === 0);
-});
+const errors = computed(() => {
+  const result = []
+  for (let i = 0; i < discountsModel.value.length; i++) {
+    const discountErrors = [
+      ...p.validator.getFieldErrors(`${p.fieldPrefix}.${i}.title`),
+      ...p.validator.getFieldErrors(`${p.fieldPrefix}.${i}.code`),
+      ...p.validator.getFieldErrors(`${p.fieldPrefix}.${i}.size`),
+      ...p.validator.getFieldErrors(`${p.fieldPrefix}.${i}.validUntil`),
+      ...p.validator.getFieldErrors(`${p.fieldPrefix}.${i}.description`),
+    ]
+    result.push(discountErrors)
+  }
+  return result
+})
 </script>
 
 <template>
@@ -88,8 +85,7 @@ watch(validationErrors, () => {
       </InputGroup>
 
       <Message
-          v-if="p.showValidationErrors"
-          v-for="err in validationErrors[i]"
+          v-for="err in errors[i]"
           severity="error"
           size="small"
           class="mt-1"

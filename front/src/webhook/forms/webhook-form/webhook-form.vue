@@ -4,7 +4,7 @@ import {Ref, ref} from "vue";
 import {recursive} from "../../../utils/other.ts";
 import {WebhookCU} from "../../domain.ts";
 import {blankWebhookCU} from "../../factories.ts";
-import {useValidatorService} from "../../../utils/validator.ts";
+import {useValidatorService} from "../../../utils/validation-service.ts";
 import {webhookCUValidator} from "../../validators.ts";
 
 const p = defineProps<{
