@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import {Toast} from "primevue";
-import {isAuthenticated} from "./auth";
 import SidebarLayout from "./shared/components/sidebar-layout/sidebar-layout.vue";
 import {TopLogo, TopMenu} from "./shared/components/top-menu";
 import SidebarMenu from "./shared/components/sidebar-menu/sidebar-menu.vue";
+import {useAuthStore} from "./auth/myself.ts";
+
+const auth = useAuthStore()
 </script>
 
 <template>
   <div>
     <Toast/>
-    <sidebar-layout v-if="isAuthenticated()">
+    <sidebar-layout v-if="auth.isAuthenticated">
       <template #logo>
         <top-logo class="pl-3"/>
       </template>

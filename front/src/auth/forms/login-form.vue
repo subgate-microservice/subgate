@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import {ref} from 'vue';
 import {Password, InputText} from "primevue";
-import {login} from "../index.ts";
 import {useRouter} from "vue-router";
+import {useAuthStore} from "../myself.ts";
 
 const router = useRouter()
 
@@ -13,7 +13,7 @@ const formData = ref({
 
 
 const onFormSubmit = async () => {
-  await login(formData.value.username, formData.value.password)
+  await useAuthStore().login(formData.value)
   await router.push({name: "Plans"})
 };
 </script>

@@ -1,22 +1,24 @@
 <script setup lang="ts">
 import {Ref, ref} from "vue";
-import {logout, updateEmail, UpdateEmailForm, verifyEmail} from "../index.ts";
 import {Panel} from "primevue";
+import {EmailUpdate} from "../domain.ts";
+import {useAuthStore} from "../myself.ts";
 
 const mode: Ref<"change" | "verify"> = ref("change")
 
-const form: Ref<UpdateEmailForm> = ref({email: "barmatey6@gmail.com", password: "145190hfp"})
+const store = useAuthStore()
+
+const form: Ref<EmailUpdate> = ref({email: "test@test.com", password: "qwerty"})
 const handleClickOnChange = async () => {
-  await updateEmail(form.value)
+  await store.updateEmail(form.value)
   mode.value = "verify"
 }
 
 const verificationCode = ref("")
 const handleClickOnVerify = async () => {
-  await verifyEmail(verificationCode.value)
-  await logout()
+  await store.verifyEmail(verificationCode.value)
+  await store.logout()
 }
-
 
 
 </script>

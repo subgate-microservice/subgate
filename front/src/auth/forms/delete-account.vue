@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import {deleteAccount} from "../index.ts";
 import {useConfirm} from "primevue/useconfirm";
+import {useAuthStore} from "../myself.ts";
 
 
 const confirm = useConfirm();
@@ -19,7 +19,7 @@ const clickOnDelete = () => {
       severity: 'contrast',
       outlined: true,
     },
-    accept: deleteAccount,
+    accept: async () => useAuthStore().deleteAccount(),
     reject: () => {
     },
   });

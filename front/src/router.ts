@@ -1,12 +1,11 @@
 import {createRouter, createWebHistory} from "vue-router"
 import MyPlans from "./subscription/pages/my-plans.vue";
-import {isAuthenticated} from "./auth";
 import MySubscriptions from "./subscription/pages/my-subscriptions.vue";
 import MyWebhooks from "./webhook/pages/my-webhooks.vue";
 import MyAccount from "./auth/pages/my-account.vue";
 import MyApikeys from "./apikey/pages/my-apikeys.vue";
 import FastapiLogin from "./auth/pages/fastapi-login.vue";
-import {getAuthGateway, useAuthStore} from "./auth/gateways.ts";
+import {useAuthStore} from "./auth/myself.ts";
 
 
 export const router = createRouter({
@@ -80,11 +79,11 @@ const publicRoutes: Set<string> = new Set(["Login", "Register", "OauthCallback"]
 
 
 router.beforeEach(async (to,) => {
-
+    const auth = useAuthStore()
     // Незалогиненный пользователь на странице сайта => отправить на страницу логина
-    if (!publicRoutes.has(to.name as string) && !isAuthenticated()) {
+    if (!publicRoutes.has(to.name as string) && !auth.isAuthenticated) {
         try {
-            useAuthStore().myself = await getAuthGateway().getMyself()
+            await auth.loadMyself()
             return
         } catch (err) {
             return {name: "Login"}
@@ -92,7 +91,7 @@ router.beforeEach(async (to,) => {
     }
 
     // Залогиненный пользователь на странице логина => отправить на главную
-    if (publicRoutes.has(to.name as string) && isAuthenticated()) {
+    if (publicRoutes.has(to.name as string) && auth.isAuthenticated) {
         return {name: "Plans"}
     }
 })

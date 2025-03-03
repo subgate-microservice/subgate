@@ -1,18 +1,20 @@
 <script setup lang="ts">
 import {Ref, ref} from "vue";
-import {logout, updatePassword, UpdatePasswordForm} from "../index.ts";
 import {Panel} from "primevue";
+import {PasswordUpdate} from "../domain.ts";
+import {useAuthStore} from "../myself.ts";
 
+const store = useAuthStore()
 
-const newPasswordForm: Ref<UpdatePasswordForm> = ref({
+const newPasswordForm: Ref<PasswordUpdate> = ref({
   oldPassword: "",
   newPassword: "",
   repeatPassword: "",
 })
 
 async function handleClickOnChange() {
-  await updatePassword(newPasswordForm.value)
-  await logout()
+  await store.updatePassword(newPasswordForm.value)
+  await store.logout()
 }
 </script>
 
