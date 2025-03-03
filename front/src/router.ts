@@ -2,10 +2,10 @@ import {createRouter, createWebHistory} from "vue-router"
 import MyPlans from "./subscription/pages/my-plans.vue";
 import MySubscriptions from "./subscription/pages/my-subscriptions.vue";
 import MyWebhooks from "./webhook/pages/my-webhooks.vue";
-import MyAccount from "./auth/pages/my-account.vue";
 import MyApikeys from "./apikey/pages/my-apikeys.vue";
 import FastapiLogin from "./auth/pages/fastapi-login.vue";
 import {useAuthStore} from "./auth/myself.ts";
+import MyProfile from "./auth/pages/my-profile.vue";
 
 
 export const router = createRouter({
@@ -53,12 +53,12 @@ export const router = createRouter({
             ]
         },
         {
-            path: "/account",
+            path: "/profile",
             children: [
                 {
                     path: "",
-                    component: MyAccount,
-                    name: "Account",
+                    component: MyProfile,
+                    name: "Profile",
                 },
             ]
         },

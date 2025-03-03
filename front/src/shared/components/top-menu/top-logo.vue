@@ -3,14 +3,11 @@
 </script>
 
 <template>
-<div
-    class="text-2xl"
-    style="font-family: Impact, sans-serif"
->
-  Subtrack
+<div class="top-height top-font-size">
+  Subgate
 </div>
 </template>
 
 <style scoped>
-
+@import "./styles.css";
 </style>

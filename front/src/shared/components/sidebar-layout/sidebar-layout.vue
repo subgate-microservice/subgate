@@ -65,6 +65,8 @@ const sidebarWidth = "14rem"
   background: white;
   z-index: 1000;
   padding-left: 1.5rem;
+  padding-right: 1.5rem;
+  height: v-bind(headerHeight);
 }
 
 .my-sidebar {
@@ -92,6 +94,7 @@ const sidebarWidth = "14rem"
 .right-block{
   grid-area: right;
   width: v-bind(sidebarWidth);
+  height: v-bind(headerHeight);
 }
 
 

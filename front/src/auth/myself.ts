@@ -10,7 +10,6 @@ export const useAuthStore = defineStore("useAuthStore", () => {
     const myself: Ref<AuthUser | null> = ref(null)
 
     async function loadMyself() {
-        console.log("loadMyself")
         const url = "/users/me"
         const response = await axiosInstance.get(url)
         myself.value = safeParsing(authUserValidator, {id: response.data.id, email: response.data.email})
@@ -46,7 +45,6 @@ export const useAuthStore = defineStore("useAuthStore", () => {
 
     async function logout() {
         console.log("logout")
-        throw Error("NotImpl")
     }
 
     async function deleteAccount() {
