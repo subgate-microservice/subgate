@@ -1,8 +1,10 @@
 from fastapi import FastAPI, APIRouter, Depends
 
+from backend.auth.infra.fastapi_users import usecases
 from backend.auth.infra.fastapi_users.manager import auth_backend
 from backend.auth.infra.fastapi_users.schemas import UserRead, UserCreate
 from backend.bootstrap import get_container, auth_closure
+from backend.shared.base_models import MyBase
 
 container = get_container()
 fastapi_users = container.fastapi_users()
@@ -10,27 +12,31 @@ fastapi_users = container.fastapi_users()
 current_user_router = APIRouter()
 
 
+class PasswordUpdate(MyBase):
+    old_password: str
+    new_password: str
+
+
 @current_user_router.get("/me")
 async def get_current_user(auth_user=Depends(auth_closure)) -> UserRead:
     return auth_user
 
 
-# @current_user_router.patch("/me/update-email")
-# async def update_email():
-#     pass
-#
-#
+@current_user_router.patch("/me/update-email")
+async def update_email():
+    pass
+
+
 @current_user_router.patch("/me/update-password")
-async def update_password(auth_user: UserRead = Depends(auth_closure)) -> str:
-    manager = fastapi_users.get_user_manager()
+async def update_password(data: PasswordUpdate, auth_user: UserRead = Depends(auth_closure)) -> str:
+    async with container.session_factory()() as session:
+        await usecases.update_user_password(auth_user.email, data.old_password, data.new_password, session)
     return "Ok"
 
 
-#
-#
-# @current_user_router.patch("/me/delete-profile")
-# async def delete_profile():
-#     pass
+@current_user_router.patch("/me/delete-profile")
+async def delete_profile():
+    pass
 
 
 def include_fastapi_users_routers(app: FastAPI, prefix="/api/v1"):
