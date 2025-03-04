@@ -1,51 +1,17 @@
-from uuid import uuid4
-
 from async_pymongo import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine, async_sessionmaker
 
 from backend import config
 from backend.auth.application.auth_closure_factory import AuthClosureFactory
-from backend.auth.domain.auth_user import AuthUser, AuthId
 from backend.auth.infra.apikey.apikey__auth_closure_factory import ApikeyAuthClosureFactory
 from backend.auth.infra.fastapi_users.auth_closure_factory import FastapiUsersAuthClosureFactory
 from backend.auth.infra.fastapi_users.manager import create_fastapi_users
 from backend.auth.infra.other.complex_factory import ComplexAuthClosureFactory
-from backend.auth.infra.other.fake_factory import FakeAuthClosureFactory
 from backend.shared.event_driven.bus import Bus
 from backend.shared.unit_of_work.uow import UnitOfWorkFactory
 from backend.shared.unit_of_work.uow_postgres import SqlUowFactory
-from backend.subscription.domain.cycle import Period
-from backend.subscription.domain.plan import Plan
-from backend.subscription.domain.subscription import Subscription
-from backend.subscription.infra.subscription_client import FakeSubscriptionClient
 from backend.webhook.application.encrypt_service import GDPRCompliantEncryptor
 from backend.webhook.application.telegraph import Telegraph
-
-
-def create_fake_auth_service():
-    auth_user = AuthUser(
-        id=AuthId("91a517f0-6d78-4fe9-acaa-ac10fa8f139b"),
-    )
-    auth_service = FakeAuthClosureFactory({"FakeAuthToken": auth_user})
-    return auth_service
-
-
-def create_fake_subclient():
-    plan = Plan(
-        title="FakePlan",
-        price=100,
-        billing_cycle=Period.Annual,
-        currency="USD",
-        level=1,
-        auth_id=uuid4(),
-    )
-    sub = Subscription(
-        auth_id=uuid4(),
-        subscriber_id="91a517f0-6d78-4fe9-acaa-ac10fa8f139b",
-        plan=plan,
-    )
-    subscription_client = FakeSubscriptionClient({sub.id: sub})
-    return subscription_client
 
 
 class Bootstrap:
