@@ -7,21 +7,20 @@ from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.plan import Plan
 from backend.subscription.domain.subscription import Subscription
 from backend.subscription.domain.usage import Usage
-from tests.conftest import current_user, get_async_client
+from tests.conftest import current_user, client
 
 container = get_container()
 
 
 @pytest.mark.asyncio
-async def test_increase_usage_with_concurrency(current_user):
+async def test_increase_usage_with_concurrency(current_user, client):
     # Before
-    user, token, expected_status_code = current_user
     usages = [
         Usage(
             title="AnyTitle", code="first", unit="GB", available_units=100, used_units=0,
             renew_cycle=Period.Monthly)
     ]
-    plan = Plan("Business", 111, "USD", user.id)
+    plan = Plan("Business", 111, "USD", current_user.id)
     sub = Subscription.from_plan(plan, "SubID")
     for usage in usages:
         sub.usages.add(usage)
@@ -31,10 +30,8 @@ async def test_increase_usage_with_concurrency(current_user):
 
     async def increase_usage_task():
         payload = {"code": "first", "value": 20}
-        headers = {"Authorization": f"Bearer {token}"}
-        async with get_async_client() as client:
-            response = await client.patch(f"/subscription/{sub.id}/increase-usage", headers=headers, params=payload)
-            assert response.status_code == expected_status_code
+        response = await client.patch(f"/subscription/{sub.id}/increase-usage", params=payload)
+        response.raise_for_status()
 
     max_tasks = 6
     async with asyncio.TaskGroup() as tg:

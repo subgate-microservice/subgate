@@ -9,6 +9,10 @@ class AuthUserRepo(ABC):
         pass
 
     @abstractmethod
+    async def get_one_by_username(self, username: str) -> AuthUser:
+        pass
+
+    @abstractmethod
     async def add_one(self, item: AuthUserCreate) -> AuthId:
         pass
 

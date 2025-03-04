@@ -64,14 +64,14 @@ def event_handler():
 
     for ev in EVENTS:
         container.eventbus().unsubscribe(ev, handler.handle_event)
+    handler.clear()
 
 
 @pytest_asyncio.fixture()
 async def simple_plan(current_user):
-    user, token, expected_status_code = current_user
     plan = PlanCreate(
         title="Simple", price=100, currency="USD", billing_cycle=Period.Monthly, level=10
-    ).to_plan(user.id)
+    ).to_plan(current_user.id)
     set_dates(plan)
     await save_plan(plan)
     yield plan
@@ -79,35 +79,28 @@ async def simple_plan(current_user):
 
 @pytest_asyncio.fixture()
 async def plan_with_usage_rates(current_user):
-    user, token, expected_status_code = current_user
-    plan = PlanCreate(title="Simple", price=100, currency="USD", billing_cycle=Period.Monthly).to_plan(user.id)
+    plan = PlanCreate(title="Simple", price=100, currency="USD", billing_cycle=Period.Monthly).to_plan(current_user.id)
     plan.usage_rates.add(UsageRate("First", "first", "GB", 100, Period.Monthly))
     plan.usage_rates.add(UsageRate("Second", "second", "call", 120, Period.Daily))
     set_dates(plan)
-    async with container.unit_of_work_factory().create_uow() as uow:
-        await uow.plan_repo().add_one(plan)
-        await uow.commit()
+    await save_plan(plan)
     yield plan
 
 
 @pytest_asyncio.fixture()
 async def plan_with_discounts(current_user):
-    user, token, expected_status_code = current_user
-    plan = PlanCreate(title="Simple", price=100, currency="USD", billing_cycle=Period.Monthly).to_plan(user.id)
+    plan = PlanCreate(title="Simple", price=100, currency="USD", billing_cycle=Period.Monthly).to_plan(current_user.id)
     plan.discounts.add(Discount("First", "first", "GB", 0.2, get_current_datetime()))
     plan.discounts.add(Discount("Second", "second", "call", 0.3, get_current_datetime()))
     set_dates(plan)
-    async with container.unit_of_work_factory().create_uow() as uow:
-        await uow.plan_repo().add_one(plan)
-        await uow.commit()
+    await save_plan(plan)
     yield plan
 
 
 @pytest_asyncio.fixture()
 async def simple_sub(current_user) -> Subscription:
-    user, token, expected_status_code = current_user
-
-    plan = PlanCreate(title="Simple", price=100, currency="USD", billing_cycle=Period.Monthly, level=10).to_plan(user.id)
+    plan = PlanCreate(title="Simple", price=100, currency="USD", billing_cycle=Period.Monthly, level=10).to_plan(
+        current_user.id)
     sub = Subscription.from_plan(plan, "AmyID")
     set_dates(sub)
     await save_sub(sub)
@@ -117,8 +110,7 @@ async def simple_sub(current_user) -> Subscription:
 
 @pytest_asyncio.fixture()
 async def paused_sub(current_user):
-    user, token, expected_status_code = current_user
-    plan = PlanCreate(title="Simple", price=100, currency="USD", billing_cycle=Period.Monthly).to_plan(user.id)
+    plan = PlanCreate(title="Simple", price=100, currency="USD", billing_cycle=Period.Monthly).to_plan(current_user.id)
     sub = Subscription.from_plan(plan, "AmyID")
     sub.pause()
     set_dates(sub)
@@ -128,8 +120,7 @@ async def paused_sub(current_user):
 
 @pytest_asyncio.fixture()
 async def expired_sub(current_user):
-    user, token, expected_status_code = current_user
-    plan = PlanCreate(title="Simple", price=100, currency="USD", billing_cycle=Period.Monthly).to_plan(user.id)
+    plan = PlanCreate(title="Simple", price=100, currency="USD", billing_cycle=Period.Monthly).to_plan(current_user.id)
     sub = Subscription.from_plan(plan, "AmyID")
     sub.billing_info.last_billing = get_current_datetime() - timedelta(100)
     sub.expire()
@@ -140,8 +131,7 @@ async def expired_sub(current_user):
 
 @pytest_asyncio.fixture()
 async def sub_with_usages(current_user):
-    user, token, expected_status_code = current_user
-    plan = PlanCreate(title="Simple", price=100, currency="USD", billing_cycle=Period.Monthly).to_plan(user.id)
+    plan = PlanCreate(title="Simple", price=100, currency="USD", billing_cycle=Period.Monthly).to_plan(current_user.id)
     sub = Subscription.from_plan(plan, "AmyID")
     sub.usages.add(
         Usage(title="First", code="first", unit="GB", renew_cycle=Period.Monthly, available_units=111, used_units=0,
@@ -154,9 +144,7 @@ async def sub_with_usages(current_user):
 
 @pytest_asyncio.fixture()
 async def sub_with_discounts(current_user):
-    user, token, expected_status_code = current_user
-
-    plan = PlanCreate(title="Simple", price=100, currency="USD", billing_cycle=Period.Monthly).to_plan(user.id)
+    plan = PlanCreate(title="Simple", price=100, currency="USD", billing_cycle=Period.Monthly).to_plan(current_user.id)
     sub = Subscription.from_plan(plan, "AmyID")
     sub.discounts.add(
         Discount(title="First", code="first", size=0.2, description="Black friday", valid_until=get_current_datetime())
@@ -168,9 +156,7 @@ async def sub_with_discounts(current_user):
 
 @pytest_asyncio.fixture()
 async def sub_with_fields(current_user):
-    user, token, expected_status_code = current_user
-
-    plan = PlanCreate(title="Simple", price=100, currency="USD", billing_cycle=Period.Monthly).to_plan(user.id)
+    plan = PlanCreate(title="Simple", price=100, currency="USD", billing_cycle=Period.Monthly).to_plan(current_user.id)
     sub = Subscription.from_plan(plan, "AmyID")
     sub.fields = {"any_value": 1, "inner_items": [1, 2, 3, 4, 5]}
     set_dates(sub)
@@ -180,10 +166,8 @@ async def sub_with_fields(current_user):
 
 @pytest_asyncio.fixture()
 async def simple_webhook(current_user):
-    user, token, expected_status_code = current_user
-
     async with container.unit_of_work_factory().create_uow() as uow:
-        hook = WebhookCreate(event_code="plan_created", target_url="http://my-site.com").to_webhook(user.id)
+        hook = WebhookCreate(event_code="plan_created", target_url="http://my-site.com").to_webhook(current_user.id)
         await uow.webhook_repo().add_one(hook)
         await uow.commit()
     yield hook
@@ -191,12 +175,11 @@ async def simple_webhook(current_user):
 
 @pytest_asyncio.fixture()
 async def many_webhooks(current_user):
-    user, token, expected_status_code = current_user
-
     hooks = []
     async with container.unit_of_work_factory().create_uow() as uow:
         for i in range(11):
-            hook = WebhookCreate(event_code="plan_created", target_url=f"http://my-site-{i}.com").to_webhook(user.id)
+            hook = WebhookCreate(event_code="plan_created", target_url=f"http://my-site-{i}.com").to_webhook(
+                current_user.id)
             await uow.webhook_repo().add_one(hook)
             hooks.append(hook)
         await uow.commit()

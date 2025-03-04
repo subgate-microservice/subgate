@@ -38,6 +38,7 @@ class Plan(Eventable):
         created_at = created_at if created_at else get_current_datetime()
         updated_at = updated_at if updated_at else created_at
         id = id if id else uuid4()
+        fields = fields if fields is not None else {}
         super().__init__(title=title, price=price, currency=currency, auth_id=auth_id, billing_cycle=billing_cycle,
                          description=description, level=level, features=features, fields=fields,
                          usage_rates=usage_rates, discounts=discounts, created_at=created_at, updated_at=updated_at,

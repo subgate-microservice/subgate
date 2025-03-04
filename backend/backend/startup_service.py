@@ -25,7 +25,9 @@ async def _create_auth_user_if_not_exist(email: str, password: str) -> AuthUser:
         manager = UserManager(user_db)
         try:
             result = await manager.get_by_email(email)
+            logger.info("AuthUser already exist")
         except UserNotExists:
+            logger.info("Creating AuthUser")
             user_create = UserCreate(email=email, password=password)
             result = await manager.create(user_create)
         await session.commit()
