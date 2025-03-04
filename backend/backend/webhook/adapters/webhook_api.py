@@ -20,13 +20,13 @@ async def create_one(
         webhook_create: WebhookCreate,
         auth_user: AuthUser = Depends(auth_closure),
         container: Bootstrap = Depends(get_container),
-) -> str:
+) -> WebhookId:
     async with container.unit_of_work_factory().create_uow() as uow:
         webhook = webhook_create.to_webhook(auth_user.id)
         create_webhook_usecase = usecases.CreateWebhook(uow)
         await create_webhook_usecase.execute(webhook)
         await uow.commit()
-    return "Ok"
+    return webhook.id
 
 
 @webhook_router.get("/{webhook_id}")

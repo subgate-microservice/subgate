@@ -37,7 +37,6 @@ def get_jwt_strategy() -> JWTStrategy[models.UP, models.ID]:
     return JWTStrategy(secret=SECRET, lifetime_seconds=3600)
 
 
-# transport = BearerTransport(tokenUrl="auth/jwt/login")
 transport = CookieTransport(cookie_max_age=3600)
 auth_backend = AuthenticationBackend(
     name="jwt",
