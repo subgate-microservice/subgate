@@ -1,8 +1,8 @@
 from fastapi import FastAPI, APIRouter, Depends
 
-from backend.auth.infra.fastapi_users import usecases
 from backend.auth.infra.fastapi_users.manager import auth_backend
 from backend.auth.infra.fastapi_users.schemas import UserRead, UserCreate
+from backend.auth.infra.fastapi_users.services import FastapiusersUserService
 from backend.bootstrap import get_container, auth_closure
 from backend.shared.base_models import MyBase
 
@@ -35,7 +35,7 @@ async def get_current_user(auth_user=Depends(auth_closure)) -> UserRead:
 async def update_email(data: UsernameUpdate, auth_user: UserRead = Depends(auth_closure)):
     session_factory = container.session_factory()
     async with session_factory() as session:
-        await usecases.update_username(auth_user.email, data.username, data.password, session)
+        await FastapiusersUserService(session).update_username(auth_user.email, data.username, data.password)
         await session.commit()
     return "Ok"
 
@@ -44,7 +44,7 @@ async def update_email(data: UsernameUpdate, auth_user: UserRead = Depends(auth_
 async def update_password(data: PasswordUpdate, auth_user: UserRead = Depends(auth_closure)) -> str:
     session_factory = container.session_factory()
     async with session_factory() as session:
-        await usecases.update_password(auth_user.email, data.old_password, data.new_password, session)
+        await FastapiusersUserService(session).update_password(auth_user.email, data.old_password, data.new_password)
         await session.commit()
     return "Ok"
 
@@ -53,7 +53,7 @@ async def update_password(data: PasswordUpdate, auth_user: UserRead = Depends(au
 async def delete_profile(data: DeleteProfile, auth_user: UserRead = Depends(auth_closure)):
     session_factory = container.session_factory()
     async with session_factory() as session:
-        await usecases.delete_profile(auth_user.email, data.password, session)
+        await FastapiusersUserService(session).delete_profile(auth_user.email, data.password)
         await session.commit()
     return "Ok"
 
