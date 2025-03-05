@@ -73,3 +73,10 @@ class TestCreatePlanWithApikey:
         data = self.plan_payload()
         response = await client.post("/plan", json=data, headers=None)
         assert response.status_code == 401
+
+    @pytest.mark.asyncui
+    async def test_endpoint_with_incorrect_headers(self, client, apikey_secret):
+        headers = {"X-API-Key": "random_string"}
+        data = self.plan_payload()
+        response = await client.post("/plan", json=data, headers=headers)
+        assert response.status_code == 401

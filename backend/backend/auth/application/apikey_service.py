@@ -38,6 +38,8 @@ class ApikeyManager:
                 return apikey
         except LookupError:
             return None
+        except ValueError:
+            return None
 
     async def create(self, data: ApikeyCreate):
         hashed_secret = bcrypt.hashpw(data.secret.encode(), bcrypt.gensalt()).decode()
