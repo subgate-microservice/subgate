@@ -19,11 +19,6 @@ class ApikeyCreate(MyBase):
     secret: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
 
 
-class ApikeyCreateResult(MyBase):
-    public_id: str
-    secret: str
-
-
 class ApikeyManager:
     def __init__(self, repo: ApikeyRepo):
         self._repo = repo
@@ -43,7 +38,7 @@ class ApikeyManager:
         except LookupError:
             return None
 
-    async def create(self, data: ApikeyCreate) -> ApikeyCreateResult:
+    async def create(self, data: ApikeyCreate):
         hashed_secret = self._password_helper.hash(data.secret)
 
         apikey = Apikey(
@@ -54,8 +49,6 @@ class ApikeyManager:
             hashed_secret=hashed_secret
         )
         await self._repo.add_one(apikey)
-
-        return ApikeyCreateResult(public_id=data.public_id, secret=data.secret)
 
     async def get_by_secret(self, apikey_secret: str) -> Apikey:
         result = await self._check(apikey_secret)
