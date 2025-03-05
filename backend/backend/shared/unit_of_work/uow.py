@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Self
 
-from backend.auth.domain.apikey_repo import ApikeyRepo
 from backend.shared.event_driven.base_event import Event
 from backend.subscription.domain.plan_repo import PlanRepo
 from backend.subscription.domain.subscription_repo import SubscriptionRepo
@@ -36,10 +35,6 @@ class UnitOfWork(ABC):
 
     @abstractmethod
     def webhook_repo(self) -> WebhookRepo:
-        pass
-
-    @abstractmethod
-    def apikey_repo(self) -> ApikeyRepo:
         pass
 
     @abstractmethod

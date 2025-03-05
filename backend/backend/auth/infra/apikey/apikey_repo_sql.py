@@ -6,8 +6,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.sqltypes import UUID
 
-from backend.auth.domain.apikey import Apikey, ApikeyId
-from backend.auth.domain.apikey_repo import ApikeySby, ApikeyRepo
+from backend.auth.domain.apikey import Apikey, ApikeyId, ApikeySby, ApikeyRepo
 from backend.shared.database import metadata
 from backend.shared.enums import Lock
 from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper, AwareDateTime

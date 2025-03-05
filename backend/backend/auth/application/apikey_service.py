@@ -1,5 +1,4 @@
-from backend.auth.domain.apikey import Apikey, ApikeyId
-from backend.auth.domain.apikey_repo import ApikeySby
+from backend.auth.domain.apikey import Apikey, ApikeyId, ApikeySby
 from backend.auth.domain.auth_user import AuthUser
 from backend.shared.unit_of_work.uow import UnitOfWork
 

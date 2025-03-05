@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Depends, Header, HTTPException
 
 from backend.auth.application.apikey_service import ApikeyService
-from backend.auth.domain.apikey import ApikeyId, Apikey
-from backend.auth.domain.apikey_repo import ApikeySby
+from backend.auth.domain.apikey import ApikeyId, Apikey, ApikeySby
 from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container, auth_closure
 from backend.shared.base_models import MyBase
@@ -44,6 +43,7 @@ async def delete_one_by_id(apikey_id: ApikeyId, auth_user: AuthUser = Depends(au
     async with container.unit_of_work_factory().create_uow() as uow:
         service = ApikeyService(uow)
         target = await service.get_one_by_id(apikey_id)
+        assert target.id == auth_user.id
         await service.delete_one(target)
         await uow.commit()
     return "Ok"
