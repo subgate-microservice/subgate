@@ -1,5 +1,4 @@
 import functools
-import inspect
 from inspect import Signature, Parameter
 from typing import Optional, cast, Callable
 
@@ -9,7 +8,6 @@ from fastapi.security.base import SecurityBase
 
 from backend.auth.application.auth_closure_factory import AuthClosureFactory, FastapiAuthClosure
 from backend.auth.domain.auth_user import AuthUser
-from backend.auth.infra.fief.auth_closure_factory import FiefAuthClosureFactory
 
 
 class ComplexAuthClosureFactory(AuthClosureFactory):
@@ -22,8 +20,6 @@ class ComplexAuthClosureFactory(AuthClosureFactory):
         self._apikey_auth_factory = apikey_auth_factory
 
     def get_code(self):
-        if isinstance(self._token_auth_factory, FiefAuthClosureFactory):
-            return "complex_factory_with_fief"
         raise NotImplemented
 
     def fastapi_closure(
