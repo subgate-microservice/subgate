@@ -17,9 +17,9 @@ class PasswordUpdate(MyBase):
     new_password: str
 
 
-class UsernameUpdate(MyBase):
+class EmailUpdate(MyBase):
     password: str
-    username: str
+    email: str
 
 
 class DeleteProfile(MyBase):
@@ -31,11 +31,11 @@ async def get_current_user(auth_user=Depends(auth_closure)) -> UserRead:
     return auth_user
 
 
-@current_user_router.patch("/me/update-username")
-async def update_email(data: UsernameUpdate, auth_user: UserRead = Depends(auth_closure)):
+@current_user_router.patch("/me/update-email")
+async def update_email(data: EmailUpdate, auth_user: UserRead = Depends(auth_closure)):
     session_factory = container.session_factory()
     async with session_factory() as session:
-        await FastapiusersUserService(session).update_username(auth_user.email, data.username, data.password)
+        await FastapiusersUserService(session).update_email(auth_user.email, data.email, data.password)
         await session.commit()
     return "Ok"
 

@@ -9,7 +9,7 @@ from starlette.responses import JSONResponse
 
 from backend import config
 from backend.auth.adapters.apikey_router import apikey_router
-from backend.auth.adapters.fastapi_user_routers import include_fastapi_users_routers
+from backend.auth.adapters.auth_user_router import include_fastapi_users_routers
 from backend.auth.infra.apikey.apikey__auth_closure_factory import NotAuthenticated
 from backend.shared.exceptions import ItemNotExist, ItemAlreadyExist, ValidationError
 from backend.startup_service import run_preparations, run_workers

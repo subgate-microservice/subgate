@@ -1,4 +1,5 @@
 import contextlib
+
 from fastapi import HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
@@ -27,25 +28,25 @@ class FastapiusersUserService:
             async with get_user_manager(user_db) as user_manager:
                 return user_manager
 
-    async def _authenticate(self, username: str, password: str) -> User:
+    async def _authenticate(self, email: str, password: str) -> User:
         user_manager = await self._get_user_manager()
-        credentials = OAuth2PasswordRequestForm(grant_type="password", password=password, username=username)
+        credentials = OAuth2PasswordRequestForm(grant_type="password", password=password, username=email)
         user = await user_manager.authenticate(credentials)
         if not user:
             raise HTTPException(status_code=400, detail="BAD_CREDENTIALS")
         return user
 
-    async def update_password(self, username: str, old_pass: str, new_pass: str):
-        user = await self._authenticate(username, old_pass)
+    async def update_password(self, email: str, old_pass: str, new_pass: str):
+        user = await self._authenticate(email, old_pass)
         user_manager = await self._get_user_manager()
         await user_manager.update(UserUpdate(password=new_pass), user)
 
-    async def update_username(self, old_username: str, new_username: str, password: str):
-        user = await self._authenticate(old_username, password)
+    async def update_email(self, old_email: str, new_email: str, password: str):
+        user = await self._authenticate(old_email, password)
         user_manager = await self._get_user_manager()
-        await user_manager.update(UserUpdate(password=password, email=new_username), user)
+        await user_manager.update(UserUpdate(password=password, email=new_email), user)
 
-    async def delete_profile(self, username: str, password: str):
-        user = await self._authenticate(username, password)
+    async def delete_profile(self, email: str, password: str):
+        user = await self._authenticate(email, password)
         user_manager = await self._get_user_manager()
         await user_manager.delete(user)
