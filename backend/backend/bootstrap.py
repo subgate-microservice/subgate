@@ -3,9 +3,11 @@ from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine, async_sessi
 
 from backend import config
 from backend.auth.application.auth_closure_factory import AuthClosureFactory
+from backend.auth.application.auth_usecases import AuthUsecase
 from backend.auth.infra.apikey.apikey__auth_closure_factory import ApikeyAuthClosureFactory
 from backend.auth.infra.fastapi_users.auth_closure_factory import FastapiUsersAuthClosureFactory
 from backend.auth.infra.fastapi_users.manager import create_fastapi_users
+from backend.auth.infra.fastapi_users.usecases import FastapiUsersUsecase
 from backend.auth.infra.other.complex_factory import ComplexAuthClosureFactory
 from backend.shared.event_driven.bus import Bus
 from backend.shared.unit_of_work.uow import UnitOfWorkFactory
@@ -58,6 +60,9 @@ class Bootstrap:
         if not self._session_factory:
             self._session_factory = async_sessionmaker(self.database(), expire_on_commit=False)
         return self._session_factory
+
+    def auth_usecase(self) -> AuthUsecase:
+        return FastapiUsersUsecase(self.session_factory())
 
     def unit_of_work_factory(self) -> UnitOfWorkFactory:
         if not self._uow_factory:

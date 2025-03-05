@@ -18,7 +18,7 @@ from backend.subscription.domain.plan_repo import PlanSby
 from backend.subscription.domain.subscription_repo import SubscriptionSby
 from backend.webhook.domain.webhook_repo import WebhookSby
 
-admin_user = AuthUser(id=uuid4(), roles={AuthRole.Admin})
+admin_user = AuthUser(id=uuid4())
 paid_user = AuthUser(id=uuid4())
 unpaid_user = AuthUser(id=uuid4())
 

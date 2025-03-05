@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
-from backend.auth.domain.auth_user import AuthUserCreate, AuthId, AuthUser
+from backend.auth.domain.auth_user import AuthId, AuthUser
+from backend.auth.application.auth_usecases import AuthUserCreate
 
 
 class AuthUserRepo(ABC):

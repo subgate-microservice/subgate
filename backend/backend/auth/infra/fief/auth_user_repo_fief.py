@@ -2,7 +2,8 @@ from typing import Optional
 
 import aiohttp
 
-from backend.auth.domain.auth_user import AuthUser, AuthId, AuthRole, AuthUserCreate
+from backend.auth.domain.auth_user import AuthUser, AuthId, AuthRole
+from backend.auth.application.auth_usecases import AuthUserCreate
 from backend.auth.domain.auth_user_repo import AuthUserRepo
 
 

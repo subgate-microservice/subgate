@@ -1,7 +1,8 @@
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.auth.domain.auth_user import AuthUser, AuthUserCreate, AuthId
+from backend.auth.domain.auth_user import AuthUser, AuthId
+from backend.auth.application.auth_usecases import AuthUserCreate
 from backend.auth.domain.auth_user_repo import AuthUserRepo
 from backend.auth.infra.fastapi_users.database import User
 
