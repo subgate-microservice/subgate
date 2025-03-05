@@ -8,7 +8,8 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from backend import config
-from backend.auth.domain.auth_user import AuthUser, AuthRole
+from backend.auth.application.auth_usecases import AuthUserCreate
+from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container
 from backend.main import app
 from backend.shared.database import drop_and_create_postgres_tables
@@ -61,9 +62,13 @@ async def preparations():
 
 @pytest_asyncio.fixture(scope="session")
 async def current_user():
-    async with container.unit_of_work_factory().create_uow() as uow:
-        auth_user = await uow.auth_user_repo().get_one_by_username(config.USER_EMAIL)
-    yield auth_user
+    auth_usecase = container.auth_usecase()
+    try:
+        current_user = await auth_usecase.get_auth_user_by_email("user_for_test@gmaiil.com")
+    except Exception:
+        auth_create = AuthUserCreate(email="user_for_test@gmaiil.com", password="1234qwerty")
+        current_user = await auth_usecase.create_auth_user(auth_create)
+    yield current_user
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -81,8 +86,8 @@ async def login(client):
     }
     data = {
         "grant_type": "password",
-        "username": config.USER_EMAIL,
-        "password": config.USER_PASSWORD,
+        "username": "user_for_test@gmaiil.com",
+        "password": "1234qwerty",
     }
 
     response = await client.post(url, data=data, headers=headers)
