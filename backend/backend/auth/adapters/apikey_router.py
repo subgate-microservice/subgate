@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, Header, HTTPException
 
-from backend.auth.application.apikey_service import ApikeyService
 from backend.auth.domain.apikey import ApikeyId, Apikey, ApikeySby
 from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container, auth_closure

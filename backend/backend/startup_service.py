@@ -65,7 +65,7 @@ async def run_preparations():
     logger.info("Run application preparations...")
     await _create_database()
     auth_user = await _create_auth_user_if_not_exist(config.USER_EMAIL, config.USER_PASSWORD)
-    await _create_apikey_if_not_exist(auth_user, config.USER_APIKEY_TITLE, config.USER_APIKEY)
+    # await _create_apikey_if_not_exist(auth_user, config.USER_APIKEY_TITLE, config.USER_APIKEY)
     await _subscribe_events_to_eventbus()
 
 

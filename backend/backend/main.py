@@ -2,7 +2,7 @@ import asyncio
 
 import uvicorn
 from fastapi import FastAPI, Request
-from fastapi.exceptions import RequestValidationError
+from fastapi.exceptions import RequestValidationError, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 from starlette.responses import JSONResponse
@@ -10,6 +10,7 @@ from starlette.responses import JSONResponse
 from backend import config
 from backend.auth.adapters.apikey_router import apikey_router
 from backend.auth.adapters.auth_user_router import include_fastapi_users_routers
+from backend.auth.domain.exceptions import AuthenticationError
 from backend.auth.infra.apikey.apikey__auth_closure_factory import NotAuthenticated
 from backend.shared.exceptions import ItemNotExist, ItemAlreadyExist, ValidationError
 from backend.startup_service import run_preparations, run_workers
@@ -109,6 +110,11 @@ async def handle_request_validation_error(_request: Request, exc: ValidationErro
         status_code=422,
         content=[exc.to_json()]
     )
+
+
+@app.exception_handler(AuthenticationError)
+async def handle_authentication_error(_request: Request, _exc: AuthenticationError):
+    raise HTTPException(status_code=401, detail="BAD_CREDENTIALS")
 
 
 async def main():

@@ -1,6 +1,5 @@
-import secrets
 from abc import ABC, abstractmethod
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from pydantic import Field, AwareDatetime
 
@@ -13,16 +12,12 @@ ApikeyId = UUID
 
 
 class Apikey(MyBase):
-    id: ApikeyId = Field(default_factory=uuid4)
+    id: ApikeyId
     title: str
     auth_user: AuthUser
-    value: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
+    public_id: str
+    hashed_secret: str
     created_at: AwareDatetime = Field(default_factory=get_current_datetime)
-    updated_at: AwareDatetime = Field(default_factory=get_current_datetime)
-
-    def to_light_bson(self):
-        result = self.model_dump(exclude={"value", "auth_user"}, mode="json")
-        return result
 
 
 class ApikeySby(BaseSby):
@@ -43,7 +38,7 @@ class ApikeyRepo(ABC):
         raise NotImplemented
 
     @abstractmethod
-    async def get_apikey_by_value(self, apikey_value: str, lock: Lock = "write") -> Apikey:
+    async def get_one_by_public_id(self, public_id: str) -> Apikey:
         raise NotImplemented
 
     @abstractmethod

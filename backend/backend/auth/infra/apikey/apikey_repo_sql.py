@@ -1,50 +1,49 @@
-import uuid
-from typing import Iterable, Mapping, Type, Any
+from typing import Mapping, Type, Any
 
 from sqlalchemy import Column, String, Table
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.sqltypes import UUID
 
 from backend.auth.domain.apikey import Apikey, ApikeyId, ApikeySby, ApikeyRepo
+from backend.auth.domain.auth_user import AuthUser
 from backend.shared.database import metadata
 from backend.shared.enums import Lock
-from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper, AwareDateTime
-from backend.shared.unit_of_work.change_log import Log
-from backend.shared.utils import get_current_datetime
+from backend.shared.unit_of_work.base_repo_sql import SQLMapper, AwareDateTime
 
 apikey_table = Table(
     'apikey',
     metadata,
-    Column('id', UUID, primary_key=True, default=str(uuid.uuid4())),
+    Column('id', UUID, primary_key=True),
     Column('title', String, nullable=False),
-    Column('auth_user', JSONB, nullable=False),
     Column('auth_id', UUID, nullable=False),
-    Column('value', String, nullable=False),
-    Column('created_at', AwareDateTime(timezone=True), default=get_current_datetime),
-    Column('updated_at', AwareDateTime(timezone=True), default=get_current_datetime),
+    Column("public_id", String, nullable=False, index=True),
+    Column("hashed_secret", String, nullable=False),
+    Column('created_at', AwareDateTime(timezone=True)),
 )
 
 
 class ApikeySqlMapper(SQLMapper):
+    def __init__(self):
+        super().__init__(table=apikey_table)
+
     def get_entity_type(self) -> Type[Any]:
         return Apikey
 
     def entity_to_mapping(self, entity: Apikey) -> dict:
         result = entity.model_dump(mode="json")
         result["created_at"] = entity.created_at
-        result["updated_at"] = entity.updated_at
         result["auth_id"] = entity.auth_user.id
         return result
 
     def mapping_to_entity(self, data: Mapping) -> Apikey:
+        auth_user = AuthUser(id=data["auth_id"])
         return Apikey(
-            id=str(data["id"]),
+            id=data["id"],
             title=data["title"],
-            auth_user=data["auth_user"],
-            value=data["value"],
+            auth_user=auth_user,
+            public_id=data["public_id"],
+            hashed_secret=data["hashed_secret"],
             created_at=data["created_at"],
-            updated_at=data["updated_at"],
         )
 
     def entity_to_orm_model(self, entity: Apikey):
@@ -58,48 +57,31 @@ class ApikeySqlMapper(SQLMapper):
 
 
 class SqlApikeyRepo(ApikeyRepo):
-    def __init__(self, session: AsyncSession, transaction_id: UUID):
-        self._base_repo = SqlBaseRepo(session, ApikeySqlMapper(apikey_table), apikey_table, transaction_id)
+    def __init__(self, session: AsyncSession, mapper: ApikeySqlMapper):
+        self._session = session
+        self._mapper = mapper
 
-    async def add_one(self, item: Apikey) -> None:
-        await self._base_repo.add_one(item)
+    async def add_one(self, item: Apikey):
+        data = self._mapper.entity_to_mapping(item)
+        stmt = apikey_table.insert()
+        await self._session.execute(stmt, data)
 
-    async def add_many(self, items: Iterable[Apikey]) -> None:
-        for item in items:
-            await self.add_one(item)
+    async def get_selected(self, sby: ApikeySby, lock: Lock = "write") -> list[Apikey]:
+        raise NotImplemented
 
-    async def update_one(self, item: Apikey) -> None:
-        await self._base_repo.update_one(item)
+    async def get_one_by_id(self, item_id: ApikeyId, lock: Lock = "write") -> Apikey:
+        raise NotImplemented
 
-    async def get_apikey_by_value(self, apikey_value: str, lock: Lock = "write") -> Apikey:
+    async def get_one_by_public_id(self, public_id: str) -> Apikey:
         stmt = (
             apikey_table
             .select()
-            .where(
-                apikey_table.c["value"] == apikey_value,
-            )
+            .where(apikey_table.c["public_id"] == public_id)
             .limit(1)
         )
-        result = await self._base_repo.session.execute(stmt)
-        record = result.mappings().one_or_none()
-
-        if not record:
-            raise LookupError(f"AuthUser not exist")
-
-        return self._base_repo.mapper.mapping_to_entity(record)
-
-    async def get_one_by_id(self, item_id: ApikeyId, lock: Lock = "write") -> Apikey:
-        return await self._base_repo.get_one_by_id(item_id)
-
-    async def get_selected(self, sby: ApikeySby, lock: Lock = "write") -> list[Apikey]:
-        return await self._base_repo.get_selected(sby)
+        result = await self._session.execute(stmt)
+        mapping = result.mappings().one()
+        return self._mapper.mapping_to_entity(mapping)
 
     async def delete_one(self, item: Apikey) -> None:
-        await self._base_repo.delete_one(item)
-
-    async def delete_many(self, items: Iterable[Apikey]) -> None:
-        for item in items:
-            await self.delete_one(item)
-
-    def parse_logs(self) -> list[Log]:
-        return self._base_repo.parse_logs()
+        raise NotImplemented
