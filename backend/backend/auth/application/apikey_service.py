@@ -2,13 +2,13 @@ import secrets
 from typing import Optional
 from uuid import uuid4
 
-import bcrypt
 from pydantic import Field
 
 from backend.auth.domain.apikey import Apikey, ApikeyRepo, ApikeyId
 from backend.auth.domain.auth_user import AuthUser
 from backend.auth.domain.exceptions import AuthenticationError
 from backend.shared.base_models import MyBase
+from backend.shared.utils import PasswordHelper
 
 
 class ApikeyCreate(MyBase):
@@ -27,26 +27,35 @@ class ApikeyCreateResult(MyBase):
 class ApikeyManager:
     def __init__(self, repo: ApikeyRepo):
         self._repo = repo
+        self._password_helper = PasswordHelper()
 
     async def _check(self, apikey_secret: str) -> Optional[Apikey]:
         try:
             public_id, secret = apikey_secret.split(":")
-            apikey = await self._repo.get_one_by_public_id(public_id)
-
-            apikey_secret_is_valid = bcrypt.checkpw(secret.encode(), apikey.hashed_secret.encode())
-            if apikey_secret_is_valid:
-                return apikey
-        except LookupError:
-            return None
         except ValueError:
             return None
 
-    async def create(self, data: ApikeyCreate):
-        hashed_secret = bcrypt.hashpw(data.secret.encode(), bcrypt.gensalt()).decode()
+        try:
+            apikey = await self._repo.get_one_by_public_id(public_id)
+            is_valid = self._password_helper.verify(secret, apikey.hashed_secret)
+            if is_valid:
+                return apikey
+        except LookupError:
+            return None
 
-        apikey = Apikey(id=data.id, title=data.title, auth_user=data.auth_user, public_id=data.public_id,
-                        hashed_secret=hashed_secret)
+    async def create(self, data: ApikeyCreate) -> ApikeyCreateResult:
+        hashed_secret = self._password_helper.hash(data.secret)
+
+        apikey = Apikey(
+            id=data.id,
+            title=data.title,
+            auth_user=data.auth_user,
+            public_id=data.public_id,
+            hashed_secret=hashed_secret
+        )
         await self._repo.add_one(apikey)
+
+        return ApikeyCreateResult(public_id=data.public_id, secret=data.secret)
 
     async def get_by_secret(self, apikey_secret: str) -> Apikey:
         result = await self._check(apikey_secret)

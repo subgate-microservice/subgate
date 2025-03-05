@@ -1,53 +1,39 @@
-import asyncio
 import datetime
-import functools
-from typing import Iterable
+import secrets
+from typing import Optional, Union
 
-from loguru import logger
+from pwdlib import PasswordHash
+from pwdlib.hashers.argon2 import Argon2Hasher
+from pwdlib.hashers.bcrypt import BcryptHasher
 
 
 def get_current_datetime():
     return datetime.datetime.now(datetime.UTC)
 
 
-def run_sync(coro):
-    try:
-        _loop = asyncio.get_running_loop()
-    except RuntimeError:
-        # Если цикла нет, создаем его и запускаем
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        return loop.run_until_complete(coro)
-    else:
-        # Если цикл запущен, создаем задачу в существующем цикле
-        return asyncio.ensure_future(coro)
+class PasswordHelper:
+    def __init__(self, password_hash: Optional[PasswordHash] = None) -> None:
+        if password_hash is None:
+            self.password_hash = PasswordHash(
+                (
+                    Argon2Hasher(),
+                    BcryptHasher(),
+                )
+            )
+        else:
+            self.password_hash = password_hash  # pragma: no cover
 
+    def verify_and_update(
+            self, plain_password: str, hashed_password: str
+    ) -> tuple[bool, Union[str, None]]:
+        return self.password_hash.verify_and_update(plain_password, hashed_password)
 
-def repeat(
-        exceptions: tuple[type[Exception]] | type[Exception] = Exception,
-        delays: Iterable[float] = None
-):
-    if delays is None:
-        delays = (0, 0.1, 0.25, 0.5, 1, 2, 3)
+    def verify(self, plain_password: str, hashed_password: str) -> bool:
+        return self.password_hash.verify(plain_password, hashed_password)
 
-    def decorator(fn):
-        @functools.wraps(fn)
-        async def wrapper(*args, **kwargs):
-            last_err = None
-            for i, delay in enumerate(delays):
-                try:
-                    if last_err:
-                        await asyncio.sleep(delay)
-                    return await fn(*args, **kwargs)
-                except Exception as err:
-                    if isinstance(err, exceptions):
-                        msg = f"function: {fn.__name__} | repeat_count: {i} | error: {err}"
-                        logger.warning(msg)
-                        last_err = err
-                    else:
-                        raise err
-            raise last_err
+    def hash(self, password: str) -> str:
+        return self.password_hash.hash(password)
 
-        return wrapper
-
-    return decorator
+    @staticmethod
+    def generate() -> str:
+        return secrets.token_urlsafe()
