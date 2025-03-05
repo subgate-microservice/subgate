@@ -57,9 +57,9 @@ class ApikeySqlMapper(SQLMapper):
 
 
 class SqlApikeyRepo(ApikeyRepo):
-    def __init__(self, session: AsyncSession, mapper: ApikeySqlMapper):
+    def __init__(self, session: AsyncSession):
         self._session = session
-        self._mapper = mapper
+        self._mapper = ApikeySqlMapper()
 
     async def add_one(self, item: Apikey):
         data = self._mapper.entity_to_mapping(item)

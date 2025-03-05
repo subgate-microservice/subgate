@@ -4,6 +4,8 @@ from uuid import uuid4
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, AsyncEngine
 
+from backend.auth.domain.apikey import ApikeyRepo
+from backend.auth.infra.apikey.apikey_repo_sql import SqlApikeyRepo
 from backend.shared.event_driven.base_event import Event
 from backend.shared.unit_of_work.change_log import SqlLogRepo, LogConverter
 from backend.shared.unit_of_work.sql_statement_parser import SqlStatementBuilder
@@ -46,6 +48,7 @@ class NewUow(UnitOfWork):
             "webhook_repo": SqlWebhookRepo(self._session, self._transaction_id),
             "subscription_repo": SqlSubscriptionRepo(self._session, self._transaction_id),
             "delivery_task_repo": SqlDeliveryTaskRepo(self._session, self._transaction_id),
+            "apikey_repo": SqlApikeyRepo(self._session)
         }
         return self
 
@@ -67,7 +70,8 @@ class NewUow(UnitOfWork):
         try:
             logs = []
             for repo in self._repos.values():
-                logs.extend(repo.parse_logs())
+                if hasattr(repo, "parse_logs"):
+                    logs.extend(repo.parse_logs())
             statements = SqlStatementBuilder().load_logs(logs).parse_action_statements()
 
             # Выполняем запросы к базе
@@ -115,6 +119,9 @@ class NewUow(UnitOfWork):
 
     def delivery_task_repo(self) -> DeliveryTaskRepo:
         return self._repos["delivery_task_repo"]
+
+    def apikey_repo(self) -> ApikeyRepo:
+        return self._repos["apikey_repo"]
 
 
 class SqlUowFactory(UnitOfWorkFactory):

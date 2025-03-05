@@ -7,7 +7,6 @@ from loguru import logger
 
 from backend.auth.application.apikey_service import ApikeyManager, ApikeyCreate
 from backend.auth.domain.auth_user import AuthUser
-from backend.auth.infra.apikey.apikey_repo_sql import SqlApikeyRepo, ApikeySqlMapper
 from backend.bootstrap import get_container, auth_closure
 from backend.main import app
 from backend.subscription.adapters.schemas import PlanCreate
@@ -20,13 +19,11 @@ container = get_container()
 
 @pytest_asyncio.fixture()
 async def apikey_secret(current_user):
-    session_factory = container.session_factory()
-    async with session_factory() as session:
-        apikey_repo = SqlApikeyRepo(session, ApikeySqlMapper())
-        apikey_manager = ApikeyManager(apikey_repo)
+    async with container.unit_of_work_factory().create_uow() as uow:
+        apikey_manager = ApikeyManager(uow)
         data = ApikeyCreate(title="MyApikey", auth_user=current_user)
         await apikey_manager.create(data)
-        await session.commit()
+        await uow.commit()
     yield data
 
 
@@ -38,10 +35,8 @@ def override_deps(apikey_secret):
         if not apikey_value:
             raise HTTPException(status_code=401, detail="Invalid API Key")
 
-        session_factory = container.session_factory()
-        async with session_factory() as session:
-            apikey_repo = SqlApikeyRepo(session, ApikeySqlMapper())
-            apikey_manager = ApikeyManager(apikey_repo)
+        async with container.unit_of_work_factory().create_uow() as uow:
+            apikey_manager = ApikeyManager(uow)
             apikey = await apikey_manager.get_by_secret(apikey_value)
         return apikey.auth_user
 

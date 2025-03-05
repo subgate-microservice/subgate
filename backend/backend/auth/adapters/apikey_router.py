@@ -1,14 +1,9 @@
 from fastapi import APIRouter, Depends, Header, HTTPException
 
+from backend.auth.application.apikey_service import ApikeyCreate
 from backend.auth.domain.apikey import ApikeyId, Apikey, ApikeySby
 from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container, auth_closure
-from backend.shared.base_models import MyBase
-
-
-class ApikeyCreate(MyBase):
-    title: str
-
 
 apikey_router = APIRouter(
     prefix="/apikey",

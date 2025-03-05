@@ -4,10 +4,11 @@ from uuid import uuid4
 
 from pydantic import Field
 
-from backend.auth.domain.apikey import Apikey, ApikeyRepo, ApikeyId
+from backend.auth.domain.apikey import Apikey, ApikeyId
 from backend.auth.domain.auth_user import AuthUser
 from backend.auth.domain.exceptions import AuthenticationError
 from backend.shared.base_models import MyBase
+from backend.shared.unit_of_work.uow import UnitOfWork
 from backend.shared.utils import PasswordHelper
 
 
@@ -20,8 +21,8 @@ class ApikeyCreate(MyBase):
 
 
 class ApikeyManager:
-    def __init__(self, repo: ApikeyRepo):
-        self._repo = repo
+    def __init__(self, uow: UnitOfWork):
+        self._uow = uow
         self._password_helper = PasswordHelper()
 
     async def _check(self, apikey_secret: str) -> Optional[Apikey]:
@@ -31,7 +32,7 @@ class ApikeyManager:
             return None
 
         try:
-            apikey = await self._repo.get_one_by_public_id(public_id)
+            apikey = await self._uow.apikey_repo().get_one_by_public_id(public_id)
             is_valid = self._password_helper.verify(secret, apikey.hashed_secret)
             if is_valid:
                 return apikey
@@ -48,7 +49,7 @@ class ApikeyManager:
             public_id=data.public_id,
             hashed_secret=hashed_secret
         )
-        await self._repo.add_one(apikey)
+        await self._uow.apikey_repo().add_one(apikey)
 
     async def get_by_secret(self, apikey_secret: str) -> Apikey:
         result = await self._check(apikey_secret)

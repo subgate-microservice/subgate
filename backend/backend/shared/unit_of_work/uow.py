@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Self
 
+from backend.auth.domain.apikey import ApikeyRepo
 from backend.shared.event_driven.base_event import Event
 from backend.subscription.domain.plan_repo import PlanRepo
 from backend.subscription.domain.subscription_repo import SubscriptionRepo
@@ -39,6 +40,10 @@ class UnitOfWork(ABC):
 
     @abstractmethod
     def delivery_task_repo(self) -> DeliveryTaskRepo:
+        pass
+
+    @abstractmethod
+    def apikey_repo(self) -> ApikeyRepo:
         pass
 
     @abstractmethod
