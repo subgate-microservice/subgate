@@ -8,6 +8,7 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from backend import config
+from backend.auth.application.apikey_service import ApikeyCreate, ApikeyManager
 from backend.auth.application.auth_usecases import AuthUserCreate
 from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container
@@ -98,6 +99,20 @@ async def client(current_user):
         client.cookies.set('fastapiusersauth', token)
 
         yield client
+
+
+@pytest_asyncio.fixture(scope="session")
+async def apikey_client(current_user):
+    async with container.unit_of_work_factory().create_uow() as uow:
+        apikey_create = ApikeyCreate(title="AnyTitle", auth_user=current_user)
+        manager = ApikeyManager(uow)
+        await manager.create(apikey_create)
+        await uow.commit()
+        logger.info("ApikeyClient was created")
+
+    async with get_async_client() as c:
+        c.headers = {"X-API-Key": f"{apikey_create.public_id}:{apikey_create.secret}"}
+        yield c
 
 
 @pytest_asyncio.fixture(autouse=True)

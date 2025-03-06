@@ -1,3 +1,5 @@
+import asyncio
+import datetime
 from uuid import uuid4
 
 import pytest
@@ -12,7 +14,6 @@ from backend.main import app
 from backend.subscription.adapters.schemas import PlanCreate
 from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.plan import Plan
-from tests.conftest import client
 
 container = get_container()
 
@@ -52,28 +53,61 @@ class TestCreatePlanWithApikey:
         return PlanCreate.from_plan(plan).model_dump(mode="json")
 
     @pytest.mark.asyncui
-    async def test_endpoint_with_good_secret(self, client, apikey_secret):
-        headers = {"X-API-Key": f"{apikey_secret.public_id}:{apikey_secret.secret}"}
+    async def test_endpoint_with_good_secret(self, apikey_client, apikey_secret):
         data = self.plan_payload()
-        response = await client.post("/plan", json=data, headers=headers, cookies=None)
+        response = await apikey_client.post("/plan", json=data)
         response.raise_for_status()
 
     @pytest.mark.asyncui
-    async def test_endpoint_with_bad_secret(self, client, apikey_secret):
+    async def test_endpoint_with_bad_secret(self, apikey_client, apikey_secret):
         headers = {"X-API-Key": f"{apikey_secret.public_id}:any_bad_secret"}
         data = self.plan_payload()
-        response = await client.post("/plan", json=data, headers=headers)
+        response = await apikey_client.post("/plan", json=data, headers=headers)
         assert response.status_code == 401
 
     @pytest.mark.asyncui
-    async def test_endpoint_without_headers(self, client, apikey_secret):
+    async def test_endpoint_without_headers(self, apikey_client, apikey_secret):
         data = self.plan_payload()
-        response = await client.post("/plan", json=data, headers=None)
+        response = await apikey_client.post("/plan", json=data, headers=None)
         assert response.status_code == 401
 
     @pytest.mark.asyncui
-    async def test_endpoint_with_incorrect_headers(self, client, apikey_secret):
+    async def test_endpoint_with_incorrect_headers(self, apikey_client, apikey_secret):
         headers = {"X-API-Key": "random_string"}
         data = self.plan_payload()
-        response = await client.post("/plan", json=data, headers=headers)
+        response = await apikey_client.post("/plan", json=data, headers=headers)
         assert response.status_code == 400
+
+
+class TestApikeyAuthenticationPerformance:
+    @pytest_asyncio.fixture(scope="function")
+    async def plan(self, apikey_client):
+        plan = Plan("Simple", 100, "USD", uuid4(), Period.Monthly)
+        data = PlanCreate.from_plan(plan).model_dump(mode="json")
+        response = await apikey_client.post("/plan", json=data)
+        response.raise_for_status()
+
+        yield plan
+
+    @pytest.mark.asyncio
+    async def test_get_plan_without_cache_and_without_concurrency(self, apikey_client, plan):
+        start = datetime.datetime.now()
+        for i in range(100):
+            response = await apikey_client.get(f"/plan/{plan.id}")
+            response.raise_for_status()
+        end = datetime.datetime.now()
+        logger.info(f"Total time is {(end - start).seconds} seconds")
+
+    @pytest.mark.asyncio
+    async def test_get_plan_without_cache_but_with_concurrency(self, apikey_client, plan):
+        start = datetime.datetime.now()
+
+        tasks = []
+        for i in range(100):
+            coro = apikey_client.get(f"/plan/{plan.id}")
+            task = asyncio.create_task(coro)
+            tasks.append(task)
+        await asyncio.gather(*tasks)
+
+        end = datetime.datetime.now()
+        logger.info(f"Total time is {(end - start).seconds} seconds")

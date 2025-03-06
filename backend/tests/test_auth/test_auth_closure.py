@@ -1,10 +1,8 @@
 from uuid import uuid4
 
 import pytest
-import pytest_asyncio
 from loguru import logger
 
-from backend.auth.application.apikey_service import ApikeyCreate, ApikeyManager
 from backend.auth.infra.apikey.auth_closure_factory import ApikeyAuthClosureFactory
 from backend.auth.infra.fastapi_users.auth_closure_factory import FastapiUsersAuthClosureFactory
 from backend.auth.infra.other.complex_factory import ComplexFactory
@@ -13,22 +11,9 @@ from backend.main import app
 from backend.subscription.adapters.schemas import PlanCreate
 from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.plan import Plan
-from tests.conftest import get_async_client, client as token_client, current_user
+from tests.conftest import client as token_client, apikey_client
 
 container = get_container()
-
-
-@pytest_asyncio.fixture()
-async def apikey_client(current_user):
-    async with container.unit_of_work_factory().create_uow() as uow:
-        apikey_create = ApikeyCreate(title="AnyTitle", auth_user=current_user)
-        manager = ApikeyManager(uow)
-        await manager.create(apikey_create)
-        await uow.commit()
-
-    async with get_async_client() as c:
-        c.headers = {"X-API-Key": f"{apikey_create.public_id}:{apikey_create.secret}"}
-        yield c
 
 
 def plan_payload():
