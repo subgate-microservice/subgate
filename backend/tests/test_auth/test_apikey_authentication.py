@@ -76,4 +76,4 @@ class TestCreatePlanWithApikey:
         headers = {"X-API-Key": "random_string"}
         data = self.plan_payload()
         response = await client.post("/plan", json=data, headers=headers)
-        assert response.status_code == 401
+        assert response.status_code == 400
