@@ -41,6 +41,8 @@ def override_deps(apikey_secret):
         return apikey.auth_user
 
     app.dependency_overrides[auth_closure] = apikey_auth_closure
+    yield
+    app.dependency_overrides[auth_closure] = auth_closure
 
 
 class TestCreatePlanWithApikey:

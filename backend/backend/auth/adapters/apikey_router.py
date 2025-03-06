@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Header, HTTPException
 
-from backend.auth.application.apikey_service import ApikeyCreate
-from backend.auth.domain.apikey import ApikeyId, Apikey, ApikeySby
+from backend.auth.application.apikey_service import ApikeyCreate, ApikeyManager
+from backend.auth.domain.apikey import ApikeyId, ApikeySby
 from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container, auth_closure
 
@@ -16,11 +16,10 @@ container = get_container()
 @apikey_router.post("/")
 async def create_one(data: ApikeyCreate, auth_user: AuthUser = Depends(auth_closure)) -> tuple[dict, str]:
     async with container.unit_of_work_factory().create_uow() as uow:
-        apikey = Apikey(title=data.title, auth_user=auth_user)
-        apikey_service = ApikeyService(uow)
-        await apikey_service.create_one(apikey)
+        manager = ApikeyManager(uow)
+        await manager.create(data)
         await uow.commit()
-    return apikey.to_light_bson(), apikey.value
+    return {"id": data.id, "public_id": data.public_id, "title": data.title}, data.secret
 
 
 @apikey_router.get("/")
@@ -28,17 +27,16 @@ async def get_selected(auth_user: AuthUser = Depends(auth_closure)) -> list[dict
     sby = ApikeySby(auth_ids={auth_user.id})
     async with container.unit_of_work_factory().create_uow() as uow:
         apikeys = await uow.apikey_repo().get_selected(sby)
-        lights = [x.to_light_bson() for x in apikeys]
+        lights = [{"id": x.id, "public_id": x.public_id, "title": x.title} for x in apikeys]
     return lights
 
 
 @apikey_router.delete("/{apikey_id}")
 async def delete_one_by_id(apikey_id: ApikeyId, auth_user: AuthUser = Depends(auth_closure)) -> str:
     async with container.unit_of_work_factory().create_uow() as uow:
-        service = ApikeyService(uow)
-        target = await service.get_one_by_id(apikey_id)
-        assert target.id == auth_user.id
-        await service.delete_one(target)
+        target = await uow.apikey_repo().get_one_by_id(apikey_id)
+        assert target.auth_user.id == auth_user.id
+        await uow.apikey_repo().delete_one(target)
         await uow.commit()
     return "Ok"
 

@@ -67,10 +67,24 @@ class SqlApikeyRepo(ApikeyRepo):
         await self._session.execute(stmt, data)
 
     async def get_selected(self, sby: ApikeySby, lock: Lock = "write") -> list[Apikey]:
-        raise NotImplemented
+        filters = self._mapper.sby_to_filter(sby)
+        orders = self._mapper.get_orderby(sby.order_by)
+        stmt = apikey_table.select().where(*filters).order_by(*orders)
+        result = await self._session.execute(stmt)
+        return [self._mapper.mapping_to_entity(x) for x in result.mappings()]
 
     async def get_one_by_id(self, item_id: ApikeyId, lock: Lock = "write") -> Apikey:
-        raise NotImplemented
+        stmt = (
+            apikey_table
+            .select()
+            .where(apikey_table.c["id"] == item_id)
+            .limit(1)
+        )
+        result = await self._session.execute(stmt)
+        mapping = result.mappings().one_or_none()
+        if not mapping:
+            raise LookupError(item_id)
+        return self._mapper.mapping_to_entity(mapping)
 
     async def get_one_by_public_id(self, public_id: str) -> Apikey:
         stmt = (
@@ -84,4 +98,9 @@ class SqlApikeyRepo(ApikeyRepo):
         return self._mapper.mapping_to_entity(mapping)
 
     async def delete_one(self, item: Apikey) -> None:
-        raise NotImplemented
+        stmt = (
+            apikey_table
+            .delete()
+            .where(apikey_table.c["id"] == item.id)
+        )
+        await self._session.execute(stmt)
