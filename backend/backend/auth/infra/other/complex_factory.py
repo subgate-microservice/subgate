@@ -3,7 +3,7 @@ from typing import Optional, Callable
 
 from fastapi import Request
 
-from backend.auth.application.auth_closure_factory import FastapiAuthClosure
+from backend.auth.application.auth_closure_factory import FastapiAuthClosure, AuthClosureFactory
 from backend.auth.infra.apikey.auth_closure_factory import ApikeyAuthClosureFactory
 from backend.auth.infra.fastapi_users.auth_closure_factory import FastapiUsersAuthClosureFactory
 
@@ -23,7 +23,7 @@ def _modify_signature(func: Callable) -> inspect.Signature:
     return sig.replace(parameters=new_params)
 
 
-class ComplexFactory:
+class ComplexFactory(AuthClosureFactory):
     def __init__(
             self,
             token_factory: FastapiUsersAuthClosureFactory,
@@ -31,6 +31,9 @@ class ComplexFactory:
     ):
         self._apikey_closure_factory = apikey_closure_factory
         self._token_factory = token_factory
+
+    def get_code(self):
+        return "complex_factory"
 
     def fastapi_closure(
             self,
@@ -46,7 +49,9 @@ class ComplexFactory:
         @change_signature(new_sig)
         async def closure(request: Request, *args, **kwargs):
             return await (
-                apikey_auth_closure(request) if request.headers.get("x-api-key") else token_auth_closure(*args,
-                                                                                                         **kwargs))
+                apikey_auth_closure(request)
+                if request.headers.get("x-api-key")
+                else token_auth_closure(*args, **kwargs)
+            )
 
         return closure
