@@ -4,7 +4,7 @@ from typing import Self
 from pydantic import AwareDatetime
 
 from backend.shared.event_driven.eventable import Eventable
-from backend.shared.utils import get_current_datetime
+from backend.shared.utils.dt import get_current_datetime
 from backend.subscription.domain.cycle import Period
 
 

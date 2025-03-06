@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.shared.database import metadata
 from backend.shared.enums import Lock
 from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper, AwareDateTime
-from backend.shared.utils import get_current_datetime
+from backend.shared.utils.dt import get_current_datetime
 from backend.webhook.domain.webhook import WebhookId, Webhook
 from backend.webhook.domain.webhook_repo import WebhookSby, WebhookRepo
 

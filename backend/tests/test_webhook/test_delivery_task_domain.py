@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from backend.shared.utils import get_current_datetime
+from backend.shared.utils.dt import get_current_datetime
 from backend.webhook.domain.delivery_task import DeliveryTask, Message, SentErrorInfo
 
 DELAYS = (0, 10, 30,)

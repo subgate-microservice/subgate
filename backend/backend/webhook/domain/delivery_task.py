@@ -7,7 +7,7 @@ from pydantic import Field, AwareDatetime
 from backend.shared.base_models import MyBase
 from backend.shared.enums import Lock
 from backend.shared.event_driven.base_event import Event
-from backend.shared.utils import get_current_datetime
+from backend.shared.utils.dt import get_current_datetime
 
 
 class SentErrorInfo(MyBase):

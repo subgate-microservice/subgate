@@ -3,7 +3,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, AwareDatetime, Field
 
-from backend.shared.utils import get_current_datetime
+from backend.shared.utils.dt import get_current_datetime
 
 
 class Event(BaseModel):

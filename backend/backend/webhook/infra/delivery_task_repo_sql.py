@@ -8,7 +8,7 @@ from sqlalchemy.sql.sqltypes import UUID, Integer, BigInteger
 from backend.shared.database import metadata
 from backend.shared.enums import Lock
 from backend.shared.unit_of_work.base_repo_sql import SQLMapper, AwareDateTime
-from backend.shared.utils import get_current_datetime
+from backend.shared.utils.dt import get_current_datetime
 from backend.webhook.domain.delivery_task import DeliveryTask, DeliveryTaskRepo
 
 delivery_task_table = Table(

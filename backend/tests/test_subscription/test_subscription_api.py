@@ -3,7 +3,7 @@ from datetime import timedelta
 import pytest
 
 from backend.bootstrap import get_container
-from backend.shared.utils import get_current_datetime
+from backend.shared.utils.dt import get_current_datetime
 from backend.subscription.adapters.schemas import SubscriptionCreate, SubscriptionUpdate, UsageSchema, DiscountSchema
 from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.discount import Discount

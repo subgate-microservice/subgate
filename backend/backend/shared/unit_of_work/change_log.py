@@ -6,7 +6,7 @@ from sqlalchemy import Table, Column, UUID, String, DateTime, BigInteger, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.shared.database import metadata
-from backend.shared.utils import get_current_datetime
+from backend.shared.utils.dt import get_current_datetime
 
 Action = Literal[
     "insert",

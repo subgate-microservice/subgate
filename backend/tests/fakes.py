@@ -8,7 +8,7 @@ from loguru import logger
 from backend.bootstrap import container
 from backend.events import EVENTS
 from backend.shared.event_driven.base_event import Event
-from backend.shared.utils import get_current_datetime
+from backend.shared.utils.dt import get_current_datetime
 from backend.subscription.adapters.schemas import PlanCreate
 from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.discount import Discount

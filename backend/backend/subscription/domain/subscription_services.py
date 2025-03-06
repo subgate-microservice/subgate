@@ -3,7 +3,7 @@ from typing import Callable, Optional, Union
 from loguru import logger
 
 from backend.shared.event_driven.base_event import Event, FieldUpdated, ItemAdded, ItemUpdated, ItemRemoved
-from backend.shared.utils import get_current_datetime
+from backend.shared.utils.dt import get_current_datetime
 from backend.subscription.domain.discount import Discount
 from backend.subscription.domain.enums import SubscriptionStatus
 from backend.subscription.domain.events import (

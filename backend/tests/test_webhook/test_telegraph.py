@@ -9,7 +9,7 @@ import uvicorn
 from fastapi import FastAPI
 
 from backend.bootstrap import get_container
-from backend.shared.utils import get_current_datetime
+from backend.shared.utils.dt import get_current_datetime
 from backend.webhook.application.telegraph import Telegraph
 from backend.webhook.domain.delivery_task import Message, DeliveryTask
 

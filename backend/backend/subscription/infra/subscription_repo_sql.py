@@ -13,7 +13,7 @@ from backend.shared.database import metadata
 from backend.shared.enums import Lock
 from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper, AwareDateTime
 from backend.shared.unit_of_work.change_log import Log
-from backend.shared.utils import get_current_datetime
+from backend.shared.utils.dt import get_current_datetime
 from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.subscription import Subscription, BillingInfo, PlanInfo
 from backend.subscription.domain.enums import SubscriptionStatus

@@ -4,7 +4,7 @@ from pydantic import Field, AwareDatetime
 
 from backend.auth.domain.auth_user import AuthId
 from backend.shared.base_models import MyBase
-from backend.shared.utils import get_current_datetime
+from backend.shared.utils.dt import get_current_datetime
 from backend.webhook.domain.webhook import WebhookId, Webhook
 
 DELAYS = (0, 9, 29, 180, 600, 1_800, 3_600, 7_200, 14_400, 28_800, 57_600, 86_400)

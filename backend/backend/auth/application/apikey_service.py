@@ -9,7 +9,7 @@ from backend.auth.domain.auth_user import AuthUser
 from backend.auth.domain.exceptions import AuthenticationError
 from backend.shared.base_models import MyBase
 from backend.shared.unit_of_work.uow import UnitOfWork
-from backend.shared.utils import PasswordHelper
+from backend.shared.utils.password_helper import PasswordHelper
 
 
 class InvalidApikeyFormat(ValueError):

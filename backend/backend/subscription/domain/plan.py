@@ -7,7 +7,7 @@ from pydantic import AwareDatetime
 from backend.auth.domain.auth_user import AuthId
 from backend.shared.event_driven.base_event import Event, FieldUpdated, ItemAdded, ItemUpdated, ItemRemoved
 from backend.shared.event_driven.eventable import Eventable, Property
-from backend.shared.utils import get_current_datetime
+from backend.shared.utils.dt import get_current_datetime
 from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.discount import Discount
 from backend.subscription.domain.events import PlanUpdated, PlanId

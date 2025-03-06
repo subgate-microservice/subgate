@@ -6,7 +6,7 @@ from pydantic import Field, AwareDatetime
 from backend.auth.domain.auth_user import AuthUser, AuthId
 from backend.shared.base_models import MyBase, BaseSby
 from backend.shared.enums import Lock
-from backend.shared.utils import get_current_datetime
+from backend.shared.utils.dt import get_current_datetime
 
 ApikeyId = UUID
 

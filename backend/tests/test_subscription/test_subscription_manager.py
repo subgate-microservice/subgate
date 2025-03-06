@@ -7,7 +7,7 @@ import pytest_asyncio
 
 from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container
-from backend.shared.utils import get_current_datetime
+from backend.shared.utils.dt import get_current_datetime
 from backend.subscription.application.subscription_manager import SubManager
 from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.plan import Plan

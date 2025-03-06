@@ -3,7 +3,7 @@ from uuid import uuid4
 import pytest
 
 from backend.bootstrap import get_container
-from backend.shared.utils import get_current_datetime
+from backend.shared.utils.dt import get_current_datetime
 from backend.subscription.adapters.plan_api import PlanCreate
 from backend.subscription.adapters.schemas import PlanUpdate
 from backend.subscription.domain.cycle import Period

@@ -1,5 +1,5 @@
 from backend.shared.unit_of_work.uow import UnitOfWork
-from backend.shared.utils import get_current_datetime
+from backend.shared.utils.dt import get_current_datetime
 from backend.subscription.domain.events import PlanCreated, PlanDeleted
 from backend.subscription.domain.plan import Plan, PlanEventParser
 

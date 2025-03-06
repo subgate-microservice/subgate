@@ -1,14 +1,9 @@
-import datetime
 import secrets
 from typing import Optional, Union
 
 from pwdlib import PasswordHash
 from pwdlib.hashers.argon2 import Argon2Hasher
 from pwdlib.hashers.bcrypt import BcryptHasher
-
-
-def get_current_datetime():
-    return datetime.datetime.now(datetime.UTC)
 
 
 class PasswordHelper:

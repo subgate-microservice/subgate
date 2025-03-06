@@ -11,7 +11,7 @@ from backend.shared.base_models import BaseSby, OrderBy
 from backend.shared.enums import Lock
 from backend.shared.exceptions import ItemNotExist
 from backend.shared.unit_of_work.change_log import Log
-from backend.shared.utils import get_current_datetime
+from backend.shared.utils.dt import get_current_datetime
 
 
 class SQLMapper:
