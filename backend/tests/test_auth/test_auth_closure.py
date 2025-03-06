@@ -7,7 +7,7 @@ from loguru import logger
 from backend.auth.application.apikey_service import ApikeyCreate, ApikeyManager
 from backend.auth.infra.apikey.auth_closure_factory import ApikeyAuthClosureFactory
 from backend.auth.infra.fastapi_users.auth_closure_factory import FastapiUsersAuthClosureFactory
-from backend.auth.infra.other.complex_factory import FooFactory
+from backend.auth.infra.other.complex_factory import ComplexFactory
 from backend.bootstrap import get_container, auth_closure
 from backend.main import app
 from backend.subscription.adapters.schemas import PlanCreate
@@ -42,7 +42,7 @@ class TestComplexClosure:
         logger.debug("Overriding auth closure factory...")
         apikey_factory = ApikeyAuthClosureFactory(container.unit_of_work_factory())
         token_factory = FastapiUsersAuthClosureFactory(container.fastapi_users())
-        factory = FooFactory(token_factory, apikey_factory)
+        factory = ComplexFactory(token_factory, apikey_factory)
 
         app.dependency_overrides[auth_closure] = factory.fastapi_closure()
 

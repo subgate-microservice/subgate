@@ -1,67 +1,11 @@
 import inspect
-from inspect import Signature, Parameter
-from typing import Optional, cast, Callable
+from typing import Optional
 
-from fastapi import Request, Depends
-from fastapi.openapi.models import Response
-from fastapi.security.base import SecurityBase
+from fastapi import Request
 
-from backend.auth.application.auth_closure_factory import AuthClosureFactory, FastapiAuthClosure
-from backend.auth.domain.auth_user import AuthUser
+from backend.auth.application.auth_closure_factory import FastapiAuthClosure
 from backend.auth.infra.apikey.auth_closure_factory import ApikeyAuthClosureFactory
 from backend.auth.infra.fastapi_users.auth_closure_factory import FastapiUsersAuthClosureFactory
-
-
-class ComplexAuthClosureFactory(AuthClosureFactory):
-    def __init__(
-            self,
-            token_auth_factory: AuthClosureFactory,
-            apikey_auth_factory: AuthClosureFactory,
-    ):
-        self._token_auth_factory = token_auth_factory
-        self._apikey_auth_factory = apikey_auth_factory
-
-    def get_code(self):
-        raise NotImplemented
-
-    def fastapi_closure(
-            self,
-            optional: bool = False,
-            scope: Optional[list[str]] = None,
-            permissions: Optional[list[str]] = None,
-    ) -> FastapiAuthClosure:
-        token_auth_closure = self._token_auth_factory.fastapi_closure(optional, scope, permissions)
-        apikey_auth_closure = self._apikey_auth_factory.fastapi_closure(optional, scope, permissions)
-
-        async def dependency(request: Request) -> Optional[AuthUser]:
-            apikey = request.headers.get("x-api-key")
-            if apikey:
-                return await apikey_auth_closure(request)
-            return await token_auth_closure(request)
-
-        return dependency
-
-    @staticmethod
-    def _get_signature(scheme: SecurityBase) -> Signature:
-        parameters: list[Parameter] = [
-            Parameter(
-                name="request",
-                kind=Parameter.POSITIONAL_OR_KEYWORD,
-                annotation=Request,
-            ),
-            Parameter(
-                name="response",
-                kind=Parameter.POSITIONAL_OR_KEYWORD,
-                annotation=Response,
-            ),
-            Parameter(
-                name="token",
-                kind=Parameter.POSITIONAL_OR_KEYWORD,
-                default=Depends(cast(Callable, scheme)),
-            ),
-        ]
-
-        return Signature(parameters)
 
 
 def change_signature(new_signature):
@@ -72,7 +16,7 @@ def change_signature(new_signature):
     return decorator
 
 
-class FooFactory:
+class ComplexFactory:
     def __init__(
             self,
             token_factory: FastapiUsersAuthClosureFactory,

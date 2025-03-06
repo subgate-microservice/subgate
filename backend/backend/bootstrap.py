@@ -8,7 +8,7 @@ from backend.auth.infra.apikey.auth_closure_factory import ApikeyAuthClosureFact
 from backend.auth.infra.fastapi_users.auth_closure_factory import FastapiUsersAuthClosureFactory
 from backend.auth.infra.fastapi_users.manager import create_fastapi_users
 from backend.auth.infra.fastapi_users.usecases import FastapiUsersUsecase
-from backend.auth.infra.other.complex_factory import ComplexAuthClosureFactory
+from backend.auth.infra.other.complex_factory import ComplexFactory
 from backend.shared.event_driven.bus import Bus
 from backend.shared.unit_of_work.uow import UnitOfWorkFactory
 from backend.shared.unit_of_work.uow_postgres import SqlUowFactory
@@ -76,11 +76,10 @@ class Bootstrap:
         if not self._auth_closure_factory:
             token_factory = FastapiUsersAuthClosureFactory(self.fastapi_users())
             apikey_factory = ApikeyAuthClosureFactory(self.unit_of_work_factory())
-            self._auth_closure_factory = ComplexAuthClosureFactory(
+            self._auth_closure_factory = ComplexFactory(
                 token_factory,
                 apikey_factory
             )
-            self._auth_closure_factory = token_factory
         return self._auth_closure_factory
 
     def encrypt_service(self) -> GDPRCompliantEncryptor:
