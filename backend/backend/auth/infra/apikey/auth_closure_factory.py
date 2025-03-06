@@ -2,12 +2,10 @@ from typing import Optional
 
 from fastapi import Request
 
+from backend.auth.application.apikey_service import ApikeyManager
 from backend.auth.application.auth_closure_factory import AuthClosureFactory, FastapiAuthClosure
+from backend.auth.domain.exceptions import AuthenticationError
 from backend.shared.unit_of_work.uow import UnitOfWorkFactory
-
-
-class NotAuthenticated(Exception):
-    pass
 
 
 class ApikeyAuthClosureFactory(AuthClosureFactory):
@@ -23,18 +21,18 @@ class ApikeyAuthClosureFactory(AuthClosureFactory):
             scope: Optional[list[str]] = None,
             permissions: Optional[list[str]] = None,
     ) -> FastapiAuthClosure:
+
         async def closure(
                 request: Request,
-                *_args,
-                **_kwargs,
         ):
-            apikey_value = request.headers.get("Apikey-Value")
+            apikey_value = request.headers.get("x-api-key")
             if not apikey_value:
                 if optional:
                     return None
-                raise NotAuthenticated("Missing 'Apikey-Value' header")
+                raise AuthenticationError("Missing 'X-API-Key' header")
             async with self._uow_factory.create_uow() as uow:
-                apikey = await uow.apikey_repo().get_apikey_by_value(apikey_value)
+                manager = ApikeyManager(uow)
+                apikey = await manager.get_by_secret(apikey_value)
                 return apikey.auth_user
 
         return closure

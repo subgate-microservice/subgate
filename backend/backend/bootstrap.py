@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine, async_sessi
 from backend import config
 from backend.auth.application.auth_closure_factory import AuthClosureFactory
 from backend.auth.application.auth_usecases import AuthUsecase
-from backend.auth.infra.apikey.apikey__auth_closure_factory import ApikeyAuthClosureFactory
+from backend.auth.infra.apikey.auth_closure_factory import ApikeyAuthClosureFactory
 from backend.auth.infra.fastapi_users.auth_closure_factory import FastapiUsersAuthClosureFactory
 from backend.auth.infra.fastapi_users.manager import create_fastapi_users
 from backend.auth.infra.fastapi_users.usecases import FastapiUsersUsecase

@@ -60,7 +60,7 @@ async def preparations():
     yield
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="session", autouse=False)
 async def current_user():
     auth_usecase = container.auth_usecase()
     try:
@@ -72,32 +72,32 @@ async def current_user():
 
 
 @pytest_asyncio.fixture(scope="session")
-async def client():
+async def client(current_user):
     async with get_async_client() as client:
+        url = "/auth/jwt/login"
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept": "application/json",
+        }
+        data = {
+            "grant_type": "password",
+            "username": "user_for_test@gmaiil.com",
+            "password": "1234qwerty",
+        }
+
+        response = await client.post(url, data=data, headers=headers)
+
+        if response.status_code >= 400:
+            logger.warning(f"Login was failed: {response.json()}")
+        response.raise_for_status()
+
+        token = response.cookies.get('fastapiusersauth')
+        if not token:
+            raise ValueError
+
+        client.cookies.set('fastapiusersauth', token)
+
         yield client
-
-
-@pytest_asyncio.fixture(autouse=True)
-async def login(client):
-    url = "/auth/jwt/login"
-    headers = {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "Accept": "application/json",
-    }
-    data = {
-        "grant_type": "password",
-        "username": "user_for_test@gmaiil.com",
-        "password": "1234qwerty",
-    }
-
-    response = await client.post(url, data=data, headers=headers)
-    response.raise_for_status()
-    token = response.cookies.get('fastapiusersauth')
-    if not token:
-        raise ValueError
-
-    client.cookies.set('fastapiusersauth', token)
-    yield
 
 
 @pytest_asyncio.fixture(autouse=True)

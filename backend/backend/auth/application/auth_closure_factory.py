@@ -1,14 +1,12 @@
 from abc import ABC, abstractmethod
+from typing import Awaitable
 from typing import Callable, Optional
-from typing import Union, Awaitable
 
 from fastapi import Request
-from fastapi import Response
-from fastapi.security import HTTPAuthorizationCredentials
 
 from backend.auth.domain.auth_user import AuthUser
 
-FastapiAuthClosure = Callable[[Request, Response, Union[str, HTTPAuthorizationCredentials, None,]], Awaitable[AuthUser]]
+FastapiAuthClosure = Callable[[Request], Awaitable[AuthUser]]
 
 
 class AuthClosureFactory(ABC):

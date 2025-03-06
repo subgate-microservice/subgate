@@ -12,6 +12,10 @@ from backend.shared.unit_of_work.uow import UnitOfWork
 from backend.shared.utils import PasswordHelper
 
 
+class InvalidApikeyFormat(ValueError):
+    pass
+
+
 class ApikeyCreate(MyBase):
     id: ApikeyId = Field(default_factory=uuid4)
     title: str
@@ -29,7 +33,7 @@ class ApikeyManager:
         try:
             public_id, secret = apikey_secret.split(":")
         except ValueError:
-            return None
+            raise InvalidApikeyFormat()
 
         try:
             apikey = await self._uow.apikey_repo().get_one_by_public_id(public_id)

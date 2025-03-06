@@ -1,13 +1,15 @@
-import functools
+import inspect
 from inspect import Signature, Parameter
 from typing import Optional, cast, Callable
 
-from fastapi import Request, HTTPException, Depends
+from fastapi import Request, Depends
 from fastapi.openapi.models import Response
 from fastapi.security.base import SecurityBase
 
 from backend.auth.application.auth_closure_factory import AuthClosureFactory, FastapiAuthClosure
 from backend.auth.domain.auth_user import AuthUser
+from backend.auth.infra.apikey.auth_closure_factory import ApikeyAuthClosureFactory
+from backend.auth.infra.fastapi_users.auth_closure_factory import FastapiUsersAuthClosureFactory
 
 
 class ComplexAuthClosureFactory(AuthClosureFactory):
@@ -31,23 +33,11 @@ class ComplexAuthClosureFactory(AuthClosureFactory):
         token_auth_closure = self._token_auth_factory.fastapi_closure(optional, scope, permissions)
         apikey_auth_closure = self._apikey_auth_factory.fastapi_closure(optional, scope, permissions)
 
-        @functools.wraps(token_auth_closure)
-        async def dependency(
-                request: Request,
-                *args,
-                **kwargs,
-        ) -> Optional[AuthUser]:
-            if request.headers.get("Apikey-Value") and request.headers.get("Authorization"):
-                raise HTTPException(
-                    status_code=400,
-                    detail="Only Apikey-Value or Authorization available in one request",
-                )
-            # Check for API key in the headers
-            apikey_value = request.headers.get("Apikey-Value")
-            if apikey_value:
-                return await apikey_auth_closure(request, *args, **kwargs)
-            else:
-                return await token_auth_closure(request, *args, **kwargs)
+        async def dependency(request: Request) -> Optional[AuthUser]:
+            apikey = request.headers.get("x-api-key")
+            if apikey:
+                return await apikey_auth_closure(request)
+            return await token_auth_closure(request)
 
         return dependency
 
@@ -72,3 +62,54 @@ class ComplexAuthClosureFactory(AuthClosureFactory):
         ]
 
         return Signature(parameters)
+
+
+def change_signature(new_signature):
+    def decorator(func):
+        func.__signature__ = new_signature  # Меняем сигнатуру
+        return func
+
+    return decorator
+
+
+class FooFactory:
+    def __init__(
+            self,
+            token_factory: FastapiUsersAuthClosureFactory,
+            apikey_closure_factory: ApikeyAuthClosureFactory
+    ):
+        self._apikey_closure_factory = apikey_closure_factory
+        self._token_factory = token_factory
+
+    def fastapi_closure(
+            self,
+            optional: Optional[bool] = False,
+            scope: Optional[list[str]] = None,
+            permissions: Optional[list[str]] = None,
+    ) -> FastapiAuthClosure:
+        apikey_auth_closure = self._apikey_closure_factory.fastapi_closure(optional, scope, permissions)
+        token_auth_closure = self._token_factory.fastapi_closure(optional, scope, permissions)
+
+        sig = inspect.signature(token_auth_closure)
+
+        params = list(sig.parameters.values())
+        params = [
+                     inspect.Parameter(
+                         name="request",
+                         kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                         annotation=Request
+                     )
+                 ] + params
+
+        # Создаём новую сигнатуру
+        new_sig = sig.replace(parameters=params)
+
+        @change_signature(new_sig)
+        async def closure(request: Request, *args, **kwargs):
+            apikey = request.headers.get("x-api-key")
+            if apikey:
+                return await apikey_auth_closure(request)
+            else:
+                return await token_auth_closure(*args, **kwargs)
+
+        return closure

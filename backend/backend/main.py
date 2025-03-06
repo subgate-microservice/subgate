@@ -10,14 +10,22 @@ from starlette.responses import JSONResponse
 from backend import config
 from backend.auth.adapters.apikey_router import apikey_router
 from backend.auth.adapters.auth_user_router import include_fastapi_users_routers
+from backend.auth.application.apikey_service import InvalidApikeyFormat
 from backend.auth.domain.exceptions import AuthenticationError
-from backend.auth.infra.apikey.apikey__auth_closure_factory import NotAuthenticated
 from backend.shared.exceptions import ItemNotExist, ItemAlreadyExist, ValidationError
 from backend.startup_service import run_preparations, run_workers
 from backend.subscription.adapters.plan_api import plan_router
 from backend.subscription.adapters.subscription_api import subscription_router
 from backend.subscription.domain.exceptions import ActiveStatusConflict
 from backend.webhook.adapters.webhook_api import webhook_router
+
+logger.remove()
+
+logger.add(
+    sink=lambda msg: print(msg, end=""),  # Вывод в stdout без лишних переносов строк
+    format="<level>{message}</level>",  # Оставляем только уровень лога и сообщение
+    colorize=True  # Оставляем цвет
+)
 
 app = FastAPI()
 
@@ -42,15 +50,6 @@ async def handle_permission_error(_request: Request, _exc: PermissionError):
     logger.error("PermissionError")
     return JSONResponse(
         status_code=403,
-        content={},
-    )
-
-
-@app.exception_handler(NotAuthenticated)
-async def handle_not_authenticated(_request: Request, exc: NotAuthenticated):
-    logger.error(exc)
-    return JSONResponse(
-        status_code=401,
         content={},
     )
 
@@ -115,6 +114,11 @@ async def handle_request_validation_error(_request: Request, exc: ValidationErro
 @app.exception_handler(AuthenticationError)
 async def handle_authentication_error(_request: Request, _exc: AuthenticationError):
     raise HTTPException(status_code=401, detail="BAD_CREDENTIALS")
+
+
+@app.exception_handler(InvalidApikeyFormat)
+async def handle_invalid_apikey_format_error(_request: Request, _exc: InvalidApikeyFormat):
+    raise HTTPException(status_code=400, detail="Invalid apikey format")
 
 
 async def main():
