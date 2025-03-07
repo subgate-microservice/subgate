@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from pydantic import Field
 
-from backend.auth.domain.apikey import Apikey, ApikeyId
+from backend.auth.domain.apikey import Apikey
 from backend.auth.domain.auth_user import AuthUser
 from backend.auth.domain.exceptions import AuthenticationError
 from backend.shared.base_models import MyBase
@@ -17,7 +17,6 @@ class InvalidApikeyFormat(ValueError):
 
 
 class ApikeyCreate(MyBase):
-    id: ApikeyId = Field(default_factory=uuid4)
     title: str
     auth_user: AuthUser
     public_id: str = Field(default_factory=lambda: f"apikey_{uuid4().hex[:8]}")
@@ -47,7 +46,6 @@ class ApikeyManager:
         hashed_secret = self._password_helper.hash(data.secret)
 
         apikey = Apikey(
-            id=data.id,
             title=data.title,
             auth_user=data.auth_user,
             public_id=data.public_id,

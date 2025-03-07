@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from uuid import UUID
 
 from pydantic import Field, AwareDatetime
 
@@ -8,14 +7,11 @@ from backend.shared.base_models import MyBase, BaseSby
 from backend.shared.enums import Lock
 from backend.shared.utils.dt import get_current_datetime
 
-ApikeyId = UUID
-
 
 class Apikey(MyBase):
-    id: ApikeyId
+    public_id: str
     title: str
     auth_user: AuthUser
-    public_id: str
     hashed_secret: str
     created_at: AwareDatetime = Field(default_factory=get_current_datetime)
 
@@ -31,10 +27,6 @@ class ApikeyRepo(ABC):
 
     @abstractmethod
     async def get_selected(self, sby: ApikeySby, lock: Lock = "write") -> list[Apikey]:
-        raise NotImplemented
-
-    @abstractmethod
-    async def get_one_by_id(self, item_id: ApikeyId, lock: Lock = "write") -> Apikey:
         raise NotImplemented
 
     @abstractmethod

@@ -41,7 +41,7 @@ async def test_delete_one(client, current_user):
         await uow.commit()
 
     # Test
-    response = await client.delete(f"/apikey/{item.id}")
+    response = await client.delete(f"/apikey/{item.public_id}")
     response.raise_for_status()
 
 
@@ -69,7 +69,7 @@ class TestCacheWithApikeyApi:
         response = await apikey_client.get("/users/me")
         response.raise_for_status()
 
-        response = await apikey_client.delete(f"/apikey/{apikey.id}")
+        response = await apikey_client.delete(f"/apikey/{apikey.public_id}")
         response.raise_for_status()
 
         response = await apikey_client.get("/users/me")

@@ -4,7 +4,7 @@ from sqlalchemy import Column, String, Table
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.sqltypes import UUID
 
-from backend.auth.domain.apikey import Apikey, ApikeyId, ApikeySby, ApikeyRepo
+from backend.auth.domain.apikey import Apikey, ApikeySby, ApikeyRepo
 from backend.auth.domain.auth_user import AuthUser
 from backend.shared.database import metadata
 from backend.shared.enums import Lock
@@ -13,10 +13,9 @@ from backend.shared.unit_of_work.base_repo_sql import SQLMapper, AwareDateTime
 apikey_table = Table(
     'apikey',
     metadata,
-    Column('id', UUID, primary_key=True),
+    Column("public_id", String, nullable=False, index=True, primary_key=True),
     Column('title', String, nullable=False),
     Column('auth_id', UUID, nullable=False),
-    Column("public_id", String, nullable=False, index=True),
     Column("hashed_secret", String, nullable=False),
     Column('created_at', AwareDateTime(timezone=True)),
 )
@@ -38,7 +37,6 @@ class ApikeySqlMapper(SQLMapper):
     def mapping_to_entity(self, data: Mapping) -> Apikey:
         auth_user = AuthUser(id=data["auth_id"])
         return Apikey(
-            id=data["id"],
             title=data["title"],
             auth_user=auth_user,
             public_id=data["public_id"],
@@ -73,19 +71,6 @@ class SqlApikeyRepo(ApikeyRepo):
         result = await self._session.execute(stmt)
         return [self._mapper.mapping_to_entity(x) for x in result.mappings()]
 
-    async def get_one_by_id(self, item_id: ApikeyId, lock: Lock = "write") -> Apikey:
-        stmt = (
-            apikey_table
-            .select()
-            .where(apikey_table.c["id"] == item_id)
-            .limit(1)
-        )
-        result = await self._session.execute(stmt)
-        mapping = result.mappings().one_or_none()
-        if not mapping:
-            raise LookupError(item_id)
-        return self._mapper.mapping_to_entity(mapping)
-
     async def get_one_by_public_id(self, public_id: str) -> Apikey:
         stmt = (
             apikey_table
@@ -103,6 +88,6 @@ class SqlApikeyRepo(ApikeyRepo):
         stmt = (
             apikey_table
             .delete()
-            .where(apikey_table.c["id"] == item.id)
+            .where(apikey_table.c["public_id"] == item.public_id)
         )
         await self._session.execute(stmt)

@@ -2,7 +2,7 @@ from typing import Optional
 
 from fastapi import Request
 
-from backend.auth.application.apikey_service import ApikeyManager
+from backend.auth.application.apikey_service import ApikeyManager, InvalidApikeyFormat
 from backend.auth.application.auth_closure_factory import AuthClosureFactory, FastapiAuthClosure
 from backend.auth.domain.apikey import Apikey
 from backend.auth.domain.exceptions import AuthenticationError
@@ -40,14 +40,19 @@ class ApikeyAuthClosureFactory(AuthClosureFactory):
                     return None
                 raise AuthenticationError("Missing 'X-API-Key' header")
 
-            cached = self._cache_manger.get(apikey_value)
+            try:
+                public_id, secret = apikey_value.split(":")
+            except ValueError:
+                raise InvalidApikeyFormat()
+
+            cached = self._cache_manger.get(public_id)
             if cached:
                 return cached.auth_user
 
             async with self._uow_factory.create_uow() as uow:
                 manager = ApikeyManager(uow)
                 apikey = await manager.get_by_secret(apikey_value)
-                self._cache_manger.set(str(apikey.id), apikey, self._cache_time)
+                self._cache_manger.set(public_id, apikey, self._cache_time)
                 return apikey.auth_user
 
         return closure

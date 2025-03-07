@@ -61,7 +61,7 @@ class TestCreatePlanWithApikey:
         headers = {"X-API-Key": f"{apikey_secret.public_id}:any_bad_secret"}
         data = self.plan_payload()
         response = await apikey_client.post("/plan", json=data, headers=headers)
-        assert response.status_code == 401
+        assert response.status_code == 400
 
     @pytest.mark.asyncui
     async def test_endpoint_without_headers(self, apikey_client, apikey_secret):

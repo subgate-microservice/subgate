@@ -25,7 +25,7 @@ class TestComplexClosure:
     @pytest.fixture(autouse=True, scope="class")
     def override_auth_closure_into_complex_factory(self):
         logger.debug("Overriding auth closure factory...")
-        apikey_factory = ApikeyAuthClosureFactory(container.unit_of_work_factory())
+        apikey_factory = ApikeyAuthClosureFactory(container.unit_of_work_factory(), container.cache_manager(), 60)
         token_factory = FastapiUsersAuthClosureFactory(container.fastapi_users())
         factory = ComplexFactory(token_factory, apikey_factory)
 
