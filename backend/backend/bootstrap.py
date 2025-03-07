@@ -12,6 +12,7 @@ from backend.auth.infra.other.complex_factory import ComplexFactory
 from backend.shared.event_driven.bus import Bus
 from backend.shared.unit_of_work.uow import UnitOfWorkFactory
 from backend.shared.unit_of_work.uow_postgres import SqlUowFactory
+from backend.shared.utils.cache_manager import CacheManager, InMemoryCacheManager
 from backend.webhook.application.encrypt_service import GDPRCompliantEncryptor
 from backend.webhook.application.telegraph import Telegraph
 
@@ -29,6 +30,7 @@ class Bootstrap:
         self._uow_factory = None
         self._telegraph = None
         self._fastapi_users = None
+        self._cache_manager = None
 
     def set_dependency(self, name: str, value):
         name = "_" + name
@@ -75,11 +77,13 @@ class Bootstrap:
     def auth_closure_factory(self) -> AuthClosureFactory:
         if not self._auth_closure_factory:
             token_factory = FastapiUsersAuthClosureFactory(self.fastapi_users())
-            apikey_factory = ApikeyAuthClosureFactory(self.unit_of_work_factory())
-            self._auth_closure_factory = ComplexFactory(
-                token_factory,
-                apikey_factory
+            apikey_factory = ApikeyAuthClosureFactory(
+                self.unit_of_work_factory(),
+                self.cache_manager(),
+                config.APIKEY_CACHE_TIME,
             )
+            complex_factory = ComplexFactory(token_factory, apikey_factory)
+            self._auth_closure_factory = complex_factory
         return self._auth_closure_factory
 
     def encrypt_service(self) -> GDPRCompliantEncryptor:
@@ -91,6 +95,11 @@ class Bootstrap:
         if not self._telegraph:
             self._telegraph = Telegraph(self.unit_of_work_factory())
         return self._telegraph
+
+    def cache_manager(self) -> CacheManager:
+        if not self._cache_manager:
+            self._cache_manager = InMemoryCacheManager(60)
+        return self._cache_manager
 
 
 container = Bootstrap()

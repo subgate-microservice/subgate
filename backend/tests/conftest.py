@@ -41,7 +41,7 @@ def fake_postgres_database():
 
 @pytest.fixture(autouse=True, scope="session")
 def override_deps():
-    logger.info("Overriding dependencies...")
+    logger.info("Overriding database dependency...")
     container.set_dependency("database", fake_postgres_database())
 
 

@@ -24,3 +24,6 @@ USER_EMAIL = os.getenv("USER_EMAIL")
 USER_PASSWORD = os.getenv("USER_PASSWORD")
 USER_APIKEY = os.getenv("USER_APIKEY")
 USER_APIKEY_TITLE = os.getenv("USER_APIKEY_TITLE")
+
+# Cache settings
+APIKEY_CACHE_TIME = os.getenv("APIKEY_CACHE_TIME", 3600)
