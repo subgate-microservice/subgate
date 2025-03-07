@@ -94,7 +94,9 @@ class SqlApikeyRepo(ApikeyRepo):
             .limit(1)
         )
         result = await self._session.execute(stmt)
-        mapping = result.mappings().one()
+        mapping = result.mappings().one_or_none()
+        if not mapping:
+            raise LookupError(public_id)
         return self._mapper.mapping_to_entity(mapping)
 
     async def delete_one(self, item: Apikey) -> None:

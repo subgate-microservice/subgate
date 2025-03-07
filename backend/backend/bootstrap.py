@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine, async_sessi
 from backend import config
 from backend.auth.application.auth_closure_factory import AuthClosureFactory
 from backend.auth.application.auth_usecases import AuthUsecase
+from backend.auth.domain.apikey import Apikey
 from backend.auth.infra.apikey.auth_closure_factory import ApikeyAuthClosureFactory
 from backend.auth.infra.fastapi_users.auth_closure_factory import FastapiUsersAuthClosureFactory
 from backend.auth.infra.fastapi_users.manager import create_fastapi_users
@@ -96,7 +97,7 @@ class Bootstrap:
             self._telegraph = Telegraph(self.unit_of_work_factory())
         return self._telegraph
 
-    def cache_manager(self) -> CacheManager:
+    def cache_manager(self) -> CacheManager[Apikey]:
         if not self._cache_manager:
             self._cache_manager = InMemoryCacheManager(60)
         return self._cache_manager

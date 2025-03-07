@@ -38,6 +38,8 @@ async def delete_one_by_id(apikey_id: ApikeyId, auth_user: AuthUser = Depends(au
         assert target.auth_user.id == auth_user.id
         await uow.apikey_repo().delete_one(target)
         await uow.commit()
+    cache_manager = container.cache_manager()
+    cache_manager.pop(str(apikey_id))
     return "Ok"
 
 

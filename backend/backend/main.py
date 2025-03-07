@@ -113,7 +113,7 @@ async def handle_request_validation_error(_request: Request, exc: ValidationErro
 
 @app.exception_handler(AuthenticationError)
 async def handle_authentication_error(_request: Request, _exc: AuthenticationError):
-    raise HTTPException(status_code=401, detail="BAD_CREDENTIALS")
+    raise HTTPException(status_code=400, detail="BAD_CREDENTIALS")
 
 
 @app.exception_handler(InvalidApikeyFormat)

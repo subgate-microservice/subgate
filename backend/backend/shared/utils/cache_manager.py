@@ -1,11 +1,9 @@
 import time
 from abc import ABC, abstractmethod
-from typing import Callable, Optional, TypeVar, Generic
-
-T = TypeVar("T")
+from typing import Callable, Optional
 
 
-class CacheManager(ABC):
+class CacheManager[T](ABC):
     @abstractmethod
     def cache(self, fn: Callable, expiration_time: Optional[float] = None) -> Callable:
         pass
@@ -19,11 +17,15 @@ class CacheManager(ABC):
         pass
 
     @abstractmethod
+    def get_all(self) -> list[T]:
+        pass
+
+    @abstractmethod
     def pop(self, key: str) -> Optional[T]:
         pass
 
 
-class InMemoryCacheManager(CacheManager, Generic[T]):
+class InMemoryCacheManager[T](CacheManager):
     def __init__(self, expiration_time: Optional[float] = None):
         self._cache: dict[str, T] = {}
         self._expiry: dict[str, Optional[float]] = {}
@@ -43,6 +45,9 @@ class InMemoryCacheManager(CacheManager, Generic[T]):
             return self._cache.get(key)
         self.pop(key)
         return None
+
+    def get_all(self) -> list[T]:
+        return list(self._cache.values())
 
     def pop(self, key: str) -> Optional[T]:
         self._expiry.pop(key, None)
