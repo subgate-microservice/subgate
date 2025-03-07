@@ -1,4 +1,3 @@
-import functools
 import time
 from abc import ABC, abstractmethod
 from typing import Callable, Optional, Any
@@ -6,11 +5,11 @@ from typing import Callable, Optional, Any
 
 class CacheManager(ABC):
     @abstractmethod
-    def cache(self, fn: Callable, expiration_time: float) -> Callable:
+    def cache(self, fn: Callable, expiration_time: float = None) -> Callable:
         pass
 
     @abstractmethod
-    def set[T](self, key: str, value: T, expiration_time: float) -> None:
+    def set[T](self, key: str, value: T, expiration_time: float = None) -> None:
         pass
 
     @abstractmethod
@@ -23,30 +22,23 @@ class CacheManager(ABC):
 
 
 class InMemoryCacheManager(CacheManager):
-    def __init__(self, _expiration_time: float):
+    def __init__(self, expiration_time: float = None):
         self._cache: dict[str, Any] = {}
         self._expiry: dict[str, float] = {}
+        self._expiration_time = expiration_time
 
-    def cache(self, fn: Callable, expiration_time: float) -> Callable:
+    def cache(self, fn: Callable, expiration_time: float = None) -> Callable:
+        raise NotImplemented
 
-        @functools.wraps(fn)
-        async def wrapped(*args, **kwargs):
-            key = f"{fn.__name__}:{args}:{kwargs}"
-            if key in self._cache and time.time() < self._expiry.get(key, 0):
-                return self._cache[key]
-            result = await fn(*args, **kwargs)
-            self.set(key, result, expiration_time)
-            return result
-
-        return wrapped
-
-    def set[T](self, key: str, value: T, expiration_time: float) -> None:
+    def set[T](self, key: str, value: T, expiration_time: float = None) -> None:
         self._cache[key] = value
-        self._expiry[key] = time.time() + expiration_time
+        self._expiry[key] = time.time() + expiration_time if expiration_time is not None else None
 
     def get[T](self, key: str) -> Optional[T]:
-        if key in self._cache and time.time() < self._expiry.get(key, 0):
-            return self._cache[key]
+        if key in self._cache:
+            expiry = self._expiry[key]
+            if expiry and time.time() < expiry:
+                return self._cache[key]
         self._cache.pop(key, None)
         self._expiry.pop(key, None)
         return None
