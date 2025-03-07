@@ -31,6 +31,7 @@ class InMemoryCacheManager(CacheManager):
         raise NotImplemented
 
     def set[T](self, key: str, value: T, expiration_time: float = None) -> None:
+        expiration_time = expiration_time if expiration_time is not None else self._expiration_time
         self._cache[key] = value
         self._expiry[key] = time.time() + expiration_time if expiration_time is not None else None
 
