@@ -1,50 +1,49 @@
 import time
 from abc import ABC, abstractmethod
-from typing import Callable, Optional, Any
+from typing import Callable, Optional, TypeVar, Generic
+
+T = TypeVar("T")
 
 
 class CacheManager(ABC):
     @abstractmethod
-    def cache(self, fn: Callable, expiration_time: float = None) -> Callable:
+    def cache(self, fn: Callable, expiration_time: Optional[float] = None) -> Callable:
         pass
 
     @abstractmethod
-    def set[T](self, key: str, value: T, expiration_time: float = None) -> None:
+    def set(self, key: str, value: T, expiration_time: Optional[float] = None) -> None:
         pass
 
     @abstractmethod
-    def get[T](self, key: str) -> T:
+    def get(self, key: str) -> Optional[T]:
         pass
 
     @abstractmethod
-    def pop[T](self, key: str) -> Optional[T]:
+    def pop(self, key: str) -> Optional[T]:
         pass
 
 
-class InMemoryCacheManager(CacheManager):
-    def __init__(self, expiration_time: float = None):
-        self._cache: dict[str, Any] = {}
-        self._expiry: dict[str, float] = {}
-        self._expiration_time = expiration_time
+class InMemoryCacheManager(CacheManager, Generic[T]):
+    def __init__(self, expiration_time: Optional[float] = None):
+        self._cache: dict[str, T] = {}
+        self._expiry: dict[str, Optional[float]] = {}
+        self._default_expiration_time = expiration_time
 
-    def cache(self, fn: Callable, expiration_time: float = None) -> Callable:
-        raise NotImplemented
+    def cache(self, fn: Callable, expiration_time: Optional[float] = None) -> Callable:
+        raise NotImplementedError("The cache decorator is not implemented yet")
 
-    def set[T](self, key: str, value: T, expiration_time: float = None) -> None:
-        expiration_time = expiration_time if expiration_time is not None else self._expiration_time
+    def set(self, key: str, value: T, expiration_time: Optional[float] = None) -> None:
+        expiry_time = expiration_time if expiration_time is not None else self._default_expiration_time
         self._cache[key] = value
-        self._expiry[key] = time.time() + expiration_time if expiration_time is not None else None
+        self._expiry[key] = time.time() + expiry_time if expiry_time is not None else None
 
-    def get[T](self, key: str) -> Optional[T]:
-        if key in self._cache:
-            expiry = self._expiry[key]
-            if expiry is not None and time.time() < expiry:
-                return self._cache[key]
-        self._cache.pop(key, None)
-        self._expiry.pop(key, None)
+    def get(self, key: str) -> Optional[T]:
+        expiry = self._expiry.get(key)
+        if expiry is None or time.time() < expiry:
+            return self._cache.get(key)
+        self.pop(key)
         return None
 
-    def pop[T](self, key: str) -> Optional[T]:
-        value = self._cache.pop(key, None)
+    def pop(self, key: str) -> Optional[T]:
         self._expiry.pop(key, None)
-        return value
+        return self._cache.pop(key, None)
