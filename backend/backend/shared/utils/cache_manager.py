@@ -38,7 +38,7 @@ class InMemoryCacheManager(CacheManager):
     def get[T](self, key: str) -> Optional[T]:
         if key in self._cache:
             expiry = self._expiry[key]
-            if expiry and time.time() < expiry:
+            if expiry is not None and time.time() < expiry:
                 return self._cache[key]
         self._cache.pop(key, None)
         self._expiry.pop(key, None)
