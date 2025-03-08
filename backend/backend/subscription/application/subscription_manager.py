@@ -1,3 +1,4 @@
+import asyncio
 from typing import Callable
 
 from loguru import logger
@@ -11,9 +12,10 @@ from backend.subscription.domain.subscription_repo import SubscriptionSby
 
 
 class SubManager:
-    def __init__(self, uow_factory: UnitOfWorkFactory, bulk_limit=100):
+    def __init__(self, uow_factory: UnitOfWorkFactory, bulk_limit=100, sleep_time=3600):
         self._uow_factory = uow_factory
         self._bulk_limit = bulk_limit
+        self._sleep_time = sleep_time
 
     @staticmethod
     async def _processing_expired_sub(sub: Subscription, uow: UnitOfWork):
@@ -80,3 +82,10 @@ class SubManager:
                             usage.renew()
                     await save_updated_subscription(target, uow)
                 await uow.commit()
+
+    async def run_worker(self):
+        while True:
+            logger.info("Managing subscriptions")
+            await self.manage_expired_subscriptions()
+            await self.manage_usages()
+            await asyncio.sleep(self._sleep_time)

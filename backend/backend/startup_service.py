@@ -96,14 +96,12 @@ class WorkersStartup(Startup):
     @staticmethod
     def _submanage_worker():
         logger.info("Run subscription manage worker")
-
-        async def manage():
-            manager = SubManager(container.unit_of_work_factory(), config.SUBSCRIPTION_MANAGER_BULK_LIMIT)
-            await manager.manage_expired_subscriptions()
-            await manager.manage_usages()
-            await asyncio.sleep(config.SUBSCRIPTION_MANAGER_CHECK_PERIOD)
-
-        task = asyncio.create_task(manage())
+        manager = SubManager(
+            container.unit_of_work_factory(),
+            config.SUBSCRIPTION_MANAGER_BULK_LIMIT,
+            config.SUBSCRIPTION_MANAGER_CHECK_PERIOD,
+        )
+        task = asyncio.create_task(manager.run_worker())
         task.set_name("SubscriptionManagerWorker")
 
     async def run(self):
