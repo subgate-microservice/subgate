@@ -2,7 +2,7 @@ from typing import Optional
 
 from fastapi import Request
 
-from backend.auth.application.apikey_service import ApikeyManager, InvalidApikeyFormat
+from backend.auth.application.apikey_service import ApikeyManager
 from backend.auth.application.auth_closure_factory import AuthClosureFactory, FastapiAuthClosure
 from backend.auth.domain.apikey import Apikey
 from backend.auth.domain.exceptions import AuthenticationError

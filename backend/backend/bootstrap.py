@@ -32,6 +32,7 @@ class Bootstrap:
         self._telegraph = None
         self._fastapi_users = None
         self._cache_manager = None
+        self._auth_token_cache_manager = None
 
     def set_dependency(self, name: str, value):
         name = "_" + name
@@ -77,11 +78,15 @@ class Bootstrap:
 
     def auth_closure_factory(self) -> AuthClosureFactory:
         if not self._auth_closure_factory:
-            token_factory = FastapiUsersAuthClosureFactory(self.fastapi_users())
+            token_factory = FastapiUsersAuthClosureFactory(
+                self.fastapi_users(),
+                self.auth_token_cache_manager(),
+                config.AUTHENTICATION_CACHE_TIME,
+            )
             apikey_factory = ApikeyAuthClosureFactory(
                 self.unit_of_work_factory(),
-                self.cache_manager(),
-                config.APIKEY_CACHE_TIME,
+                self.apikey_cache_manager(),
+                config.AUTHENTICATION_CACHE_TIME,
             )
             complex_factory = ComplexFactory(token_factory, apikey_factory)
             self._auth_closure_factory = complex_factory
@@ -97,10 +102,15 @@ class Bootstrap:
             self._telegraph = Telegraph(self.unit_of_work_factory())
         return self._telegraph
 
-    def cache_manager(self) -> CacheManager[Apikey]:
+    def apikey_cache_manager(self) -> CacheManager[Apikey]:
         if not self._cache_manager:
             self._cache_manager = InMemoryCacheManager(60)
         return self._cache_manager
+
+    def auth_token_cache_manager(self) -> CacheManager[str]:
+        if not self._auth_token_cache_manager:
+            self._auth_token_cache_manager = InMemoryCacheManager(60)
+        return self._auth_token_cache_manager
 
 
 container = Bootstrap()
