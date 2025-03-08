@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 
 from backend.auth.application.apikey_service import ApikeyCreate, ApikeyManager
 from backend.auth.domain.apikey import ApikeySby
@@ -32,12 +32,12 @@ async def get_selected(auth_user: AuthUser = Depends(auth_closure)) -> list[dict
 
 
 @apikey_router.delete("/{public_id}")
-async def delete_one_by_id(public_id: str, auth_user: AuthUser = Depends(auth_closure)) -> str:
+async def delete_one_by_id(public_id: str, request: Request, auth_user: AuthUser = Depends(auth_closure)) -> str:
     async with container.unit_of_work_factory().create_uow() as uow:
         target = await uow.apikey_repo().get_one_by_public_id(public_id)
         assert target.auth_user.id == auth_user.id
         await uow.apikey_repo().delete_one(target)
         await uow.commit()
     cache_manager = container.cache_manager()
-    cache_manager.pop(public_id)
+    cache_manager.pop(request.headers.get("x-api-key"))
     return "Ok"

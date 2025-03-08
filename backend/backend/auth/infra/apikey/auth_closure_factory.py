@@ -40,19 +40,14 @@ class ApikeyAuthClosureFactory(AuthClosureFactory):
                     return None
                 raise AuthenticationError("Missing 'X-API-Key' header")
 
-            try:
-                public_id, secret = apikey_value.split(":")
-            except ValueError:
-                raise InvalidApikeyFormat()
-
-            cached = self._cache_manger.get(public_id)
+            cached = self._cache_manger.get(apikey_value)
             if cached:
                 return cached.auth_user
 
             async with self._uow_factory.create_uow() as uow:
                 manager = ApikeyManager(uow)
                 apikey = await manager.get_by_secret(apikey_value)
-                self._cache_manger.set(public_id, apikey, self._cache_time)
+                self._cache_manger.set(apikey_value, apikey, self._cache_time)
                 return apikey.auth_user
 
         return closure

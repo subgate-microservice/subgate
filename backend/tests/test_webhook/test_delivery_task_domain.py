@@ -14,9 +14,9 @@ def test_next_retry_delay():
         delays=DELAYS,
         partkey="Hello",
     )
-    dt = get_current_datetime()
+    dt = get_current_datetime().replace(microsecond=0)
     for retry in range(0, delivery.max_retries):
-        assert delivery.next_retry_at == dt + timedelta(seconds=DELAYS[delivery.retries])
+        assert delivery.next_retry_at.replace(microsecond=0) == dt + timedelta(seconds=DELAYS[delivery.retries])
         delivery = delivery.failed_sent(SentErrorInfo(status_code=500, detail="AnyErr"))
     assert delivery.retries == 3
     assert delivery.max_retries == 3

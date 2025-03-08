@@ -12,6 +12,7 @@ from backend.main import app
 from backend.subscription.adapters.schemas import PlanCreate
 from backend.subscription.domain.cycle import Period
 from backend.subscription.domain.plan import Plan
+from tests.conftest import get_async_client
 
 container = get_container()
 
@@ -64,9 +65,10 @@ class TestCreatePlanWithApikey:
         assert response.status_code == 400
 
     @pytest.mark.asyncui
-    async def test_endpoint_without_headers(self, apikey_client, apikey_secret):
+    async def test_endpoint_without_headers(self):
         data = self.plan_payload()
-        response = await apikey_client.post("/plan", json=data, headers=None)
+        async with get_async_client() as c:
+            response = await c.post("/plan", json=data)
         assert response.status_code == 401
 
     @pytest.mark.asyncui
