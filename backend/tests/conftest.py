@@ -15,6 +15,7 @@ from backend.bootstrap import get_container
 from backend.main import app
 from backend.shared.database import drop_and_create_postgres_tables
 from backend.shared.unit_of_work.uow_postgres import SqlUowFactory
+from backend.shared.utils.dt import get_current_datetime
 from backend.startup_service import run_preparations
 from backend.subscription.domain.plan_repo import PlanSby
 from backend.subscription.domain.subscription_repo import SubscriptionSby
@@ -126,5 +127,8 @@ async def clear():
 
         targets = await uow.webhook_repo().get_selected(WebhookSby())
         await uow.webhook_repo().delete_many(targets)
+
+        before_date = get_current_datetime()
+        await uow.delivery_task_repo().delete_many_before_date(before_date)
 
         await uow.commit()

@@ -1,5 +1,6 @@
 from typing import Iterable, Mapping, Type, Any
 
+from pydantic import AwareDatetime
 from sqlalchemy import Column, String, Table, bindparam
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -141,6 +142,14 @@ class SqlDeliveryTaskRepo(DeliveryTaskRepo):
             delivery_task_table
             .delete()
             .where(delivery_task_table.c["id"] == item.id)
+        )
+        await self._session.execute(stmt)
+
+    async def delete_many_before_date(self, dt: AwareDatetime) -> None:
+        stmt = (
+            delivery_task_table
+            .delete()
+            .where(delivery_task_table.c["created_at"] < dt)
         )
         await self._session.execute(stmt)
 

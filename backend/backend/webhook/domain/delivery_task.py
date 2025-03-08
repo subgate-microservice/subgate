@@ -99,6 +99,10 @@ class DeliveryTaskRepo(ABC):
         pass
 
     @abstractmethod
+    async def delete_many_before_date(self, core_date: AwareDatetime) -> None:
+        pass
+
+    @abstractmethod
     async def get_all(self, lock: Lock = "write") -> list[DeliveryTask]:
         pass
 

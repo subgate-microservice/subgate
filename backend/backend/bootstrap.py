@@ -78,16 +78,8 @@ class Bootstrap:
 
     def auth_closure_factory(self) -> AuthClosureFactory:
         if not self._auth_closure_factory:
-            token_factory = FastapiUsersAuthClosureFactory(
-                self.fastapi_users(),
-                self.auth_token_cache_manager(),
-                config.AUTHENTICATION_CACHE_TIME,
-            )
-            apikey_factory = ApikeyAuthClosureFactory(
-                self.unit_of_work_factory(),
-                self.apikey_cache_manager(),
-                config.AUTHENTICATION_CACHE_TIME,
-            )
+            token_factory = FastapiUsersAuthClosureFactory(self.fastapi_users(), self.auth_token_cache_manager())
+            apikey_factory = ApikeyAuthClosureFactory(self.unit_of_work_factory(), self.apikey_cache_manager())
             complex_factory = ComplexFactory(token_factory, apikey_factory)
             self._auth_closure_factory = complex_factory
         return self._auth_closure_factory

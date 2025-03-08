@@ -15,11 +15,9 @@ class ApikeyAuthClosureFactory(AuthClosureFactory):
             self,
             uow_factory: UnitOfWorkFactory,
             cache_manager: CacheManager[Apikey],
-            cache_time: float,
     ):
         self._uow_factory = uow_factory
         self._cache_manger = cache_manager
-        self._cache_time = cache_time
 
     def get_code(self):
         return "apikey_factory"
@@ -47,7 +45,7 @@ class ApikeyAuthClosureFactory(AuthClosureFactory):
             async with self._uow_factory.create_uow() as uow:
                 manager = ApikeyManager(uow)
                 apikey = await manager.get_by_secret(apikey_value)
-                self._cache_manger.set(apikey_value, apikey, self._cache_time)
+                self._cache_manger.set(apikey_value, apikey)
                 return apikey.auth_user
 
         return closure

@@ -10,10 +10,9 @@ from backend.shared.utils.cache_manager import CacheManager
 
 
 class FastapiUsersAuthClosureFactory(AuthClosureFactory):
-    def __init__(self, fastapi_users: FastAPIUsers, cache_manger: CacheManager, cache_time: float):
+    def __init__(self, fastapi_users: FastAPIUsers, cache_manger: CacheManager):
         self._fastapi_users = fastapi_users
         self._cache_manager = cache_manger
-        self._cache_time = cache_time
 
     def get_code(self):
         return "fastapi_users"
@@ -35,7 +34,7 @@ class FastapiUsersAuthClosureFactory(AuthClosureFactory):
                 return cached
 
             result = await auth_closure(*args, **kwargs)
-            self._cache_manager.set(token, result, self._cache_time)
+            self._cache_manager.set(token, result)
             return result
 
         return dependency
