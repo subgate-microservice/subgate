@@ -104,12 +104,12 @@ class Bootstrap:
 
     def apikey_cache_manager(self) -> CacheManager[Apikey]:
         if not self._cache_manager:
-            self._cache_manager = InMemoryCacheManager(60)
+            self._cache_manager = InMemoryCacheManager(config.AUTHENTICATION_CACHE_TIME)
         return self._cache_manager
 
     def auth_token_cache_manager(self) -> CacheManager[str]:
         if not self._auth_token_cache_manager:
-            self._auth_token_cache_manager = InMemoryCacheManager(60)
+            self._auth_token_cache_manager = InMemoryCacheManager(config.AUTHENTICATION_CACHE_TIME)
         return self._auth_token_cache_manager
 
 
