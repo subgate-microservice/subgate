@@ -13,7 +13,7 @@ from backend.auth.adapters.auth_user_router import include_fastapi_users_routers
 from backend.auth.application.apikey_service import InvalidApikeyFormat
 from backend.auth.domain.exceptions import AuthenticationError
 from backend.shared.exceptions import ItemNotExist, ItemAlreadyExist, ValidationError
-from backend.startup_service import run_preparations, run_workers
+from backend.startup_service import run_preparations
 from backend.subscription.adapters.plan_api import plan_router
 from backend.subscription.adapters.subscription_api import subscription_router
 from backend.subscription.domain.exceptions import ActiveStatusConflict
@@ -123,7 +123,6 @@ async def handle_invalid_apikey_format_error(_request: Request, _exc: InvalidApi
 
 async def main():
     await run_preparations()
-    run_workers()
     conf = uvicorn.Config(app, host=config.HOST, port=config.PORT)
     server = uvicorn.Server(conf)
     await server.serve()

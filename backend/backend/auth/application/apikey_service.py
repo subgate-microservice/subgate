@@ -53,6 +53,9 @@ class ApikeyManager:
         )
         await self._uow.apikey_repo().add_one(apikey)
 
+    async def get_by_public_id(self, public_id: str) -> Apikey:
+        return await self._uow.apikey_repo().get_one_by_public_id(public_id)
+
     async def get_by_secret(self, apikey_secret: str) -> Apikey:
         result = await self._check(apikey_secret)
         if not result:

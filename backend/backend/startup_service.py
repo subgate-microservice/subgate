@@ -1,75 +1,119 @@
 import asyncio
+from abc import ABC, abstractmethod
 
 from fastapi_users.exceptions import UserNotExists
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from loguru import logger
 
 from backend import config
-from backend.auth.domain.apikey import Apikey
-from backend.auth.domain.auth_user import AuthUser
+from backend.auth.application.apikey_service import ApikeyCreate, ApikeyManager
 from backend.auth.infra.fastapi_users.database import User
 from backend.auth.infra.fastapi_users.manager import UserManager
 from backend.auth.infra.fastapi_users.schemas import UserCreate
 from backend.bootstrap import get_container
 from backend.events import EVENTS
 from backend.shared.database import drop_and_create_postgres_tables
+from backend.subscription.application.subscription_manager import SubManager
 from backend.webhook.adapters import subscription_handlers
 
 container = get_container()
 
 
-async def _create_auth_user_if_not_exist(email: str, password: str) -> AuthUser:
-    session_factory = container.session_factory()
-    async with session_factory() as session:
-        user_db = SQLAlchemyUserDatabase(session, User)
-        manager = UserManager(user_db)
-        try:
-            result = await manager.get_by_email(email)
-            logger.info("AuthUser already exist")
-        except UserNotExists:
-            logger.info("Creating AuthUser")
-            user_create = UserCreate(email=email, password=password)
-            result = await manager.create(user_create)
-        await session.commit()
-    return result
+class Startup(ABC):
+    @abstractmethod
+    async def run(self):
+        pass
 
 
-async def _create_apikey_if_not_exist(auth_user: AuthUser, title: str, value: str):
-    apikey = Apikey(
-        title=title,
-        auth_user=auth_user,
-        value=value,
-    )
-    try:
-        async with get_container().unit_of_work_factory().create_uow() as uow:
-            await uow.apikey_repo().get_apikey_by_value(apikey.value)
-    except LookupError:
-        logger.info("Creating apikey...")
-        async with get_container().unit_of_work_factory().create_uow() as uow:
-            await uow.apikey_repo().add_one(apikey)
+class DatabaseStartup(Startup):
+    async def run(self):
+        await drop_and_create_postgres_tables()
+
+
+class FirstUserStartup(Startup):
+    def __init__(self):
+        self._email = config.USER_EMAIL
+        self._pass = config.USER_PASSWORD
+        self._apikey_title = config.USER_APIKEY_TITLE
+        self._apikey_public_id = config.USER_APIKEY_PUBLIC_ID
+        self._apikey_secret = config.USER_APIKEY_SECRET
+        self._auth_user = None
+
+    async def _create_auth_user_if_not_exist(self):
+        session_factory = container.session_factory()
+        async with session_factory() as session:
+            user_db = SQLAlchemyUserDatabase(session, User)
+            manager = UserManager(user_db)
+            try:
+                result = await manager.get_by_email(self._email)
+                logger.info("AuthUser already exist")
+            except UserNotExists:
+                logger.info("Creating AuthUser")
+                user_create = UserCreate(email=self._email, password=self._pass)
+                result = await manager.create(user_create)
+            await session.commit()
+        self._auth_user = result.to_auth_user()
+
+    async def _create_apikey_if_not_exist(self):
+        async with container.unit_of_work_factory().create_uow() as uow:
+            apikey_manager = ApikeyManager(uow)
+            apikey = ApikeyCreate(
+                title=self._apikey_title,
+                auth_user=self._auth_user,
+                public_id=self._apikey_public_id,
+                secret=self._apikey_secret,
+            )
+            try:
+                _ = await apikey_manager.get_by_public_id(self._apikey_public_id)
+                logger.info("Apikey already created")
+            except LookupError:
+                logger.info("Crating apikey")
+                await apikey_manager.create(apikey)
+
             await uow.commit()
 
-
-async def _subscribe_events_to_eventbus():
-    logger.info("Subscribe events to eventbus")
-    bus = get_container().eventbus()
-    for event_type in EVENTS:
-        bus.subscribe(event_type, subscription_handlers.handle_subscription_domain_event)
+    async def run(self):
+        await self._create_auth_user_if_not_exist()
+        await self._create_apikey_if_not_exist()
 
 
-async def _create_database():
-    await drop_and_create_postgres_tables()
+class EventbusStartup(Startup):
+    async def run(self):
+        logger.info("Subscribe events to eventbus")
+        bus = get_container().eventbus()
+        for event_type in EVENTS:
+            bus.subscribe(event_type, subscription_handlers.handle_subscription_domain_event)
+
+
+class WorkersStartup(Startup):
+    @staticmethod
+    def _telegraph_worker():
+        logger.info("Run telegraph worker")
+        telegraph = container.telegraph()
+        task = asyncio.create_task(telegraph.run_worker())
+        task.set_name("TelegraphWorker")
+
+    @staticmethod
+    def _submanage_worker():
+        logger.info("Run subscription manage worker")
+
+        async def manage():
+            manager = SubManager(container.unit_of_work_factory(), config.SUBSCRIPTION_MANAGER_BULK_LIMIT)
+            await manager.manage_expired_subscriptions()
+            await manager.manage_usages()
+            await asyncio.sleep(config.SUBSCRIPTION_MANAGER_CHECK_PERIOD)
+
+        task = asyncio.create_task(manage())
+        task.set_name("SubscriptionManagerWorker")
+
+    async def run(self):
+        logger.info("Run startup workers")
+        self._telegraph_worker()
+        self._submanage_worker()
 
 
 async def run_preparations():
-    logger.info("Run application preparations...")
-    await _create_database()
-    auth_user = await _create_auth_user_if_not_exist(config.USER_EMAIL, config.USER_PASSWORD)
-    # await _create_apikey_if_not_exist(auth_user, config.USER_APIKEY_TITLE, config.USER_APIKEY)
-    await _subscribe_events_to_eventbus()
-
-
-def run_workers():
-    telegraph = container.telegraph()
-    task = asyncio.create_task(telegraph.run_worker())
-    task.set_name("TelegraphWorker")
+    await DatabaseStartup().run()
+    await FirstUserStartup().run()
+    await EventbusStartup().run()
+    await WorkersStartup().run()
