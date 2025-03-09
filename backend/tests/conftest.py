@@ -16,7 +16,7 @@ from backend.main import app
 from backend.shared.database import drop_and_create_postgres_tables
 from backend.shared.unit_of_work.uow_postgres import SqlUowFactory
 from backend.shared.utils.dt import get_current_datetime
-from backend.startup_service import run_preparations
+from backend.startup_service import StartupShutdownManager
 from backend.subscription.domain.plan_repo import PlanSby
 from backend.subscription.domain.subscription_repo import SubscriptionSby
 from backend.webhook.domain.webhook_repo import WebhookSby
@@ -58,8 +58,12 @@ async def preparations():
     else:
         raise TypeError
     logger.info("Test database was dropped")
-    await run_preparations()
+    manager = StartupShutdownManager()
+    await manager.on_startup()
+
     yield
+
+    await manager.on_shutdown()
 
 
 @pytest_asyncio.fixture(scope="session", autouse=False)

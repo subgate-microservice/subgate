@@ -13,6 +13,7 @@ from backend.auth.infra.fastapi_users.schemas import UserCreate
 from backend.bootstrap import get_container
 from backend.events import EVENTS
 from backend.shared.database import drop_and_create_postgres_tables
+from backend.shared.utils.worker import Worker
 from backend.subscription.application.subscription_manager import SubManager
 from backend.webhook.adapters import subscription_handlers
 
@@ -86,32 +87,34 @@ class EventbusStartup(Startup):
 
 
 class WorkersStartup(Startup):
-    @staticmethod
-    def _telegraph_worker():
-        logger.info("Run telegraph worker")
-        telegraph = container.telegraph()
-        task = asyncio.create_task(telegraph.run_worker())
-        task.set_name("TelegraphWorker")
-
-    @staticmethod
-    def _submanage_worker():
-        logger.info("Run subscription manage worker")
-        manager = SubManager(
-            container.unit_of_work_factory(),
-            config.SUBSCRIPTION_MANAGER_BULK_LIMIT,
-            config.SUBSCRIPTION_MANAGER_CHECK_PERIOD,
+    def __init__(self):
+        self._subman_worker = Worker(
+            SubManager(container.unit_of_work_factory(), config.SUBSCRIPTION_MANAGER_BULK_LIMIT).manage,
+            sleep_time=config.SUBSCRIPTION_MANAGER_CHECK_PERIOD,
+            safe=False,
+            task_name="SubManager worker",
         )
-        task = asyncio.create_task(manager.run_worker())
-        task.set_name("SubscriptionManagerWorker")
 
     async def run(self):
-        logger.info("Run startup workers")
-        self._telegraph_worker()
-        self._submanage_worker()
+        self._subman_worker.run()
+
+    async def stop(self):
+        self._subman_worker.stop()
 
 
-async def run_preparations():
-    await DatabaseStartup().run()
-    await FirstUserStartup().run()
-    await EventbusStartup().run()
-    await WorkersStartup().run()
+class StartupShutdownManager:
+    def __init__(self):
+        self._database_startup = DatabaseStartup()
+        self._first_user_startup = FirstUserStartup()
+        self._workers_startup = WorkersStartup()
+        self._eventbus_startup = EventbusStartup()
+
+    async def on_startup(self):
+        logger.info("On startup")
+        await self._database_startup.run()
+        await self._workers_startup.run()
+
+    async def on_shutdown(self):
+        logger.info("On shutdown")
+        await self._workers_startup.stop()
+        await asyncio.sleep(1)

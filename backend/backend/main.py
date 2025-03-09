@@ -13,7 +13,7 @@ from backend.auth.adapters.auth_user_router import include_fastapi_users_routers
 from backend.auth.application.apikey_service import InvalidApikeyFormat
 from backend.auth.domain.exceptions import AuthenticationError
 from backend.shared.exceptions import ItemNotExist, ItemAlreadyExist, ValidationError
-from backend.startup_service import run_preparations
+from backend.startup_service import StartupShutdownManager
 from backend.subscription.adapters.plan_api import plan_router
 from backend.subscription.adapters.subscription_api import subscription_router
 from backend.subscription.domain.exceptions import ActiveStatusConflict
@@ -122,11 +122,21 @@ async def handle_invalid_apikey_format_error(_request: Request, _exc: InvalidApi
 
 
 async def main():
-    await run_preparations()
     conf = uvicorn.Config(app, host=config.HOST, port=config.PORT)
     server = uvicorn.Server(conf)
     await server.serve()
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    startup_shutdown = StartupShutdownManager()
+
+    try:
+        loop.run_until_complete(startup_shutdown.on_startup())
+        loop.run_until_complete(main())
+    except KeyboardInterrupt:
+        loop.run_until_complete(startup_shutdown.on_shutdown())
+    finally:
+        loop.close()
