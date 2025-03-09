@@ -10,6 +10,7 @@ from fastapi import FastAPI
 
 from backend.bootstrap import get_container
 from backend.shared.utils.dt import get_current_datetime
+from backend.shared.utils.worker import Worker
 from backend.webhook.application.telegraph import Telegraph
 from backend.webhook.domain.delivery_task import Message, DeliveryTask
 
@@ -136,7 +137,8 @@ async def deliveries_with_bad_handler():
 
 
 async def telegraph_worker():
-    telegraph = Telegraph(container.unit_of_work_factory(), sleep_time=0.1)
+    telegraph = Telegraph(container.unit_of_work_factory())
+    worker = Worker(telegraph.notify, sleep_time=0.1, safe=True)
 
     async def stop_task():
         while True:
@@ -145,10 +147,10 @@ async def telegraph_worker():
                 deliveries = await uow.delivery_task_repo().get_deliveries_for_send()
                 if not deliveries:
                     break
-        telegraph.stop_worker()
+        worker.stop()
 
     _task = asyncio.create_task(stop_task())
-    await telegraph.run_worker()
+    await worker.run_until_complete()
 
 
 @pytest.mark.asyncio

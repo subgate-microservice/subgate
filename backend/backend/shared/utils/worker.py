@@ -48,6 +48,13 @@ class Worker:
         if self._task_name:
             task.set_name(self._task_name)
 
+    async def run_until_complete(self):
+        logger.info(f"Run {self._task_name}")
+        task = asyncio.create_task(self._run())
+        if self._task_name:
+            task.set_name(self._task_name)
+        await task
+
     def stop(self):
         logger.info(f"Stop {self._task_name}")
         self._STOP_FLAG = True

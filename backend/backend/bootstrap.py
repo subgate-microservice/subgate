@@ -14,6 +14,7 @@ from backend.shared.event_driven.bus import Bus
 from backend.shared.unit_of_work.uow import UnitOfWorkFactory
 from backend.shared.unit_of_work.uow_postgres import SqlUowFactory
 from backend.shared.utils.cache_manager import CacheManager, InMemoryCacheManager
+from backend.shared.utils.worker import Worker
 from backend.webhook.application.encrypt_service import GDPRCompliantEncryptor
 from backend.webhook.application.telegraph import Telegraph
 
@@ -29,7 +30,7 @@ class Bootstrap:
         self._subscription_client = None
         self._encryptor = None
         self._uow_factory = None
-        self._telegraph = None
+        self._telegraph_worker = None
         self._fastapi_users = None
         self._cache_manager = None
         self._auth_token_cache_manager = None
@@ -89,10 +90,11 @@ class Bootstrap:
             self._encryptor = GDPRCompliantEncryptor(config.ENCRYPTOR_PASS)
         return self._encryptor
 
-    def telegraph(self) -> Telegraph:
-        if not self._telegraph:
-            self._telegraph = Telegraph(self.unit_of_work_factory())
-        return self._telegraph
+    def telegraph_worker(self) -> Worker:
+        if not self._telegraph_worker:
+            telegraph = Telegraph(self.unit_of_work_factory())
+            self._telegraph_worker= Worker(telegraph.notify, sleep_time=10, safe=True, task_name="Telegraph worker")
+        return self._telegraph_worker
 
     def apikey_cache_manager(self) -> CacheManager[Apikey]:
         if not self._cache_manager:

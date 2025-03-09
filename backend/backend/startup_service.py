@@ -94,12 +94,15 @@ class WorkersStartup(Startup):
             safe=False,
             task_name="SubManager worker",
         )
+        self._telegraph_worker = container.telegraph_worker()
 
     async def run(self):
         self._subman_worker.run()
+        self._telegraph_worker.run()
 
     async def stop(self):
         self._subman_worker.stop()
+        self._telegraph_worker.stop()
 
 
 class StartupShutdownManager:
@@ -112,6 +115,8 @@ class StartupShutdownManager:
     async def on_startup(self):
         logger.info("On startup")
         await self._database_startup.run()
+        await self._eventbus_startup.run()
+        await self._first_user_startup.run()
         await self._workers_startup.run()
 
     async def on_shutdown(self):

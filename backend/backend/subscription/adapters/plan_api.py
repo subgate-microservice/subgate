@@ -26,7 +26,7 @@ async def create_one(
         await create_plan(plan, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
-    container.telegraph().wake_worker()
+    container.telegraph_worker().wake()
     return plan.id
 
 
@@ -80,7 +80,7 @@ async def update_one(
         await save_updated_plan(old_version, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
-    container.telegraph().wake_worker()
+    container.telegraph_worker().wake()
     return "Ok"
 
 
@@ -95,7 +95,7 @@ async def delete_one(
         await delete_plan(target_plan, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
-    container.telegraph().wake_worker()
+    container.telegraph_worker().wake()
     return "Ok"
 
 
@@ -112,5 +112,5 @@ async def delete_selected(
             await delete_plan(target, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
-    container.telegraph().wake_worker()
+    container.telegraph_worker().wake()
     return "Ok"

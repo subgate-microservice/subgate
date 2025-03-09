@@ -54,19 +54,9 @@ def group_deliveries(deliveries: list[DeliveryTask]) -> dict[str, list[DeliveryT
 
 
 class Telegraph:
-    def __init__(self, uow_factory: UnitOfWorkFactory, sleep_time=10):
+    def __init__(self, uow_factory: UnitOfWorkFactory):
         self._uow_factory = uow_factory
-        self._STOP_FLAG = False
-        self._wake_event = asyncio.Event()  # Событие для пробуждения
-        self._sleep_time = sleep_time
         self._client = RequestClient()
-
-    def stop_worker(self):
-        self._STOP_FLAG = True
-        self.wake_worker()
-
-    def wake_worker(self):
-        self._wake_event.set()
 
     async def _partkey_worker(self, deliveries: list[DeliveryTask]) -> list[DeliveryTask]:
         updated_deliveries = []
@@ -75,40 +65,24 @@ class Telegraph:
             updated_deliveries.append(updated)
         return updated_deliveries
 
-    async def run_worker(self):
-        self._STOP_FLAG = False
+    async def notify(self):
+        async with self._uow_factory.create_uow() as uow:
+            deliveries = await uow.delivery_task_repo().get_deliveries_for_send()
+            logger.info(f"Check delivery tasks: {len(deliveries)} need to send")
 
-        while True:
-            if self._STOP_FLAG:
-                break
+            updated_deliveries = []
+            tasks = []
+            for partkey, grouped_deliveries in group_deliveries(deliveries).items():
+                task = asyncio.create_task(self._partkey_worker(grouped_deliveries))
+                task.add_done_callback(lambda x: updated_deliveries.extend(x.result()))
+                tasks.append(task)
+            await asyncio.gather(*tasks)
+            await uow.delivery_task_repo().update_many(updated_deliveries)
+            await uow.commit()
 
-            try:
-                async with self._uow_factory.create_uow() as uow:
-                    deliveries = await uow.delivery_task_repo().get_deliveries_for_send()
-                    logger.info(f"Check delivery tasks: {len(deliveries)} need to send")
-
-                    updated_deliveries = []
-                    tasks = []
-                    for partkey, grouped_deliveries in group_deliveries(deliveries).items():
-                        task = asyncio.create_task(self._partkey_worker(grouped_deliveries))
-                        task.add_done_callback(lambda x: updated_deliveries.extend(x.result()))
-                        tasks.append(task)
-                    await asyncio.gather(*tasks)
-                    await uow.delivery_task_repo().update_many(updated_deliveries)
-                    await uow.commit()
-
-                    if updated_deliveries:
-                        successes = len([x for x in updated_deliveries if x.status == "success_sent"])
-                        fails = len(updated_deliveries) - successes
-                        logger.info(
-                            f"{len(updated_deliveries)} DeliveryTasks were processed. {successes} success, {fails} failed"
-                        )
-            except Exception as err:
-                logger.error(err)
-            finally:
-                try:
-                    await asyncio.wait_for(self._wake_event.wait(), timeout=self._sleep_time)
-                except asyncio.TimeoutError:
-                    pass
-                finally:
-                    self._wake_event.clear()
+            if updated_deliveries:
+                successes = len([x for x in updated_deliveries if x.status == "success_sent"])
+                fails = len(updated_deliveries) - successes
+                logger.info(
+                    f"{len(updated_deliveries)} DeliveryTasks were processed. {successes} success, {fails} failed"
+                )
