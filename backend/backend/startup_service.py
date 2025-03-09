@@ -1,5 +1,6 @@
 import asyncio
 from abc import ABC, abstractmethod
+from datetime import timedelta
 
 from fastapi_users.exceptions import UserNotExists
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
@@ -13,6 +14,8 @@ from backend.auth.infra.fastapi_users.schemas import UserCreate
 from backend.bootstrap import get_container
 from backend.events import EVENTS
 from backend.shared.database import drop_and_create_postgres_tables
+from backend.shared.unit_of_work.change_log import SqlLogRepo
+from backend.shared.utils.dt import get_current_datetime
 from backend.shared.utils.worker import Worker
 from backend.subscription.application.subscription_manager import SubManager
 from backend.webhook.adapters import subscription_handlers
@@ -94,15 +97,52 @@ class WorkersStartup(Startup):
             safe=False,
             task_name="SubManager worker",
         )
+
+        self._log_cleaner_worker = Worker(
+            self._clean_old_logs,
+            sleep_time=86_400,
+            safe=False,
+            task_name="LogCleaner worker",
+        )
+
+        self._delivery_cleaner_worker = Worker(
+            self._clean_old_delivery_tasks,
+            sleep_time=86_400,
+            safe=False,
+            task_name="DeliveryCleaner worker",
+        )
+
         self._telegraph_worker = container.telegraph_worker()
+
+    @staticmethod
+    async def _clean_old_logs():
+        session_factory = container.session_factory()
+        async with session_factory() as session:
+            repo = SqlLogRepo(session)
+            dt = get_current_datetime().replace(second=0, microsecond=0) - timedelta(days=config.LOG_RETENTION_DAYS)
+            await repo.delete_old_logs(dt)
+            await session.commit()
+        logger.info(f"Logs before {dt.strftime("%Y-%m-%d %H:%M")} were deleted")
+
+    @staticmethod
+    async def _clean_old_delivery_tasks():
+        async with container.unit_of_work_factory().create_uow() as uow:
+            dt = get_current_datetime().replace(second=0, microsecond=0) - timedelta(days=config.LOG_RETENTION_DAYS)
+            await uow.delivery_task_repo().delete_many_before_date(dt)
+            await uow.commit()
+        logger.info(f"Deliveries before {dt.strftime("%Y-%m-%d %H:%M")} were deleted")
 
     async def run(self):
         self._subman_worker.run()
         self._telegraph_worker.run()
+        self._log_cleaner_worker.run()
+        self._delivery_cleaner_worker.run()
 
     async def stop(self):
         self._subman_worker.stop()
         self._telegraph_worker.stop()
+        self._log_cleaner_worker.stop()
+        self._delivery_cleaner_worker.stop()
 
 
 class StartupShutdownManager:

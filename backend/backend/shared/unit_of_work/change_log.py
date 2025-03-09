@@ -85,6 +85,14 @@ class SqlLogRepo:
             stmt = log_table.insert()
             await self._session.execute(stmt, data)
 
+    async def delete_old_logs(self, dt: AwareDatetime) -> None:
+        stmt = (
+            log_table
+            .delete()
+            .where(log_table.c["created_at"] < dt)
+        )
+        await self._session.execute(stmt)
+
     async def get_logs_by_transaction_id(self, trs_id: UUID) -> list[Log]:
         stmt = (
             log_table
