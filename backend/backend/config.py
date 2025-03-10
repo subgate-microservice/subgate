@@ -5,15 +5,15 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Настройки базы данных
-DB_NAME = os.getenv("DB_NAME")
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_HOST = os.getenv("DB_HOST")
-DB_PORT = int(os.getenv("DB_PORT"))
+DB_NAME = os.getenv("DB_NAME", "subgate")
+DB_USER = os.getenv("DB_USER", "postgres")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "qwerty")
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_PORT = int(os.getenv("DB_PORT", 5432))
 
 # Настройки сервера
-HOST = os.getenv("HOST")
-PORT = int(os.getenv("PORT"))
+HOST = os.getenv("HOST", "0.0.0.0")
+PORT = int(os.getenv("PORT", 3000))
 
 # Ключ для шифрования
 ENCRYPTOR_PASS = os.getenv("ENCRYPTOR_PASS")
@@ -26,12 +26,12 @@ USER_APIKEY_PUBLIC_ID = os.getenv("USER_APIKEY_PUBLIC_ID", "apikey_test_id")
 USER_APIKEY_SECRET = os.getenv("USER_APIKEY_SECRET", "test_secret")
 
 # Cache settings
-AUTHENTICATION_CACHE_TIME = os.getenv("AUTHENTICATION_CACHE_TIME", 3600)
+AUTHENTICATION_CACHE_TIME = int(os.getenv("AUTHENTICATION_CACHE_TIME", 3600))
 
 # Subscription manager
-SUBSCRIPTION_MANAGER_CHECK_PERIOD = os.getenv("SUBSCRIPTION_MANAGER_CHECK_PERIOD", 3600)
-SUBSCRIPTION_MANAGER_BULK_LIMIT = os.getenv("SUBSCRIPTION_MANAGER_BULK_LIMIT", 100)
+SUBSCRIPTION_MANAGER_CHECK_PERIOD = int(os.getenv("SUBSCRIPTION_MANAGER_CHECK_PERIOD", 3600))
+SUBSCRIPTION_MANAGER_BULK_LIMIT = int(os.getenv("SUBSCRIPTION_MANAGER_BULK_LIMIT", 100))
 
 # Cleaners
-LOG_RETENTION_DAYS = os.getenv("LOG_RETENTION_DAYS", 7)
-DELIVERY_RETENTION_DAYS = os.getenv("DELIVERY_RETENTION_DAYS", 7)
+LOG_RETENTION_DAYS = int(os.getenv("LOG_RETENTION_DAYS", 7))
+DELIVERY_RETENTION_DAYS = int(os.getenv("DELIVERY_RETENTION_DAYS", 7))

@@ -80,11 +80,6 @@ class Bootstrap:
             self._auth_closure_factory = complex_factory
         return self._auth_closure_factory
 
-    def encrypt_service(self) -> GDPRCompliantEncryptor:
-        if not self._encryptor:
-            self._encryptor = GDPRCompliantEncryptor(config.ENCRYPTOR_PASS)
-        return self._encryptor
-
     def telegraph_worker(self) -> Worker:
         if not self._telegraph_worker:
             telegraph = Telegraph(self.unit_of_work_factory())
