@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Optional, Iterable
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field
 
 from backend.shared.enums import Lock
 from backend.webhook.domain.webhook import WebhookId, Webhook
