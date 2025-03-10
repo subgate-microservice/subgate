@@ -1,5 +1,3 @@
-from typing import Callable
-
 from loguru import logger
 
 from backend.shared.unit_of_work.uow import UnitOfWorkFactory, UnitOfWork
@@ -35,13 +33,6 @@ class SubManager:
         except Exception as err:
             logger.exception(err)
 
-    @staticmethod
-    async def _processing_autorenew_sub(sub: Subscription, uow: UnitOfWork):
-        sub.expire()
-        sub.parse_events()
-        sub.renew()
-        await save_updated_subscription(sub, uow)
-
     async def manage_expired_subscriptions(self):
         while True:
             async with self._uow_factory.create_uow() as uow:
@@ -56,8 +47,7 @@ class SubManager:
 
                 logger.info(f"{len(expired_subscriptions)} active subscriptions needed to change status into expired")
                 for sub in expired_subscriptions:
-                    processor: Callable = self._processing_autorenew_sub if sub.autorenew else self._processing_expired_sub
-                    await processor(sub, uow)
+                    await self._processing_expired_sub(sub, uow)
 
                 await uow.commit()
 

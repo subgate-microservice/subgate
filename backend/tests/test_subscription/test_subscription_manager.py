@@ -90,25 +90,6 @@ async def test_manage_subscriptions_resume_paused_subs(expired_subs_with_active_
 
 
 @pytest.mark.asyncio
-async def test_autorenew_subscription(plan):
-    # Before
-    sub = Subscription.from_plan(plan, "AnySubscriberId", )
-    sub.autorenew = True
-    sub.billing_info.last_billing = get_current_datetime() - timedelta(32)
-    async with container.unit_of_work_factory().create_uow() as uow:
-        await uow.subscription_repo().add_one(sub)
-        await uow.commit()
-
-    # Test
-    manager = SubManager(container.unit_of_work_factory())
-    await manager.manage_expired_subscriptions()
-    async with container.unit_of_work_factory().create_uow() as uow:
-        real = await uow.subscription_repo().get_one_by_id(sub.id)
-        assert real.status == SubscriptionStatus.Active
-        assert real.billing_info.last_billing.date() == get_current_datetime().date()
-
-
-@pytest.mark.asyncio
 async def test_subscription_manager_renew_usages(plan):
     sub = Subscription.from_plan(plan, "AnySubscriberId")
     sub.usages.add(

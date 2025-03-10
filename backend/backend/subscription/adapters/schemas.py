@@ -206,7 +206,6 @@ class SubscriptionCreate(MyBase):
     billing_info: BillingInfoSchema
     status: SubscriptionStatus = SubscriptionStatus.Active
     paused_from: Optional[AwareDatetime] = None
-    autorenew: bool = False
     usages: list[UsageSchema] = Field(default_factory=list)
     discounts: list[DiscountSchema] = Field(default_factory=list)
     fields: dict = Field(default_factory=dict)
@@ -224,7 +223,6 @@ class SubscriptionCreate(MyBase):
             billing_info=billing_info,
             status=sub.status,
             paused_from=sub.paused_from,
-            autorenew=sub.autorenew,
             usages=usages,
             discounts=discounts,
             fields=sub.fields,
@@ -243,7 +241,6 @@ class SubscriptionCreate(MyBase):
             billing_info=billing_info,
             status=self.status,
             paused_from=self.paused_from,
-            autorenew=self.autorenew,
             usages=usages,
             discounts=discounts,
             fields=self.fields,
@@ -260,7 +257,6 @@ class SubscriptionUpdate(MyBase):
     billing_info: BillingInfoSchema
     status: SubscriptionStatus
     paused_from: Optional[AwareDatetime]
-    autorenew: bool
     usages: list[UsageSchema]
     discounts: list[DiscountSchema]
     fields: dict
@@ -278,7 +274,6 @@ class SubscriptionUpdate(MyBase):
             billing_info=billing_info,
             status=sub.status,
             paused_from=sub.paused_from,
-            autorenew=sub.autorenew,
             usages=usages,
             discounts=discounts,
             fields=sub.fields,
@@ -301,7 +296,6 @@ class SubscriptionUpdate(MyBase):
             billing_info=billing_info,
             status=self.status,
             paused_from=self.paused_from,
-            autorenew=self.autorenew,
             usages=usages,
             discounts=discounts,
             fields=self.fields,
@@ -318,7 +312,6 @@ class SubscriptionRetrieve(MyBase):
     billing_info: BillingInfoSchema
     status: SubscriptionStatus
     paused_from: Optional[AwareDatetime]
-    autorenew: bool
     usages: list[UsageSchema]
     discounts: list[DiscountSchema]
     fields: dict
@@ -338,7 +331,6 @@ class SubscriptionRetrieve(MyBase):
             billing_info=billing_info,
             status=sub.status,
             paused_from=sub.paused_from,
-            autorenew=sub.autorenew,
             usages=usages,
             discounts=discounts,
             fields=sub.fields,

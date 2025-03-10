@@ -5,7 +5,7 @@ from uuid import uuid4
 from sqlalchemy import Column, String, Table, ForeignKey
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql.sqltypes import UUID, Boolean, Integer, Float
+from sqlalchemy.sql.sqltypes import UUID, Integer, Float
 
 from backend.auth.domain.auth_user import AuthId
 from backend.shared.base_models import OrderBy
@@ -40,7 +40,6 @@ subscription_table = Table(
     Column("auth_id", ForeignKey("user.id", ondelete="CASCADE"), nullable=False),
     Column("status", String, nullable=False, index=True),
     Column("paused_from", AwareDateTime(timezone=True), nullable=True),
-    Column("autorenew", Boolean, nullable=False),
     Column("usages", JSONB, default=list),
     Column("discounts", JSONB, default=list),
     Column("created_at", AwareDateTime(timezone=True), nullable=False),
@@ -101,7 +100,6 @@ class SubscriptionSqlMapper(SQLMapper):
             auth_id=deserialize_uuid(data["auth_id"]),
             status=data["status"],
             paused_from=data["paused_from"],
-            autorenew=data["autorenew"],
             usages=usages,
             discounts=discounts,
             created_at=data["created_at"],

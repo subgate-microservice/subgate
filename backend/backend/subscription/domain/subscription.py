@@ -40,7 +40,6 @@ class Subscription(Eventable):
     billing_info: BillingInfo
     subscriber_id: str
     auth_id: AuthId
-    autorenew: bool = Property(default=False)
     fields: dict = Property(default_factory=dict)
     id: SubId = Property(frozen=True, default_factory=uuid4)
     discounts: ItemManager[Discount] = Property(frozen=True, mapper=ItemManager, default_factory=list)
@@ -71,13 +70,12 @@ class Subscription(Eventable):
             paused_from: Optional[AwareDatetime],
             created_at: AwareDatetime,
             updated_at: AwareDatetime,
-            autorenew: bool,
             usages: list[Usage],
             discounts: list[Discount],
             fields: dict,
     ):
         instance = cls(plan_info=plan_info, billing_info=billing_info, subscriber_id=subscriber_id, auth_id=auth_id,
-                       autorenew=autorenew, usages=usages, discounts=discounts, fields=fields, id=id,
+                       usages=usages, discounts=discounts, fields=fields, id=id,
                        created_at=created_at, updated_at=updated_at)
         instance.__setuntrack__("_status", status)
         instance.__setuntrack__("_paused_from", paused_from)
@@ -93,7 +91,7 @@ class Subscription(Eventable):
         discounts = plan.discounts.get_all().copy()
         usages = [Usage.from_usage_rate(rate) for rate in plan.usage_rates]
         return cls(plan_info=plan_info, billing_info=billing_info, subscriber_id=subscriber_id, auth_id=plan.auth_id,
-                   autorenew=False, usages=usages, discounts=discounts)
+                   usages=usages, discounts=discounts)
 
     def pause(self) -> None:
         if self.status == SubscriptionStatus.Paused:

@@ -122,5 +122,4 @@ def serialize_subscription(sub: Subscription, mode="json") -> dict:
         "subscriber_id": sub.subscriber_id,
         "auth_id": auth_id,
         "fields": sub.fields,
-        "autorenew": sub.autorenew,
     }

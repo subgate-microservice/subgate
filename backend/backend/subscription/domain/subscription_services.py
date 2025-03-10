@@ -232,7 +232,6 @@ class SubscriptionUpdater:
             '_paused_from',
             'updated_at',
             'subscriber_id',
-            'autorenew',
             'fields',
         ]:
             old_value = eval(f'self.target.{field}')

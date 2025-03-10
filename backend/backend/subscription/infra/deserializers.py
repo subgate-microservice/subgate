@@ -134,5 +134,4 @@ def deserialize_subscription(sub: Mapping) -> Subscription:
         subscriber_id=sub["subscriber_id"],
         auth_id=auth_id,
         fields=sub["fields"],
-        autorenew=sub["autorenew"],
     )
