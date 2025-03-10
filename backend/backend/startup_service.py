@@ -62,12 +62,20 @@ class DatabaseStartup(Startup):
 
 
 class FirstUserStartup(Startup):
-    def __init__(self):
-        self._email = config.USER_EMAIL
-        self._pass = config.USER_PASSWORD
-        self._apikey_title = config.USER_APIKEY_TITLE
-        self._apikey_public_id = config.USER_APIKEY_PUBLIC_ID
-        self._apikey_secret = config.USER_APIKEY_SECRET
+    def __init__(
+            self,
+            email: str,
+            password: str,
+            apikey_title: str,
+            apikey_public_id: str,
+            apikey_secret: str,
+
+    ):
+        self._email = email
+        self._pass = password
+        self._apikey_title = apikey_title
+        self._apikey_public_id = apikey_public_id
+        self._apikey_secret = apikey_secret
         self._auth_user = None
 
     async def _create_auth_user_if_not_exist(self):
@@ -117,10 +125,16 @@ class EventbusStartup(Startup):
 
 
 class WorkersStartup(Startup):
-    def __init__(self):
+    def __init__(
+            self,
+            subman_bulk_limit: int,
+            subman_check_period: int,
+            log_retention_days: int,
+            delivery_retention_days,
+    ):
         self._subman_worker = Worker(
-            SubManager(container.unit_of_work_factory(), config.SUBSCRIPTION_MANAGER_BULK_LIMIT).manage,
-            sleep_time=config.SUBSCRIPTION_MANAGER_CHECK_PERIOD,
+            SubManager(container.unit_of_work_factory(), subman_bulk_limit).manage,
+            sleep_time=subman_check_period,
             safe=False,
             task_name="SubManager worker",
         )
@@ -140,21 +154,21 @@ class WorkersStartup(Startup):
         )
 
         self._telegraph_worker = container.telegraph_worker()
+        self._log_retention_days = log_retention_days
+        self._delivery_retention_days = delivery_retention_days
 
-    @staticmethod
-    async def _clean_old_logs():
+    async def _clean_old_logs(self):
         session_factory = container.session_factory()
         async with session_factory() as session:
             repo = SqlLogRepo(session)
-            dt = get_current_datetime().replace(second=0, microsecond=0) - timedelta(days=config.LOG_RETENTION_DAYS)
+            dt = get_current_datetime().replace(second=0, microsecond=0) - timedelta(days=self._log_retention_days)
             await repo.delete_old_logs(dt)
             await session.commit()
         logger.info(f"Logs before {dt.strftime("%Y-%m-%d %H:%M")} were deleted")
 
-    @staticmethod
-    async def _clean_old_delivery_tasks():
+    async def _clean_old_delivery_tasks(self):
         async with container.unit_of_work_factory().create_uow() as uow:
-            dt = get_current_datetime().replace(second=0, microsecond=0) - timedelta(days=config.LOG_RETENTION_DAYS)
+            dt = get_current_datetime().replace(second=0, microsecond=0) - timedelta(days=self._delivery_retention_days)
             await uow.delivery_task_repo().delete_many_before_date(dt)
             await uow.commit()
         logger.info(f"Deliveries before {dt.strftime("%Y-%m-%d %H:%M")} were deleted")
@@ -181,10 +195,21 @@ class StartupShutdownManager:
             db_username=config.DB_USER,
             db_pass=config.DB_PASSWORD,
             db_recreate=False,
+            user_email=config.USER_EMAIL,
+            user_password=config.USER_PASSWORD,
+            user_apikey_title=config.USER_APIKEY_TITLE,
+            user_apikey_public_id=config.USER_APIKEY_PUBLIC_ID,
+            user_apikey_secret=config.USER_APIKEY_SECRET,
+            subman_bulk_limit=config.SUBSCRIPTION_MANAGER_BULK_LIMIT,
+            subman_check_period=config.SUBSCRIPTION_MANAGER_CHECK_PERIOD,
+            log_retention_days=config.LOG_RETENTION_DAYS,
+            delivery_retention_days=config.DELIVERY_RETENTION_DAYS,
     ):
         self._database_startup = DatabaseStartup(db_name, db_host, db_port, db_username, db_pass, db_recreate)
-        self._first_user_startup = FirstUserStartup()
-        self._workers_startup = WorkersStartup()
+        self._first_user_startup = FirstUserStartup(user_email, user_password, user_apikey_title, user_apikey_public_id,
+                                                    user_apikey_secret)
+        self._workers_startup = WorkersStartup(subman_bulk_limit, subman_check_period, log_retention_days,
+                                               delivery_retention_days)
         self._eventbus_startup = EventbusStartup()
 
     async def on_startup(self):
