@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, AsyncEngine
 
 from backend.auth.domain.apikey import ApikeyRepo
-from backend.auth.infra.apikey.apikey_repo_sql import SqlApikeyRepo
+from backend.auth.infra.apikey.apikey_repo_sql import SqlApikeyRepo, apikey_table
 from backend.shared.event_driven.base_event import Event
 from backend.shared.unit_of_work.change_log import SqlLogRepo, LogConverter
 from backend.shared.unit_of_work.sql_statement_parser import SqlStatementBuilder
@@ -13,12 +13,12 @@ from backend.shared.unit_of_work.uow import UnitOfWorkFactory, UnitOfWork
 from backend.subscription.domain.exceptions import ActiveStatusConflict
 from backend.subscription.domain.plan_repo import PlanRepo
 from backend.subscription.domain.subscription_repo import SubscriptionRepo
-from backend.subscription.infra.plan_repo_sql import SqlPlanRepo
-from backend.subscription.infra.subscription_repo_sql import SqlSubscriptionRepo
+from backend.subscription.infra.plan_repo_sql import SqlPlanRepo, plan_table
+from backend.subscription.infra.subscription_repo_sql import SqlSubscriptionRepo, subscription_table
 from backend.webhook.domain.delivery_task import DeliveryTaskRepo
 from backend.webhook.domain.webhook_repo import WebhookRepo
-from backend.webhook.infra.delivery_task_repo_sql import SqlDeliveryTaskRepo
-from backend.webhook.infra.webhook_repo_sql import SqlWebhookRepo
+from backend.webhook.infra.delivery_task_repo_sql import SqlDeliveryTaskRepo, delivery_task_table
+from backend.webhook.infra.webhook_repo_sql import SqlWebhookRepo, webhook_table
 
 
 def convert_error(err: Exception) -> Exception:
@@ -28,6 +28,15 @@ def convert_error(err: Exception) -> Exception:
             subscriber_id = error_string.split("Key (_active_status_guard)=(")[1].split("_")[0]
             err = ActiveStatusConflict(subscriber_id)
     return err
+
+
+TABLES = {
+    plan_table.name: plan_table,
+    webhook_table.name: webhook_table,
+    subscription_table.name: subscription_table,
+    delivery_task_table.name: delivery_task_table,
+    apikey_table.name: apikey_table,
+}
 
 
 class NewUow(UnitOfWork):
@@ -72,7 +81,7 @@ class NewUow(UnitOfWork):
             for repo in self._repos.values():
                 if hasattr(repo, "parse_logs"):
                     logs.extend(repo.parse_logs())
-            statements = SqlStatementBuilder().load_logs(logs).parse_action_statements()
+            statements = SqlStatementBuilder(TABLES).load_logs(logs).parse_action_statements()
 
             # Выполняем запросы к базе
             for stmt, data in statements:
@@ -95,7 +104,7 @@ class NewUow(UnitOfWork):
             previous_logs = await self._log_repo.get_previous_logs(model_ids, self._transaction_id)
             rollback_logs = LogConverter(current_logs, previous_logs, self._transaction_id).convert()
 
-            statements = SqlStatementBuilder().load_logs(rollback_logs).parse_rollback_statements()
+            statements = SqlStatementBuilder(TABLES).load_logs(rollback_logs).parse_rollback_statements()
 
             for stmt, data in statements:
                 await self._session.execute(stmt, data) if data else await self._session.execute(stmt)

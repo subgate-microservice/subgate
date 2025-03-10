@@ -2,45 +2,17 @@ from typing import Union, Callable, Iterable, Self, Optional
 
 from sqlalchemy import Table, Insert, Update, bindparam, Delete
 
-from backend.auth.infra.apikey.apikey_repo_sql import apikey_table
 from backend.shared.unit_of_work.change_log import Log
-from backend.subscription.infra.plan_repo_sql import plan_table
-from backend.subscription.infra.subscription_repo_sql import subscription_table
-from backend.webhook.infra.delivery_task_repo_sql import delivery_task_table
-from backend.webhook.infra.webhook_repo_sql import webhook_table
-
-
-def get_table(tablename: str) -> Table:
-    if tablename == plan_table.name:
-        return plan_table
-    if tablename == webhook_table.name:
-        return webhook_table
-    if tablename == subscription_table.name:
-        return subscription_table
-    if tablename == delivery_task_table.name:
-        return delivery_task_table
-    if tablename == apikey_table.name:
-        return apikey_table
-    raise ValueError(tablename)
-
 
 Statement = tuple[Union[Insert, Update, Delete], Optional[Union[list, dict]]]
 
 
-def build_filter_conditions(logs: list[Log], data_key: str):
-    table = get_table(logs[0].collection_name)
-    filter_by = {}
-    for log in logs:
-        for key, value in getattr(log, data_key).items():
-            filter_by.setdefault(key, []).append(value)
-    return [table.c[col].in_(values) for col, values in filter_by.items()]
-
-
 class SqlStatementBuilder:
-    def __init__(self):
+    def __init__(self, tables: dict[str, Table]):
         self._logs: list[Log] = []
         self._statements: list[Statement] = []
         self._grouped_logs: dict = {}
+        self._tables = tables
 
         self._action_handlers = {
             "insert": self._handle_insert,
@@ -70,13 +42,13 @@ class SqlStatementBuilder:
 
     def _handle_insert(self, tablename: str, logs: list[Log]):
         if logs:
-            stmt = get_table(tablename).insert()
+            stmt = self._tables[tablename].insert()
             data = [log.model_state for log in logs]
             self._statements.append((stmt, data))
 
     def _handle_update(self, tablename: str, logs: list[Log]):
         if logs:
-            table = get_table(tablename)
+            table = self._tables[tablename]
             params = {col: col for col in logs[0].model_state.keys() if col != "id"}
 
             values = [
@@ -89,21 +61,21 @@ class SqlStatementBuilder:
 
     def _handle_delete(self, tablename: str, logs: list[Log]):
         if logs:
-            table = get_table(tablename)
+            table = self._tables[tablename]
             ids = [log.model_id for log in logs]
             stmt = table.delete().where(table.c["id"].in_(ids))
             self._statements.append((stmt, None))
 
     def _handle_insert_rollback(self, tablename: str, logs: list[Log]):
         if logs:
-            table = get_table(tablename)
+            table = self._tables[tablename]
             ids = [log.model_id for log in logs]
             stmt = table.delete().where(table.c["id"].in_(ids))
             self._statements.append((stmt, None))
 
     def _handle_update_rollback(self, tablename: str, logs: list[Log]):
         if logs:
-            table = get_table(tablename)
+            table = self._tables[tablename]
             params = {
                 col: col
                 for col in logs[0].model_state.keys()
@@ -125,7 +97,7 @@ class SqlStatementBuilder:
 
     def _handle_delete_rollback(self, tablename: str, logs: list[Log]):
         if logs:
-            table = get_table(tablename)
+            table = self._tables[tablename]
             stmt = table.insert()
             data = [x.model_state for x in logs]
             self._statements.append((stmt, data))
