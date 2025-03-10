@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query
 
 from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import Bootstrap, get_container, auth_closure
+from backend.shared.utils.permission_service import check_item_owner
 from backend.webhook.adapters.schemas import WebhookCreate, WebhookUpdate
 from backend.webhook.application import usecases
 from backend.webhook.domain.webhook import Webhook, WebhookId
@@ -32,10 +33,13 @@ async def create_one(
 @webhook_router.get("/{webhook_id}")
 async def get_one_by_id(
         webhook_id: WebhookId,
+        auth_user: AuthUser = Depends(auth_closure),
         container: Bootstrap = Depends(get_container),
 ) -> Webhook:
     async with container.unit_of_work_factory().create_uow() as uow:
-        return await uow.webhook_repo().get_one_by_id(webhook_id)
+        result = await uow.webhook_repo().get_one_by_id(webhook_id)
+        check_item_owner(result, auth_user.id)
+        return result
 
 
 @webhook_router.get("/")
@@ -69,6 +73,7 @@ async def update_one(
 ) -> str:
     async with container.unit_of_work_factory().create_uow() as uow:
         target = await uow.webhook_repo().get_one_by_id(webhook.id)
+        check_item_owner(target, auth_user.id)
         webhook = webhook.to_webhook(auth_user.id, target.created_at)
         usecase = usecases.UpdateWebhook(uow)
         await usecase.execute(webhook)
@@ -79,10 +84,12 @@ async def update_one(
 @webhook_router.delete("/{webhook_id}")
 async def delete_one_by_id(
         webhook_id: WebhookId,
-        _auth_user=Depends(auth_closure),
+        auth_user=Depends(auth_closure),
         container: Bootstrap = Depends(get_container),
 ) -> str:
     async with container.unit_of_work_factory().create_uow() as uow:
+        target = await usecases.GetWebhookById(uow).execute(webhook_id)
+        check_item_owner(target, auth_user.id)
         await usecases.DeleteWebhookById(uow).execute(webhook_id)
         await uow.commit()
     return "Ok"

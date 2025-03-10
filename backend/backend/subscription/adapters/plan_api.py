@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query
 
 from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container, Bootstrap, auth_closure
+from backend.shared.utils.permission_service import check_item_owner
 from backend.subscription.adapters.schemas import PlanCreate, PlanUpdate, PlanRetrieve
 from backend.subscription.application.plan_usecases import create_plan, save_updated_plan, delete_plan
 from backend.subscription.domain.plan import PlanId, PlanUpdater
@@ -23,6 +24,7 @@ async def create_one(
 ) -> PlanId:
     async with container.unit_of_work_factory().create_uow() as uow:
         plan = plan_create.to_plan(auth_user.id)
+        check_item_owner(plan, auth_user.id)
         await create_plan(plan, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()
@@ -38,6 +40,7 @@ async def get_one_by_id(
 ) -> PlanRetrieve:
     async with container.unit_of_work_factory().create_uow() as uow:
         plan = await uow.plan_repo().get_one_by_id(plan_id)
+        check_item_owner(plan, auth_user.id)
         plan_retrieve = PlanRetrieve.from_plan(plan)
         return plan_retrieve
 
@@ -72,9 +75,9 @@ async def update_one(
         auth_user: AuthUser = Depends(auth_closure),
         container: Bootstrap = Depends(get_container),
 ) -> str:
-    # todo мы здесь не проверяем auth_id - надо поправить
     async with container.unit_of_work_factory().create_uow() as uow:
         old_version = await uow.plan_repo().get_one_by_id(plan_update.id)
+        check_item_owner(old_version, auth_user.id)
         new_version = plan_update.to_plan(auth_user.id, old_version.created_at, old_version.updated_at)
         PlanUpdater(old_version, new_version).update()
         await save_updated_plan(old_version, uow)
@@ -92,6 +95,7 @@ async def delete_one(
 ) -> str:
     async with container.unit_of_work_factory().create_uow() as uow:
         target_plan = await uow.plan_repo().get_one_by_id(plan_id)
+        check_item_owner(target_plan, auth_user.id)
         await delete_plan(target_plan, uow)
         await container.eventbus().publish_from_unit_of_work(uow)
         await uow.commit()

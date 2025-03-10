@@ -4,6 +4,7 @@ from backend.auth.application.apikey_service import ApikeyCreate, ApikeyManager
 from backend.auth.domain.apikey import ApikeySby
 from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container, auth_closure
+from backend.shared.utils.permission_service import check_item_owner
 
 apikey_router = APIRouter(
     prefix="/apikey",
@@ -35,6 +36,7 @@ async def get_selected(auth_user: AuthUser = Depends(auth_closure)) -> list[dict
 async def delete_one_by_id(public_id: str, request: Request, auth_user: AuthUser = Depends(auth_closure)) -> str:
     async with container.unit_of_work_factory().create_uow() as uow:
         target = await uow.apikey_repo().get_one_by_public_id(public_id)
+        check_item_owner(target, auth_user.id)
         assert target.auth_user.id == auth_user.id
         await uow.apikey_repo().delete_one(target)
         await uow.commit()
