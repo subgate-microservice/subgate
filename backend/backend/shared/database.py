@@ -35,7 +35,7 @@ class DatabaseManager:
         finally:
             await conn.close()
 
-    async def create_database(self) -> None:
+    async def drop_and_create_database(self) -> None:
         await self._execute_db_command(f"DROP DATABASE IF EXISTS {self._db_name}")
         await self._execute_db_command(f"CREATE DATABASE {self._db_name}")
         logger.info(f"Database {self._db_name} created")
