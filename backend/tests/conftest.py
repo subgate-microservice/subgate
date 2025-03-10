@@ -13,7 +13,7 @@ from backend.auth.application.auth_usecases import AuthUserCreate
 from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container
 from backend.main import app
-from backend.shared.database import drop_and_create_postgres_tables
+from backend.shared.database import DatabaseManager
 from backend.shared.unit_of_work.uow_postgres import SqlUowFactory
 from backend.shared.utils.dt import get_current_datetime
 from backend.startup_service import StartupShutdownManager
@@ -54,10 +54,18 @@ def get_async_client() -> HttpAsyncClient:
 async def preparations():
     uow_factory = container.unit_of_work_factory()
     if isinstance(uow_factory, SqlUowFactory):
-        await drop_and_create_postgres_tables()
+        db_manager = DatabaseManager(
+            host=config.DB_HOST,
+            port=config.DB_PORT,
+            username=config.DB_USER,
+            password=config.DB_PASSWORD,
+            db_name=config.DB_NAME + "_test",
+        )
+        await db_manager.create_database_if_not_exist()
+        await db_manager.drop_and_create_tables()
     else:
         raise TypeError
-    logger.info("Test database was dropped")
+    logger.info("Test database was recreated")
     manager = StartupShutdownManager()
     await manager.on_startup()
 

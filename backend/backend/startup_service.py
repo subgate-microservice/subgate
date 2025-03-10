@@ -8,12 +8,12 @@ from loguru import logger
 
 from backend import config
 from backend.auth.application.apikey_service import ApikeyCreate, ApikeyManager
-from backend.auth.infra.fastapi_users.sql_repo import User
 from backend.auth.infra.fastapi_users.manager import UserManager
 from backend.auth.infra.fastapi_users.schemas import UserCreate
+from backend.auth.infra.fastapi_users.sql_repo import User
 from backend.bootstrap import get_container
 from backend.events import EVENTS
-from backend.shared.database import drop_and_create_postgres_tables
+from backend.shared.database import DatabaseManager
 from backend.shared.unit_of_work.change_log import SqlLogRepo
 from backend.shared.utils.dt import get_current_datetime
 from backend.shared.utils.worker import Worker
@@ -31,7 +31,15 @@ class Startup(ABC):
 
 class DatabaseStartup(Startup):
     async def run(self):
-        await drop_and_create_postgres_tables()
+        manager = DatabaseManager(
+            host=config.DB_HOST,
+            port=config.DB_PORT,
+            db_name=config.DB_NAME,
+            username=config.DB_USER,
+            password=config.DB_PASSWORD,
+        )
+        await manager.create_database_if_not_exist()
+        await manager.create_tables_if_not_exist()
 
 
 class FirstUserStartup(Startup):
