@@ -1,5 +1,4 @@
 import asyncio
-from uuid import uuid4
 
 import pytest
 import pytest_asyncio
@@ -10,7 +9,6 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from backend import config
 from backend.auth.application.apikey_service import ApikeyCreate, ApikeyManager
 from backend.auth.application.auth_usecases import AuthUserCreate
-from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container
 from backend.main import app
 from backend.shared.utils.dt import get_current_datetime
@@ -18,10 +16,6 @@ from backend.startup_service import StartupShutdownManager
 from backend.subscription.domain.plan_repo import PlanSby
 from backend.subscription.domain.subscription_repo import SubscriptionSby
 from backend.webhook.domain.webhook_repo import WebhookSby
-
-admin_user = AuthUser(id=uuid4())
-paid_user = AuthUser(id=uuid4())
-unpaid_user = AuthUser(id=uuid4())
 
 container = get_container()
 

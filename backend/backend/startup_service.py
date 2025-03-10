@@ -96,9 +96,9 @@ class FirstUserStartup(Startup):
             )
             try:
                 _ = await apikey_manager.get_by_public_id(self._apikey_public_id)
-                logger.info("Apikey already created")
+                logger.info("Apikey already exist")
             except LookupError:
-                logger.info("Crating apikey")
+                logger.info("Creating apikey")
                 await apikey_manager.create(apikey)
 
             await uow.commit()
