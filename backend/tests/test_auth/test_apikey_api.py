@@ -3,6 +3,7 @@ import pytest_asyncio
 from loguru import logger
 
 from backend.auth.adapters.apikey_router import ApikeyCreate
+from backend.auth.adapters.schemas import ApikeyCreateSchema
 from backend.auth.application.apikey_service import ApikeyManager
 from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container
@@ -13,7 +14,7 @@ container = get_container()
 
 @pytest.mark.asyncio
 async def test_create_one(current_user, client):
-    data = ApikeyCreate(title="My apikey title", auth_user=AuthUser(id=current_user.id)).model_dump(mode="json")
+    data = ApikeyCreateSchema(title="My apikey title").model_dump(mode="json")
     response = await client.post("/apikey", json=data)
     response.raise_for_status()
 
