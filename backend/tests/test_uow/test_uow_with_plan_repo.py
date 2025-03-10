@@ -1,4 +1,3 @@
-from uuid import uuid4
 
 import pytest
 
@@ -6,13 +5,15 @@ from backend.bootstrap import get_container
 from backend.subscription.domain.plan import Plan
 from backend.subscription.domain.plan_repo import PlanSby
 
+from tests.conftest import current_user
+
 container = get_container()
 
 
 @pytest.mark.asyncio
-async def test_create_one():
+async def test_create_one(current_user):
     async with container.unit_of_work_factory().create_uow() as uow:
-        item = Plan("Personal", 100, "USD", uuid4())
+        item = Plan("Personal", 100, "USD", current_user.id)
         await uow.plan_repo().add_one(item)
 
         # Без коммита данных нет в базе
@@ -30,10 +31,10 @@ async def test_create_one():
 
 
 @pytest.mark.asyncio
-async def test_create_many():
+async def test_create_many(current_user):
     async with container.unit_of_work_factory().create_uow() as uow:
         # Без коммита данных нет в базе
-        items = [Plan("Personal", 100, "USD", uuid4()) for _ in range(11)]
+        items = [Plan("Personal", 100, "USD", current_user.id) for _ in range(11)]
         await uow.plan_repo().add_many(items)
         real = await uow.plan_repo().get_selected(PlanSby())
         assert len(real) == 0
@@ -50,10 +51,10 @@ async def test_create_many():
 
 
 @pytest.mark.asyncio
-async def test_update_one():
+async def test_update_one(current_user):
     # Before
     async with container.unit_of_work_factory().create_uow() as uow:
-        item = Plan("Personal", 100, "USD", uuid4())
+        item = Plan("Personal", 100, "USD", current_user.id)
         await uow.plan_repo().add_one(item)
         await uow.commit()
 
@@ -79,10 +80,10 @@ async def test_update_one():
 
 
 @pytest.mark.asyncio
-async def test_delete_one():
+async def test_delete_one(current_user):
     # Before
     async with container.unit_of_work_factory().create_uow() as uow:
-        item = Plan("Personal", 100, "USD", uuid4())
+        item = Plan("Personal", 100, "USD", current_user.id)
         await uow.plan_repo().add_one(item)
         await uow.commit()
 
@@ -105,10 +106,10 @@ async def test_delete_one():
 
 
 @pytest.mark.asyncio
-async def test_delete_many():
+async def test_delete_many(current_user):
     # Before
     async with container.unit_of_work_factory().create_uow() as uow:
-        items = [Plan("Personal", 100, "USD", uuid4()) for _ in range(11)]
+        items = [Plan("Personal", 100, "USD", current_user.id) for _ in range(11)]
         await uow.plan_repo().add_many(items)
         await uow.commit()
 

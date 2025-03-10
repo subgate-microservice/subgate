@@ -1,7 +1,6 @@
 import pytest
 import pytest_asyncio
 
-from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container
 from backend.subscription.application.subscription_usecases import create_subscription, save_updated_subscription
 from backend.subscription.domain.cycle import Period
@@ -73,8 +72,8 @@ async def test_create_subscription_with_the_same_plan(simple_sub):
 
 class TestCreateManySubscriptionForSubscriberId:
     @pytest.fixture(autouse=True)
-    def setup_method(self):
-        self.auth_user = AuthUser()
+    def setup_method(self, current_user):
+        self.auth_user = current_user
         self.subscriber_id = "AnySubID"
         self.inferior_plan = Plan("Free", 100, "USD", self.auth_user.id, level=1)
         self.plan = Plan("Personal", 100, "USD", self.auth_user.id, level=10)
@@ -156,8 +155,8 @@ class TestCreateManySubscriptionForSubscriberId:
 
 class TestResumePausedSubscriptionWhileActiveOneExists:
     @pytest_asyncio.fixture(autouse=True)
-    async def setup_method(self):
-        auth_user = AuthUser()
+    async def setup_method(self, current_user):
+        auth_user = current_user
         subscriber_id = "AnySubID"
         plan = Plan("Personal", 100, "USD", auth_user.id, level=10)
         self.active = Subscription.from_plan(plan, subscriber_id)

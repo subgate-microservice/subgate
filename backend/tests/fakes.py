@@ -67,6 +67,12 @@ def event_handler():
     handler.clear()
 
 
+@pytest.fixture()
+def plan_payload(current_user):
+    plan = Plan("Simple", 100, "USD", current_user.id, Period.Monthly)
+    yield PlanCreate.from_plan(plan).model_dump(mode="json")
+
+
 @pytest_asyncio.fixture()
 async def simple_plan(current_user):
     plan = PlanCreate(

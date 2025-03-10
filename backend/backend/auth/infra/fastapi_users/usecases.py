@@ -7,7 +7,7 @@ from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from backend.auth.application.auth_usecases import AuthUsecase, AuthUserPasswordUpdate, AuthUserEmailUpdate, \
     AuthUserDelete, AuthUserCreate
 from backend.auth.domain.auth_user import AuthUser, AuthId
-from backend.auth.infra.fastapi_users.database import User
+from backend.auth.infra.fastapi_users.sql_repo import User
 from backend.auth.infra.fastapi_users.manager import UserManager
 from backend.auth.infra.fastapi_users.schemas import UserUpdate, UserCreate
 

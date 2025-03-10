@@ -2,7 +2,7 @@ from typing import Iterable, Mapping, Type, Any
 from typing import Optional
 from uuid import uuid4
 
-from sqlalchemy import Column, String, Table
+from sqlalchemy import Column, String, Table, ForeignKey
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.sqltypes import UUID, Boolean, Integer, Float
@@ -13,11 +13,10 @@ from backend.shared.database import metadata
 from backend.shared.enums import Lock
 from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper, AwareDateTime
 from backend.shared.unit_of_work.change_log import Log
-from backend.shared.utils.dt import get_current_datetime
 from backend.subscription.domain.cycle import Period
-from backend.subscription.domain.subscription import Subscription, BillingInfo, PlanInfo
 from backend.subscription.domain.enums import SubscriptionStatus
 from backend.subscription.domain.events import SubId
+from backend.subscription.domain.subscription import Subscription, BillingInfo, PlanInfo
 from backend.subscription.domain.subscription_repo import SubscriptionSby, SubscriptionRepo
 from backend.subscription.infra.deserializers import deserialize_uuid, deserialize_datetime, deserialize_usage, \
     deserialize_discount
@@ -38,7 +37,7 @@ subscription_table = Table(
     Column("bi_billing_cycle", String, nullable=False),
     Column("bi_last_billing", AwareDateTime, nullable=False),
     Column("bi_saved_days", Integer, nullable=False),
-    Column("auth_id", UUID, nullable=False),
+    Column("auth_id", ForeignKey("user.id", ondelete="CASCADE"), nullable=False),
     Column("status", String, nullable=False),
     Column("paused_from", AwareDateTime(timezone=True), nullable=True),
     Column("autorenew", Boolean, nullable=False),

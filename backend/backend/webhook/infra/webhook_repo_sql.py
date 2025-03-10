@@ -1,6 +1,6 @@
 from typing import Iterable, Mapping, Type, Any
 
-from sqlalchemy import Table, Column, UUID, String, Integer
+from sqlalchemy import Table, Column, UUID, String, Integer, ForeignKey
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,7 +17,7 @@ webhook_table = Table(
     Column('id', UUID, primary_key=True),
     Column('event_code', String, nullable=False),
     Column('target_url', String, nullable=False),
-    Column('auth_id', UUID, nullable=False),
+    Column("auth_id", ForeignKey("user.id", ondelete="CASCADE"), nullable=False),
     Column("max_retries", Integer, nullable=False),
     Column("delays", JSONB, nullable=False),
     Column('created_at', AwareDateTime(timezone=True), default=get_current_datetime),

@@ -14,7 +14,7 @@ container = get_container()
 
 class TestGetSelected:
     @pytest_asyncio.fixture()
-    async def many_subs(self):
+    async def many_subs(self, current_user):
         subs = []
         for i in range(11):
             plan_info = PlanInfo(
@@ -35,7 +35,7 @@ class TestGetSelected:
                 plan_info=plan_info,
                 billing_info=billing_info,
                 subscriber_id=f"{i}",
-                auth_id=uuid4(),
+                auth_id=current_user.id,
             )
             subs.append(sub)
         async with container.unit_of_work_factory().create_uow() as uow:

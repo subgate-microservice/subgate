@@ -1,11 +1,9 @@
 import random
 from datetime import timedelta
-from uuid import uuid4
 
 import pytest
 import pytest_asyncio
 
-from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container
 from backend.shared.utils.dt import get_current_datetime
 from backend.subscription.application.subscription_manager import SubManager
@@ -15,13 +13,9 @@ from backend.subscription.domain.subscription import Subscription
 from backend.subscription.domain.enums import SubscriptionStatus
 from backend.subscription.domain.subscription_repo import SubscriptionSby
 from backend.subscription.domain.usage import Usage
+from tests.conftest import current_user
 
 container = get_container()
-
-
-@pytest_asyncio.fixture()
-async def auth_user():
-    yield AuthUser(id=uuid4())
 
 
 @pytest_asyncio.fixture()
@@ -31,8 +25,8 @@ async def subscriber_ids():
 
 
 @pytest_asyncio.fixture()
-async def plan(auth_user):
-    plan = Plan("Business", 100, "USD", auth_user.id, billing_cycle=Period.Monthly)
+async def plan(current_user):
+    plan = Plan("Business", 100, "USD", current_user.id, billing_cycle=Period.Monthly)
     yield plan
 
 
@@ -155,12 +149,11 @@ async def test_subscription_manager_renew_usages(plan):
 
 class TestSubscriptionManagerResumeSubscriptionWithHighestPlanLevel:
     @pytest_asyncio.fixture(autouse=True)
-    async def setup(self):
-        self.auth_user = AuthUser()
+    async def setup(self, current_user):
         self.subscriber_id = "AnySubscriberID"
         self.subs = []
         for i in range(1, 11):
-            plan = Plan("Business", 100, "USD", self.auth_user.id, level=i)
+            plan = Plan("Business", 100, "USD", current_user.id, level=i)
             sub = Subscription.from_plan(plan, self.subscriber_id)
             sub.pause()
             self.subs.append(sub)
@@ -174,7 +167,7 @@ class TestSubscriptionManagerResumeSubscriptionWithHighestPlanLevel:
             await uow.commit()
 
     @pytest.mark.asyncio
-    async def test_foo(self):
+    async def test_foo(self, current_user):
         uow_factory = container.unit_of_work_factory()
         manager = SubManager(uow_factory)
         await manager.manage_expired_subscriptions()
@@ -182,7 +175,7 @@ class TestSubscriptionManagerResumeSubscriptionWithHighestPlanLevel:
         async with container.unit_of_work_factory().create_uow() as uow:
             real = await uow.subscription_repo().get_subscriber_active_one(
                 self.subscriber_id,
-                self.auth_user.id,
+                current_user.id,
             )
             assert real.status == SubscriptionStatus.Active
             assert real.plan_info.level == 10

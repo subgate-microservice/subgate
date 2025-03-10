@@ -8,7 +8,7 @@ from loguru import logger
 
 from backend import config
 from backend.auth.application.apikey_service import ApikeyCreate, ApikeyManager
-from backend.auth.infra.fastapi_users.database import User
+from backend.auth.infra.fastapi_users.sql_repo import User
 from backend.auth.infra.fastapi_users.manager import UserManager
 from backend.auth.infra.fastapi_users.schemas import UserCreate
 from backend.bootstrap import get_container

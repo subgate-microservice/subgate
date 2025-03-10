@@ -1,11 +1,12 @@
 import uuid
 from typing import Iterable, Mapping, Type, Any
 
-from sqlalchemy import Column, String, Float, Integer, Table
+from sqlalchemy import Column, String, Float, Integer, Table, ForeignKey
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.auth.infra.fastapi_users.sql_repo import auth_user_table
 from backend.shared.database import metadata
 from backend.shared.enums import Lock
 from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper, AwareDateTime
@@ -29,7 +30,7 @@ plan_table = Table(
     Column('features', String, nullable=True),
     Column('usage_rates', JSONB, default=list),
     Column('fields', JSONB, default=dict),
-    Column('auth_id', UUID(as_uuid=True), nullable=False),
+    Column("auth_id", ForeignKey("user.id", ondelete="CASCADE"), nullable=False),
     Column('discounts', JSONB, default=list),
     Column('created_at', AwareDateTime(timezone=True), default=get_current_datetime),
     Column('updated_at', AwareDateTime(timezone=True), default=get_current_datetime),

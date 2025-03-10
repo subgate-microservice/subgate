@@ -1,6 +1,6 @@
 from typing import Mapping, Type, Any
 
-from sqlalchemy import Column, String, Table
+from sqlalchemy import Column, String, Table, ForeignKey
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.sqltypes import UUID
 
@@ -15,7 +15,7 @@ apikey_table = Table(
     metadata,
     Column("public_id", String, nullable=False, index=True, primary_key=True),
     Column('title', String, nullable=False),
-    Column('auth_id', UUID, nullable=False),
+    Column("auth_id", ForeignKey("user.id", ondelete="CASCADE"), nullable=False),
     Column("hashed_secret", String, nullable=False),
     Column('created_at', AwareDateTime(timezone=True)),
 )

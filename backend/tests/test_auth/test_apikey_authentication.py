@@ -1,5 +1,3 @@
-from uuid import uuid4
-
 import pytest
 import pytest_asyncio
 from fastapi import Header, HTTPException
@@ -9,10 +7,8 @@ from backend.auth.application.apikey_service import ApikeyManager, ApikeyCreate
 from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container, auth_closure
 from backend.main import app
-from backend.subscription.adapters.schemas import PlanCreate
-from backend.subscription.domain.cycle import Period
-from backend.subscription.domain.plan import Plan
 from tests.conftest import get_async_client
+from tests.fakes import plan_payload
 
 container = get_container()
 
@@ -46,34 +42,25 @@ def override_deps(apikey_secret):
 
 
 class TestCreatePlanWithApikey:
-    @staticmethod
-    def plan_payload():
-        plan = Plan("Simple", 100, "USD", uuid4(), Period.Monthly)
-        return PlanCreate.from_plan(plan).model_dump(mode="json")
-
-    @pytest.mark.asyncui
-    async def test_endpoint_with_good_secret(self, apikey_client, apikey_secret):
-        data = self.plan_payload()
-        response = await apikey_client.post("/plan", json=data)
+    @pytest.mark.asyncuio
+    async def test_endpoint_with_good_secret(self, apikey_client, apikey_secret, plan_payload):
+        response = await apikey_client.post("/plan", json=plan_payload)
         response.raise_for_status()
 
-    @pytest.mark.asyncui
-    async def test_endpoint_with_bad_secret(self, apikey_client, apikey_secret):
+    @pytest.mark.asyncuio
+    async def test_endpoint_with_bad_secret(self, apikey_client, apikey_secret, plan_payload):
         headers = {"X-API-Key": f"{apikey_secret.public_id}:any_bad_secret"}
-        data = self.plan_payload()
-        response = await apikey_client.post("/plan", json=data, headers=headers)
+        response = await apikey_client.post("/plan", json=plan_payload, headers=headers)
         assert response.status_code == 400
 
-    @pytest.mark.asyncui
-    async def test_endpoint_without_headers(self):
-        data = self.plan_payload()
+    @pytest.mark.asyncuio
+    async def test_endpoint_without_headers(self, plan_payload):
         async with get_async_client() as c:
-            response = await c.post("/plan", json=data)
+            response = await c.post("/plan", json=plan_payload)
         assert response.status_code == 401
 
-    @pytest.mark.asyncui
-    async def test_endpoint_with_incorrect_headers(self, apikey_client, apikey_secret):
+    @pytest.mark.asyncuio
+    async def test_endpoint_with_incorrect_headers(self, apikey_client, apikey_secret, plan_payload):
         headers = {"X-API-Key": "random_string"}
-        data = self.plan_payload()
-        response = await apikey_client.post("/plan", json=data, headers=headers)
+        response = await apikey_client.post("/plan", json=plan_payload, headers=headers)
         assert response.status_code == 400

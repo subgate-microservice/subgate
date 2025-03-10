@@ -1,5 +1,3 @@
-from uuid import uuid4
-
 import pytest
 
 from backend.bootstrap import get_container
@@ -10,12 +8,12 @@ container = get_container()
 
 
 @pytest.mark.asyncio
-async def test_create_one():
+async def test_create_one(current_user):
     async with container.unit_of_work_factory().create_uow() as uow:
         item = WebhookCreate(
             event_code="subscription_created",
             target_url="https://gany-site.com"
-        ).to_webhook(auth_id=uuid4())
+        ).to_webhook(auth_id=current_user.id)
 
         await uow.webhook_repo().add_one(item)
         with pytest.raises(LookupError):
@@ -30,13 +28,13 @@ async def test_create_one():
 
 
 @pytest.mark.asyncio
-async def test_create_many():
+async def test_create_many(current_user):
     async with container.unit_of_work_factory().create_uow() as uow:
         items = [
             WebhookCreate(
                 event_code="subscription_created",
                 target_url="https://gany-site.com",
-            ).to_webhook(auth_id=uuid4())
+            ).to_webhook(auth_id=current_user.id)
             for _ in range(11)
         ]
 
@@ -54,13 +52,13 @@ async def test_create_many():
 
 
 @pytest.mark.asyncio
-async def test_update_one():
+async def test_update_one(current_user):
     # Before
     async with container.unit_of_work_factory().create_uow() as uow:
         old_item = WebhookCreate(
             event_code="subscription_created",
             target_url="https://gany-site.com"
-        ).to_webhook(auth_id=uuid4())
+        ).to_webhook(auth_id=current_user.id)
         await uow.webhook_repo().add_one(old_item)
         await uow.commit()
 
@@ -86,13 +84,13 @@ async def test_update_one():
 
 
 @pytest.mark.asyncio
-async def test_delete_one():
+async def test_delete_one(current_user):
     # Before
     async with container.unit_of_work_factory().create_uow() as uow:
         item = WebhookCreate(
             event_code="subscription_created",
             target_url="https://gany-site.com"
-        ).to_webhook(auth_id=uuid4())
+        ).to_webhook(auth_id=current_user.id)
         await uow.webhook_repo().add_one(item)
         await uow.commit()
 
@@ -115,14 +113,14 @@ async def test_delete_one():
 
 
 @pytest.mark.asyncio
-async def test_delete_many():
+async def test_delete_many(current_user):
     # Before
     async with container.unit_of_work_factory().create_uow() as uow:
         items = [
             WebhookCreate(
                 event_code="subscription_created",
                 target_url="https://gany-site.com",
-            ).to_webhook(auth_id=uuid4())
+            ).to_webhook(auth_id=current_user.id)
             for _ in range(11)
         ]
         await uow.webhook_repo().add_many(items)
