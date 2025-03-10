@@ -43,11 +43,12 @@ log_table = Table(
     metadata,
     Column("pk", BigInteger, autoincrement=True, primary_key=True),
     Column('action', String, nullable=False),
-    Column('transaction_id', UUID, nullable=False),
-    Column('model_id', UUID),
+    Column('transaction_id', UUID, nullable=False, index=True),
+    Column('model_id', UUID, index=True),
     Column('model_state', String, nullable=False),
-    Column('collection_name', String, nullable=False),
-    Column('created_at', DateTime(timezone=True)), )
+    Column('collection_name', String, nullable=False, index=True),
+    Column('created_at', DateTime(timezone=True), index=True),
+)
 
 
 class SqlLogMapper:

@@ -15,7 +15,7 @@ webhook_table = Table(
     'webhook',
     metadata,
     Column('id', UUID, primary_key=True),
-    Column('event_code', String, nullable=False),
+    Column('event_code', String, nullable=False, index=True),
     Column('target_url', String, nullable=False),
     Column("auth_id", ForeignKey("user.id", ondelete="CASCADE"), nullable=False),
     Column("max_retries", Integer, nullable=False),

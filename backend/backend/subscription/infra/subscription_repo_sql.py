@@ -26,7 +26,7 @@ subscription_table = Table(
     "subscription",
     metadata,
     Column("id", UUID, primary_key=True),
-    Column("subscriber_id", String, nullable=False),
+    Column("subscriber_id", String, nullable=False, index=True),
     Column("pi_id", UUID, nullable=False),
     Column("pi_title", String, nullable=False),
     Column("pi_description", String, nullable=True),
@@ -38,7 +38,7 @@ subscription_table = Table(
     Column("bi_last_billing", AwareDateTime, nullable=False),
     Column("bi_saved_days", Integer, nullable=False),
     Column("auth_id", ForeignKey("user.id", ondelete="CASCADE"), nullable=False),
-    Column("status", String, nullable=False),
+    Column("status", String, nullable=False, index=True),
     Column("paused_from", AwareDateTime(timezone=True), nullable=True),
     Column("autorenew", Boolean, nullable=False),
     Column("usages", JSONB, default=list),
@@ -46,8 +46,8 @@ subscription_table = Table(
     Column("created_at", AwareDateTime(timezone=True), nullable=False),
     Column("updated_at", AwareDateTime(timezone=True), nullable=False),
     Column("fields", JSONB, default=dict),
-    Column("_expiration_date", AwareDateTime(timezone=True), nullable=False),
-    Column("_earliest_next_renew_in_usages", AwareDateTime(timezone=True), nullable=True),
+    Column("_expiration_date", AwareDateTime(timezone=True), nullable=False, index=True),
+    Column("_earliest_next_renew_in_usages", AwareDateTime(timezone=True), nullable=True, index=True),
     Column("_active_status_guard", String, unique=True, nullable=False),
 )
 

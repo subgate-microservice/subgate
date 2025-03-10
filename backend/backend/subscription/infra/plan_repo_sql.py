@@ -62,9 +62,6 @@ class SqlPlanRepo(PlanRepo):
     def __init__(self, session: AsyncSession, transaction_id: UUID):
         self._base_repo = SqlBaseRepo(session, PlanSqlMapper(plan_table), plan_table, transaction_id)
 
-    async def create_indexes(self):
-        pass
-
     async def add_one(self, item: Plan) -> None:
         await self._base_repo.add_one(item)
 

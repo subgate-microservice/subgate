@@ -16,7 +16,6 @@ delivery_task_table = Table(
     "delivery_task",
     metadata,
     Column("id", UUID, primary_key=True),
-    Column("order_col", BigInteger, primary_key=False, autoincrement=True),
     Column("url", String, nullable=False),
     Column("data", JSONB, nullable=False),
     Column("status", String, nullable=False),
@@ -25,9 +24,10 @@ delivery_task_table = Table(
     Column("error_info", JSONB, nullable=True),
     Column("delays", JSONB, nullable=False),
     Column("last_retry_at", AwareDateTime(timezone=True), nullable=True),
-    Column("next_retry_at", AwareDateTime(timezone=True), nullable=True),
-    Column("created_at", AwareDateTime(timezone=True), nullable=False),
+    Column("next_retry_at", AwareDateTime(timezone=True), nullable=True, index=True),
+    Column("created_at", AwareDateTime(timezone=True), nullable=False, index=True),
     Column("partkey", String, nullable=False),
+    Column("_order_col", BigInteger, primary_key=False, autoincrement=True),
 )
 
 
@@ -103,7 +103,7 @@ class SqlDeliveryTaskRepo(DeliveryTaskRepo):
                 delivery_task_table.c["retries"] < delivery_task_table.c["max_retries"],
             )
             .limit(limit)
-            .order_by(delivery_task_table.c["order_col"])
+            .order_by(delivery_task_table.c["_order_col"])
         )
         result = await self._base_repo.session.execute(stmt)
         records = result.mappings()

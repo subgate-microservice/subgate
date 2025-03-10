@@ -2,7 +2,6 @@ from typing import Mapping, Type, Any
 
 from sqlalchemy import Column, String, Table, ForeignKey
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql.sqltypes import UUID
 
 from backend.auth.domain.apikey import Apikey, ApikeySby, ApikeyRepo
 from backend.auth.domain.auth_user import AuthUser
