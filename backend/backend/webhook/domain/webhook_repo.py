@@ -18,10 +18,6 @@ class WebhookSby(BaseModel):
 
 class WebhookRepo(ABC):
     @abstractmethod
-    async def create_indexes(self):
-        pass
-
-    @abstractmethod
     async def add_one(self, item: Webhook) -> None:
         pass
 

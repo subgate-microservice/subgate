@@ -66,9 +66,6 @@ class SqlWebhookRepo(WebhookRepo):
         self._base_repo = SqlBaseRepo(session, WebhookSqlMapper(webhook_table), webhook_table,
                                       transaction_id)
 
-    async def create_indexes(self):
-        pass
-
     async def add_one(self, item: Webhook) -> None:
         await self._base_repo.add_one(item)
 
