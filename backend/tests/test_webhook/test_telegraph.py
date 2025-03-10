@@ -8,6 +8,7 @@ import pytest_asyncio
 import uvicorn
 from fastapi import FastAPI
 
+from backend.auth.domain.auth_user import AuthId
 from backend.bootstrap import get_container
 from backend.shared.utils.dt import get_current_datetime
 from backend.shared.utils.worker import Worker
@@ -75,7 +76,7 @@ async def fastapi_server():
     task.cancel()
 
 
-async def create_deliveries(count: int, url: str, partkey_func: Callable[[], str], delays=(0, 0, 0,)):
+async def create_deliveries(count: int, url: str, partkey_func: Callable[[], str], auth_id: AuthId, delays=(0, 0, 0,)):
     deliveries = []
     for i in range(count):
         partkey = partkey_func()
@@ -90,6 +91,7 @@ async def create_deliveries(count: int, url: str, partkey_func: Callable[[], str
             data=msg,
             delays=delays,
             partkey=partkey,
+            auth_id=auth_id,
         )
         deliveries.append(delivery)
 
@@ -101,38 +103,42 @@ async def create_deliveries(count: int, url: str, partkey_func: Callable[[], str
 
 
 @pytest_asyncio.fixture()
-async def deliveries_with_the_same_partkey():
+async def deliveries_with_the_same_partkey(current_user):
     yield await create_deliveries(
         20,
         f"http://{HOST}:{PORT}/message-handler",
-        lambda: "Hello"
+        lambda: "Hello",
+        current_user.id,
     )
 
 
 @pytest_asyncio.fixture()
-async def deliveries_with_different_partkeys():
+async def deliveries_with_different_partkeys(current_user):
     yield await create_deliveries(
         20,
         f"http://{HOST}:{PORT}/message-handler",
-        lambda: str(uuid.uuid4())
+        lambda: str(uuid.uuid4()),
+        current_user.id,
     )
 
 
 @pytest_asyncio.fixture()
-async def deliveries_with_wrong_url():
+async def deliveries_with_wrong_url(current_user):
     yield await create_deliveries(
         3,
         "http://very-bad-url.com",
-        lambda: str(uuid.uuid4())
+        lambda: str(uuid.uuid4()),
+        current_user.id,
     )
 
 
 @pytest_asyncio.fixture()
-async def deliveries_with_bad_handler():
+async def deliveries_with_bad_handler(current_user):
     yield await create_deliveries(
         3,
         f"http://{HOST}:{PORT}/bad-message-handler",
-        lambda: str(uuid.uuid4())
+        lambda: str(uuid.uuid4()),
+        current_user.id,
     )
 
 

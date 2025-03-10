@@ -13,8 +13,6 @@ from backend.auth.application.auth_usecases import AuthUserCreate
 from backend.auth.domain.auth_user import AuthUser
 from backend.bootstrap import get_container
 from backend.main import app
-from backend.shared.database import DatabaseManager
-from backend.shared.unit_of_work.uow_postgres import SqlUowFactory
 from backend.shared.utils.dt import get_current_datetime
 from backend.startup_service import StartupShutdownManager
 from backend.subscription.domain.plan_repo import PlanSby
@@ -48,27 +46,10 @@ def override_deps():
     container.set_dependency("database", fake_postgres_database())
 
 
-def get_async_client() -> HttpAsyncClient:
-    return HttpAsyncClient(app=app, base_url="http://testserver/api/v1", follow_redirects=True)
-
-
 @pytest_asyncio.fixture(autouse=True, scope="session")
 async def preparations():
-    uow_factory = container.unit_of_work_factory()
-    if isinstance(uow_factory, SqlUowFactory):
-        db_manager = DatabaseManager(
-            host=config.DB_HOST,
-            port=config.DB_PORT,
-            username=config.DB_USER,
-            password=config.DB_PASSWORD,
-            db_name=config.DB_NAME + "_test",
-        )
-        await db_manager.create_database_if_not_exist()
-        await db_manager.drop_and_create_tables()
-    else:
-        raise TypeError
-    logger.info("Test database was recreated")
-    manager = StartupShutdownManager()
+    db_name = config.DB_NAME + "_test"
+    manager = StartupShutdownManager(db_name=db_name)
     await manager.on_startup()
 
     yield
@@ -85,6 +66,10 @@ async def current_user():
         auth_create = AuthUserCreate(email="user_for_test@gmaiil.com", password="1234qwerty")
         current_user = await auth_usecase.create_auth_user(auth_create)
     yield current_user
+
+
+def get_async_client() -> HttpAsyncClient:
+    return HttpAsyncClient(app=app, base_url="http://testserver/api/v1", follow_redirects=True)
 
 
 @pytest_asyncio.fixture(scope="session")

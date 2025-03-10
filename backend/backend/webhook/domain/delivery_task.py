@@ -5,6 +5,7 @@ from uuid import UUID, uuid4
 
 from pydantic import Field, AwareDatetime
 
+from backend.auth.domain.auth_user import AuthId
 from backend.shared.base_models import MyBase
 from backend.shared.enums import Lock
 from backend.shared.event_driven.base_event import Event
@@ -40,6 +41,7 @@ class DeliveryTask(MyBase):
     data: Message
     delays: tuple[int, ...]
     partkey: str
+    auth_id: AuthId
     status: Literal["unprocessed", "success_sent", "failed_sent",] = "unprocessed"
     retries: int = 0
     error_info: Optional[SentErrorInfo] = None

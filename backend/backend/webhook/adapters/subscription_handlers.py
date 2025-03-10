@@ -51,6 +51,7 @@ async def handle_subscription_domain_event(event: Event, context: Context):
                 partkey=partkey,
                 retries=0,
                 delays=hook.delays,
+                auth_id=hook.auth_id,
             ) for hook in webhooks
         ]
         await context.uow.delivery_task_repo().add_many(deliveries)

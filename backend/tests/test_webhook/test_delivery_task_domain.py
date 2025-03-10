@@ -6,13 +6,14 @@ from backend.webhook.domain.delivery_task import DeliveryTask, Message, SentErro
 DELAYS = (0, 10, 30,)
 
 
-def test_next_retry_delay():
+def test_next_retry_delay(current_user):
     delivery = DeliveryTask(
         url="http://my-site.com",
         data=Message(type="event", event_code="any", occurred_at=get_current_datetime(), payload={}),
         retries=0,
         delays=DELAYS,
         partkey="Hello",
+        auth_id=current_user.id,
     )
     dt = get_current_datetime().replace(microsecond=0)
     for retry in range(0, delivery.max_retries):

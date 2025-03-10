@@ -30,16 +30,35 @@ class Startup(ABC):
 
 
 class DatabaseStartup(Startup):
+    def __init__(
+            self,
+            db_name: str,
+            db_host: str,
+            db_port: int,
+            db_username: str,
+            db_pass: str,
+            db_recreate=False,
+    ):
+        self._db_name = db_name
+        self._db_host = db_host
+        self._db_port = db_port
+        self._db_username = db_username
+        self._db_pass = db_pass
+        self._db_recreate = db_recreate
+
     async def run(self):
         manager = DatabaseManager(
-            host=config.DB_HOST,
-            port=config.DB_PORT,
-            db_name=config.DB_NAME,
-            username=config.DB_USER,
-            password=config.DB_PASSWORD,
+            host=self._db_host,
+            port=self._db_port,
+            db_name=self._db_name,
+            username=self._db_username,
+            password=self._db_pass,
         )
         await manager.create_database_if_not_exist()
-        await manager.create_tables_if_not_exist()
+        if self._db_recreate:
+            await manager.drop_and_create_tables()
+        else:
+            await manager.create_tables_if_not_exist()
 
 
 class FirstUserStartup(Startup):
@@ -154,8 +173,16 @@ class WorkersStartup(Startup):
 
 
 class StartupShutdownManager:
-    def __init__(self):
-        self._database_startup = DatabaseStartup()
+    def __init__(
+            self,
+            db_name=config.DB_NAME,
+            db_host=config.DB_HOST,
+            db_port=config.DB_PORT,
+            db_username=config.DB_USER,
+            db_pass=config.DB_PASSWORD,
+            db_recreate=False,
+    ):
+        self._database_startup = DatabaseStartup(db_name, db_host, db_port, db_username, db_pass, db_recreate)
         self._first_user_startup = FirstUserStartup()
         self._workers_startup = WorkersStartup()
         self._eventbus_startup = EventbusStartup()

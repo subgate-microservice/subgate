@@ -62,7 +62,7 @@ class DatabaseManager:
             await conn.run_sync(metadata.drop_all)
             await conn.run_sync(metadata.create_all)
             await conn.commit()
-        logger.info("Postgres tables were successfully created.")
+        logger.info("Postgres tables were recreated.")
 
     async def create_tables_if_not_exist(self) -> None:
         async with self._async_engine.begin() as conn:

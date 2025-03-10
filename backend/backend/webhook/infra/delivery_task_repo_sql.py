@@ -1,7 +1,7 @@
 from typing import Iterable, Mapping, Type, Any
 
 from pydantic import AwareDatetime
-from sqlalchemy import Column, String, Table
+from sqlalchemy import Column, String, Table, ForeignKey
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.sqltypes import UUID, Integer, BigInteger
@@ -27,6 +27,7 @@ delivery_task_table = Table(
     Column("next_retry_at", AwareDateTime(timezone=True), nullable=True, index=True),
     Column("created_at", AwareDateTime(timezone=True), nullable=False, index=True),
     Column("partkey", String, nullable=False),
+    Column("auth_id", ForeignKey("user.id", ondelete="CASCADE"), nullable=False),
     Column("_order_col", BigInteger, primary_key=False, autoincrement=True),
 )
 
@@ -38,6 +39,7 @@ class SqlDeliveryTaskMapper(SQLMapper):
     def entity_to_mapping(self, entity: DeliveryTask) -> dict:
         result = entity.model_dump(mode="json")
         result["id"] = entity.id
+        result["auth_id"] = entity.auth_id
         result["last_retry_at"] = entity.last_retry_at
         result["next_retry_at"] = entity.next_retry_at
         result["created_at"] = entity.created_at
@@ -56,6 +58,7 @@ class SqlDeliveryTaskMapper(SQLMapper):
             created_at=data["created_at"],
             last_retry_at=data["last_retry_at"],
             partkey=data["partkey"],
+            auth_id=data["auth_id"],
         )
 
     def sby_to_filter(self, sby):
