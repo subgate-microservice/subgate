@@ -33,32 +33,3 @@ class Period(StrEnum):
         if from_date is None:
             from_date = get_current_datetime()
         return from_date + datetime.timedelta(self.get_cycle_in_days())
-
-
-class Cycle(MyBase):
-    title: str
-    code: Period
-    cycle_in_days: int
-
-    def get_next_billing_date(self, from_date: AwareDatetime = None) -> AwareDatetime:
-        if from_date is None:
-            from_date = get_current_datetime()
-        return from_date + datetime.timedelta(self.cycle_in_days)
-
-    @classmethod
-    def from_code(cls, code: Period):
-        if code == Period.Daily:
-            return cls(title="Daily", code=Period.Daily, cycle_in_days=1)
-        elif code == Period.Weekly:
-            return cls(title="Weekly", code=Period.Weekly, cycle_in_days=7)
-        elif code == Period.Monthly:
-            return cls(title="Monthly", code=Period.Monthly, cycle_in_days=30)
-        elif code == Period.Quarterly:
-            return cls(title="Quarterly", code=Period.Quarterly, cycle_in_days=30)
-        elif code == Period.Semiannual:
-            return cls(title="Semiannual", code=Period.Semiannual, cycle_in_days=183)
-        elif code == Period.Annual:
-            return cls(title="Annual", code=Period.Annual, cycle_in_days=365)
-        elif code == Period.Lifetime:
-            return cls(title="Lifetime", code=Period.Lifetime, cycle_in_days=365_000)
-        raise TypeError(code)
