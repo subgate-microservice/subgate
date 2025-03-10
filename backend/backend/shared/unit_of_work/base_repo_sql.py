@@ -82,7 +82,7 @@ class SqlBaseRepo:
             )
         )
 
-    async def add_many(self, items: Iterable[Any]) -> None:
+    async def add_many(self, items: Iterable[HasId]) -> None:
         for item in items:
             await self.add_one(item)
 
@@ -98,6 +98,20 @@ class SqlBaseRepo:
                 model_id=item.id,
             )
         )
+
+    async def update_many(self, items: Iterable[HasId]) -> None:
+        for item in items:
+            data = self.mapper.entity_to_mapping(item)
+            self._logs.append(
+                Log(
+                    collection_name=self.table.name,
+                    action="update",
+                    model_state=data,
+                    created_at=get_current_datetime(),
+                    transaction_id=self._transaction_id,
+                    model_id=item.id,
+                )
+            )
 
     async def delete_one(self, item: HasId) -> None:
         self._logs.append(
@@ -138,6 +152,22 @@ class SqlBaseRepo:
     async def get_one_by_id(self, item_id: Hashable, lock: Lock = "write") -> Any:
         record = await self._get_one_by_id(item_id, lock)
         return self.mapper.mapping_to_entity(record)
+
+    async def get_all(self, lock: Lock = "write") -> list[Any]:
+        stmt = (
+            self.table
+            .select()
+            .with_for_update()
+        )
+
+        if lock == "write":
+            stmt = stmt.with_for_update()
+        elif lock == "read":
+            raise NotImplemented
+
+        result = await self.session.execute(stmt)
+        records = result.mappings()
+        return [self.mapper.mapping_to_entity(x) for x in records]
 
     async def get_selected(self, sby, lock: Lock = "write") -> list[Any]:
         filter_by = self.mapper.sby_to_filter(sby)

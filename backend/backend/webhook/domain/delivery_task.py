@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from typing import Optional, Self, Literal, Iterable
+from uuid import UUID, uuid4
 
 from pydantic import Field, AwareDatetime
 
@@ -34,7 +35,7 @@ class Message(MyBase):
 
 
 class DeliveryTask(MyBase):
-    id: int = -1
+    id: UUID = Field(default_factory=uuid4)
     url: str
     data: Message
     delays: tuple[int, ...]
