@@ -3,7 +3,6 @@ from enum import StrEnum
 
 from pydantic import AwareDatetime
 
-from backend.shared.base_models import MyBase
 from backend.shared.utils.dt import get_current_datetime
 
 _cycle_days = {
