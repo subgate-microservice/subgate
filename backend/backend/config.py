@@ -18,8 +18,6 @@ PORT = int(os.getenv("PORT"))
 # Ключ для шифрования
 ENCRYPTOR_PASS = os.getenv("ENCRYPTOR_PASS")
 
-POSTGRES_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-
 # First user
 USER_EMAIL = os.getenv("USER_EMAIL", "test@test.com")
 USER_PASSWORD = os.getenv("USER_PASSWORD", "qwerty")
@@ -33,7 +31,6 @@ AUTHENTICATION_CACHE_TIME = os.getenv("AUTHENTICATION_CACHE_TIME", 3600)
 # Subscription manager
 SUBSCRIPTION_MANAGER_CHECK_PERIOD = os.getenv("SUBSCRIPTION_MANAGER_CHECK_PERIOD", 3600)
 SUBSCRIPTION_MANAGER_BULK_LIMIT = os.getenv("SUBSCRIPTION_MANAGER_BULK_LIMIT", 100)
-
 
 # Cleaners
 LOG_RETENTION_DAYS = os.getenv("LOG_RETENTION_DAYS", 7)

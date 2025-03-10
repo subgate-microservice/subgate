@@ -37,7 +37,9 @@ def event_loop():
 
 
 def fake_postgres_database():
-    return create_async_engine(config.POSTGRES_URL, echo=False, future=True)
+    user, password, host, port, name = config.DB_USER, config.DB_PASSWORD, config.DB_HOST, config.DB_PORT, config.DB_NAME
+    url = f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{name}_test"
+    return create_async_engine(url, echo=False, future=True)
 
 
 @pytest.fixture(autouse=True, scope="session")

@@ -1,4 +1,3 @@
-from async_pymongo import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine, async_sessionmaker
 
 from backend import config
@@ -47,13 +46,9 @@ class Bootstrap:
 
     def database(self):
         if not self._database:
-            _client = AsyncClient(
-                host=config.DB_HOST,
-                port=config.DB_PORT,
-                username=config.DB_USER,
-                password=config.DB_PASSWORD,
-            )
-            self._database = create_async_engine(config.POSTGRES_URL, echo=False, future=True)
+            user, password, host, port, name = config.DB_USER, config.DB_PASSWORD, config.DB_HOST, config.DB_PORT, config.DB_NAME
+            url = f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{name}"
+            self._database = create_async_engine(url, echo=False, future=True)
         return self._database
 
     def fastapi_users(self):
@@ -93,7 +88,7 @@ class Bootstrap:
     def telegraph_worker(self) -> Worker:
         if not self._telegraph_worker:
             telegraph = Telegraph(self.unit_of_work_factory())
-            self._telegraph_worker= Worker(telegraph.notify, sleep_time=10, safe=True, task_name="Telegraph worker")
+            self._telegraph_worker = Worker(telegraph.notify, sleep_time=10, safe=True, task_name="Telegraph worker")
         return self._telegraph_worker
 
     def apikey_cache_manager(self) -> CacheManager[Apikey]:
