@@ -10,14 +10,13 @@ from fastapi_users.authentication import (
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from backend import config
 from backend.auth.infra.fastapi_users.sql_repo import User
-
-SECRET = "SECRET"
 
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
-    reset_password_token_secret = SECRET
-    verification_token_secret = SECRET
+    reset_password_token_secret = config.SECRET
+    verification_token_secret = config.SECRET
 
     async def on_after_register(self, user: User, request: Optional[Request] = None):
         pass
@@ -34,10 +33,10 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
 
 
 def get_jwt_strategy() -> JWTStrategy[models.UP, models.ID]:
-    return JWTStrategy(secret=SECRET, lifetime_seconds=3600)
+    return JWTStrategy(secret=config.SECRET, lifetime_seconds=config.AUTHENTICATION_TOKEN_LIFETIME)
 
 
-transport = CookieTransport(cookie_max_age=3600)
+transport = CookieTransport(cookie_max_age=config.AUTHENTICATION_TOKEN_LIFETIME)
 auth_backend = AuthenticationBackend(
     name="jwt",
     transport=transport,
