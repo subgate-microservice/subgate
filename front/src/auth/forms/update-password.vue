@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import {Ref, ref} from "vue";
-import {Panel} from "primevue";
+import {Panel, useToast} from "primevue";
 import {PasswordUpdate} from "../domain.ts";
 import {useAuthStore} from "../myself.ts";
+import {useValidatorService} from "../../shared/services/validation-service.ts";
+import {passwordUpdateValidator} from "../validators.ts";
 
 const store = useAuthStore()
+const toast = useToast()
 
 const newPasswordForm: Ref<PasswordUpdate> = ref({
   oldPassword: "",
@@ -12,9 +15,23 @@ const newPasswordForm: Ref<PasswordUpdate> = ref({
   repeatPassword: "",
 })
 
+const validator = useValidatorService(newPasswordForm, passwordUpdateValidator)
+
 async function handleClickOnChange() {
-  await store.updatePassword(newPasswordForm.value)
-  await store.logout()
+  validator.validate()
+  if (validator.isValidated) {
+    try {
+      await store.updatePassword(newPasswordForm.value)
+      await store.logout()
+    } catch (err: any) {
+      console.error(err)
+      const msg = err.message === "Request failed with status code 400"
+          ? "Invalid old password"
+          : String(err)
+      toast.add({severity: "error", summary: msg, life: 3_000})
+    }
+
+  }
 }
 </script>
 
@@ -33,12 +50,24 @@ async function handleClickOnChange() {
           placeholder="New password"
           v-model="newPasswordForm.newPassword"
       />
+      <Message
+          severity="error"
+          v-for="err in validator.getFieldErrors('newPassword')"
+      >
+        {{ err }}
+      </Message>
       <InputText
           class="w-full"
           type="password"
           placeholder="Repeat password"
           v-model="newPasswordForm.repeatPassword"
       />
+      <Message
+          severity="error"
+          v-for="err in validator.getFieldErrors('repeatPassword')"
+      >
+        {{ err }}
+      </Message>
       <Button
           @click="handleClickOnChange"
           label="Change"

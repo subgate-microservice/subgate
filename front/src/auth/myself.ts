@@ -12,7 +12,7 @@ export const useAuthStore = defineStore("useAuthStore", () => {
     async function loadMyself() {
         const url = "/users/me"
         const response = await axiosInstance.get(url)
-        myself.value = safeParsing(authUserValidator, {id: response.data.id, email: response.data.email})
+        myself.value = safeParsing(authUserValidator, {id: response.data.id})
     }
 
     async function updateEmail(data: EmailUpdate) {
@@ -26,8 +26,9 @@ export const useAuthStore = defineStore("useAuthStore", () => {
     }
 
     async function updatePassword(data: PasswordUpdate) {
-        console.log("updatePassword", data)
-        throw Error("NotImpl")
+        const url = "users/me/update-password"
+        const payload = {old_password: data.oldPassword, new_password: data.newPassword}
+        await axiosInstance.patch(url, payload, {})
     }
 
     async function login(loginData: LoginData) {
