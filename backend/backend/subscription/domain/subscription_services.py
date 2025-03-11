@@ -1,7 +1,5 @@
 from typing import Callable, Optional, Union
 
-from loguru import logger
-
 from backend.shared.event_driven.base_event import Event, FieldUpdated, ItemAdded, ItemUpdated, ItemRemoved
 from backend.shared.utils.dt import get_current_datetime
 from backend.subscription.domain.discount import Discount
@@ -121,7 +119,7 @@ class SubscriptionEventParser:
                     delta=event.new_item.used_units - event.old_item.used_units,
                     occurred_at=self.dt,
                     auth_id=self.subscription.auth_id,
-            )
+                )
             )
         elif isinstance(event.new_item, Discount):
             self.updated_fields[f"discounts.{event.new_item.code}"] = "action:updated"
