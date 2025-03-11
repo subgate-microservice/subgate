@@ -5,7 +5,7 @@ export const authUserValidator = z.object({
 }).strict()
 
 export const emailUpdateValidator = z.object({
-    email: z.string(),
+    email: z.string().email({ message: "Invalid email format" }),
     password: z.string(),
 }).strict()
 

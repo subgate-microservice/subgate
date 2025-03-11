@@ -1,6 +1,6 @@
 from fastapi import FastAPI, APIRouter, Depends
 
-from backend.auth.adapters.schemas import PasswordUpdateSchema
+from backend.auth.adapters.schemas import PasswordUpdateSchema, EmailUpdateSchema
 from backend.auth.application.auth_usecases import AuthUserPasswordUpdate, AuthUserEmailUpdate, AuthUserDelete
 from backend.auth.domain.auth_user import AuthUser
 from backend.auth.infra.fastapi_users.manager import auth_backend
@@ -18,8 +18,8 @@ async def get_current_user(auth_user=Depends(auth_closure)) -> AuthUser:
 
 
 @current_user_router.patch("/me/update-email")
-async def update_email(data: AuthUserEmailUpdate, auth_user=Depends(auth_closure)):
-    data = data.model_copy(update={"id": auth_user.id})
+async def update_email(data: EmailUpdateSchema, auth_user=Depends(auth_closure)):
+    data = AuthUserEmailUpdate(id=auth_user.id, new_email=data.new_email, password=data.password)
     await container.auth_usecase().update_email(data)
     return "Ok"
 

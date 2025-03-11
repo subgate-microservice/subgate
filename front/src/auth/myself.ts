@@ -16,12 +16,13 @@ export const useAuthStore = defineStore("useAuthStore", () => {
     }
 
     async function updateEmail(data: EmailUpdate) {
-        console.log("updateEmail", data)
-        throw Error("NotImpl")
+        const url = "users/me/update-email"
+        const payload = {new_email: data.email, password: data.password}
+        await axiosInstance.patch(url, payload)
     }
 
     async function verifyEmail(code: string) {
-        console.log("verifyEmail", code)
+        console.log(code)
         throw Error("NotImpl")
     }
 

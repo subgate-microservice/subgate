@@ -1,17 +1,34 @@
 <script setup lang="ts">
 import {Ref, ref} from "vue";
-import {Panel} from "primevue";
+import {Panel, useToast} from "primevue";
 import {EmailUpdate} from "../domain.ts";
 import {useAuthStore} from "../myself.ts";
+import {useValidatorService} from "../../shared/services/validation-service.ts";
+import {emailUpdateValidator} from "../validators.ts";
 
 const mode: Ref<"change" | "verify"> = ref("change")
 
 const store = useAuthStore()
+const toast = useToast()
 
 const form: Ref<EmailUpdate> = ref({email: "test@test.com", password: "qwerty"})
+
+const validator = useValidatorService(form, emailUpdateValidator)
+
 const handleClickOnChange = async () => {
-  await store.updateEmail(form.value)
-  mode.value = "verify"
+  validator.validate()
+  if (validator.isValidated) {
+    try {
+      await store.updateEmail(form.value)
+      await store.logout()
+    } catch (err: any) {
+      console.error(err)
+      const msg = err.message === "Request failed with status code 400"
+          ? "Invalid old password"
+          : String(err)
+      toast.add({severity: "error", summary: msg, life: 3_000})
+    }
+  }
 }
 
 const verificationCode = ref("")
@@ -38,6 +55,12 @@ const handleClickOnVerify = async () => {
             placeholder="New email"
             v-model="form.email"
         />
+        <Message
+            severity="error"
+            v-for="err in validator.getFieldErrors('email')"
+        >
+          {{ err }}
+        </Message>
         <InputText
             class="w-full"
             placeholder="Password"
