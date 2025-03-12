@@ -18,7 +18,7 @@ const onApikeyCreated = (item: Apikey) => {
 }
 
 const onApikeyDeleted = (item: Apikey) => {
-  items.value = items.value.filter(x => x.id !== item.id)
+  items.value = items.value.filter(x => x.publicId !== item.publicId)
 }
 
 onMounted(async () => {

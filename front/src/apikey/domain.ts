@@ -1,8 +1,7 @@
 export interface Apikey {
-    id: string
+    publicId: string
     title: string
     createdAt: Date
-    updatedAt: Date
 }
 
 export interface ApikeyCU {

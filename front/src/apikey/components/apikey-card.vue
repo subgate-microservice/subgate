@@ -33,7 +33,7 @@ const onDelete = async () => {
       severity: 'contrast'
     },
     accept: async () => {
-      await new ApikeyRepo().deleteOneById(p.apikey.id)
+      await new ApikeyRepo().deleteOneById(p.apikey.publicId)
       e("apikeyDeleted", p.apikey)
     },
     reject: () => {
