@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import {ref} from 'vue';
-import {Password, InputText} from "primevue";
+import {Password, InputText, useToast} from "primevue";
 import {useRouter} from "vue-router";
 import {useAuthStore} from "../myself.ts";
 
 const router = useRouter()
+const toast = useToast()
 
 const formData = ref({
   username: "test@test.com",
@@ -13,8 +14,16 @@ const formData = ref({
 
 
 const onFormSubmit = async () => {
-  await useAuthStore().login(formData.value)
-  await router.push({name: "Plans"})
+  try {
+    await useAuthStore().login(formData.value)
+    await router.push({name: "Plans"})
+  } catch (err: any) {
+    console.error(err)
+    const msg = err?.message === "Request failed with status code 400"
+        ? "Invalid email or password"
+        : String(err)
+    toast.add({severity: "error", summary: msg, life: 3_000})
+  }
 }
 
 const onRegister = async () => {
