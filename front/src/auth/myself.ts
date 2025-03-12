@@ -52,8 +52,12 @@ export const useAuthStore = defineStore("useAuthStore", () => {
         myself.value = null
     }
 
-    async function deleteAccount() {
-        throw Error("NotImpl")
+    async function deleteAccount(password: string) {
+        const url = "/users/me"
+        const data = {password: password}
+        await axiosInstance.delete(url, {data})
+        sessionStorage.removeItem("fastapiusersauth")
+        myself.value = null
     }
 
 

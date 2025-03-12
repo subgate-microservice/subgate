@@ -5,11 +5,13 @@ import {EmailUpdate} from "../domain.ts";
 import {useAuthStore} from "../myself.ts";
 import {useValidatorService} from "../../shared/services/validation-service.ts";
 import {emailUpdateValidator} from "../validators.ts";
+import {useRouter} from "vue-router";
 
 const mode: Ref<"change" | "verify"> = ref("change")
 
 const store = useAuthStore()
 const toast = useToast()
+const router = useRouter()
 
 const form: Ref<EmailUpdate> = ref({email: "test@test.com", password: "qwerty"})
 
@@ -21,6 +23,7 @@ const handleClickOnChange = async () => {
     try {
       await store.updateEmail(form.value)
       await store.logout()
+      await router.push({name: "Login"})
     } catch (err: any) {
       console.error(err)
       const msg = err.message === "Request failed with status code 400"

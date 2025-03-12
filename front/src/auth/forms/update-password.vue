@@ -5,9 +5,11 @@ import {PasswordUpdate} from "../domain.ts";
 import {useAuthStore} from "../myself.ts";
 import {useValidatorService} from "../../shared/services/validation-service.ts";
 import {passwordUpdateValidator} from "../validators.ts";
+import {useRouter} from "vue-router";
 
 const store = useAuthStore()
 const toast = useToast()
+const router = useRouter()
 
 const newPasswordForm: Ref<PasswordUpdate> = ref({
   oldPassword: "",
@@ -23,6 +25,7 @@ async function handleClickOnChange() {
     try {
       await store.updatePassword(newPasswordForm.value)
       await store.logout()
+      await router.push({name: "Login"})
     } catch (err: any) {
       console.error(err)
       const msg = err.message === "Request failed with status code 400"
