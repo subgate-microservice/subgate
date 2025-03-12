@@ -22,7 +22,7 @@ async def create_one(data: ApikeyCreateSchema, auth_user: AuthUser = Depends(aut
         data = ApikeyCreate(title=data.title, auth_user=auth_user)
         await manager.create(data)
         await uow.commit()
-    return {"public_id": data.public_id, "title": data.title}, data.secret
+    return {"public_id": data.public_id, "title": data.title, "created_at": data.created_at}, data.secret
 
 
 @apikey_router.get("/")
@@ -30,7 +30,7 @@ async def get_selected(auth_user: AuthUser = Depends(auth_closure)) -> list[dict
     sby = ApikeySby(auth_ids={auth_user.id})
     async with container.unit_of_work_factory().create_uow() as uow:
         apikeys = await uow.apikey_repo().get_selected(sby)
-        lights = [{"public_id": x.public_id, "title": x.title} for x in apikeys]
+        lights = [{"public_id": x.public_id, "title": x.title, "created_at": x.created_at} for x in apikeys]
     return lights
 
 

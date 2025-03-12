@@ -2,13 +2,14 @@ import secrets
 from typing import Optional
 from uuid import uuid4
 
-from pydantic import Field
+from pydantic import Field, AwareDatetime
 
 from backend.auth.domain.apikey import Apikey
 from backend.auth.domain.auth_user import AuthUser
 from backend.auth.domain.exceptions import AuthenticationError
 from backend.shared.base_models import MyBase
 from backend.shared.unit_of_work.uow import UnitOfWork
+from backend.shared.utils.dt import get_current_datetime
 from backend.shared.utils.password_helper import PasswordHelper
 
 
@@ -21,6 +22,7 @@ class ApikeyCreate(MyBase):
     auth_user: AuthUser
     public_id: str = Field(default_factory=lambda: f"apikey_{uuid4().hex[:8]}")
     secret: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
+    created_at: AwareDatetime = Field(default_factory=get_current_datetime)
 
 
 class ApikeyManager:
@@ -49,7 +51,8 @@ class ApikeyManager:
             title=data.title,
             auth_user=data.auth_user,
             public_id=data.public_id,
-            hashed_secret=hashed_secret
+            hashed_secret=hashed_secret,
+            created_at=data.created_at,
         )
         await self._uow.apikey_repo().add_one(apikey)
 
