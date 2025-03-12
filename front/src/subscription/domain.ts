@@ -91,7 +91,6 @@ export interface Subscription {
     billingInfo: BillingInfo
     status: SubscriptionStatus
     pausedFrom?: Date | null
-    autorenew: boolean
     usages: Usage[]
     discounts: Discount[]
     fields: Record<string, any>
@@ -106,7 +105,6 @@ export interface SubscriptionCU {
     billingInfo: BillingInfo
     status: SubscriptionStatus
     pausedFrom?: Date | null
-    autorenew: boolean
     usages: Usage[]
     discounts: Discount[]
     fields?: Record<string, any>

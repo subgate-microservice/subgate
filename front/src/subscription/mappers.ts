@@ -26,7 +26,6 @@ export class SubscriptionMapper {
     toSubUpdate(target: Subscription): SubscriptionCU {
         target = recursive(target)
         return {
-            autorenew: target.autorenew,
             billingInfo: target.billingInfo,
             discounts: target.discounts,
             fields: target.fields,

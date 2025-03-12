@@ -104,7 +104,6 @@ export function blankSubscription(): Subscription {
         discounts: [],
         usages: [],
         fields: {},
-        autorenew: false,
         createdAt: new Date(),
         updatedAt: new Date(),
 
@@ -122,6 +121,5 @@ export function blankSubscriptionCU(): SubscriptionCU {
         discounts: [],
         usages: [],
         fields: {},
-        autorenew: false,
     }
 }

@@ -115,16 +115,17 @@ const p = defineProps<{
 
       <div v-if="p.subscription.usages.length" class="mt-4">
         <Fieldset legend="Usages" :toggleable="true" :collapsed="true">
-          <DataTable :value="p.subscription.usages">
-            <Column field="resource" header="Resource"></Column>
+          <DataTable :value="p.subscription.usages" class="mt-2">
+            <Column field="title" header="Title"></Column>
+            <Column field="code" header="Code"></Column>
+            <Column field="unit" header="Unit"></Column>
             <Column field="availableUnits" header="Available units"></Column>
             <Column field="usedUnits" header="Used units"></Column>
             <Column field="renewCycle" header="Renew cycle">
               <template #body="slotProps">
-                {{ slotProps.data.renewCycle.title }}
+                {{ capitalize(slotProps.data.renewCycle) }}
               </template>
             </Column>
-
           </DataTable>
         </Fieldset>
       </div>
