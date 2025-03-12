@@ -73,7 +73,7 @@ const onBack = async () => {
           {{ err }}
         </Message>
 
-        <Button type="submit" severity="primary" label="Register" @click="onFormSubmit"/>
+        <Button type="submit" severity="primary" label="Submit" @click="onFormSubmit"/>
         <div class="flex justify-between">
           <div/>
           <div class="my-btn" @click="onBack">

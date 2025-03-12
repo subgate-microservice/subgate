@@ -56,6 +56,7 @@ const clickOnDelete = () => {
         <InputText
             v-model="password"
             type="password"
+            placeholder="Password"
         />
         <Button
             @click="() => clickOnDelete()"

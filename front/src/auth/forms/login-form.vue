@@ -41,10 +41,10 @@ const onRegister = async () => {
       <div class="flex flex-col gap-3">
         <InputText name="login" placeholder="Login" v-model="formData.username"/>
         <Password name="password" placeholder="Password" :feedback="false" fluid v-model="formData.password"/>
-        <Button type="submit" severity="primary" label="Sign in" @click="onFormSubmit"/>
+        <Button type="submit" severity="primary" label="Submit" @click="onFormSubmit"/>
         <div class="flex justify-between">
           <div class="my-btn" @click="onRegister">
-            Sign up
+            Register
           </div>
           <div class="my-btn">
             Forgot password?
