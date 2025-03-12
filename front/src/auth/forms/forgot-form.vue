@@ -15,8 +15,7 @@ const formData = ref({
 
 const onFormSubmit = async () => {
   try {
-    await useAuthStore().login(formData.value)
-    await router.push({name: "Plans"})
+
   } catch (err: any) {
     console.error(err)
     const msg = err?.message === "Request failed with status code 400"
@@ -26,35 +25,24 @@ const onFormSubmit = async () => {
   }
 }
 
-const onRegister = async () => {
-  await router.push({name: "Register"})
+const onBack = async () => {
+  await router.push({name: "Login"})
 }
 
-const onForgotPassword = async () => {
-  await router.push({name: "ForgotPassword"})
-}
+
 </script>
 
 
 <template>
   <Card>
     <template #title>
-      Login
+      Forgot password
     </template>
     <template #content>
-      <div class="flex flex-col gap-3">
-        <InputText name="login" placeholder="Login" v-model="formData.username"/>
-        <Password name="password" placeholder="Password" :feedback="false" fluid v-model="formData.password"/>
-        <Button type="submit" severity="primary" label="Submit" @click="onFormSubmit"/>
-        <div class="flex justify-between">
-          <div class="my-btn" @click="onRegister">
-            Register
-          </div>
-          <div class="my-btn" @click="onForgotPassword">
-            Forgot password?
-          </div>
-        </div>
-
+      <div class="flex gap-2">
+        <InputText name="login" placeholder="Enter email" v-model="formData.username" class="flex-1"/>
+        <Button type="submit" severity="primary" label="Send" @click="onFormSubmit"/>
+        <Button type="submit" severity="secondary" label="Back" @click="onBack"/>
       </div>
     </template>
   </Card>

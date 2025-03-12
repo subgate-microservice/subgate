@@ -7,6 +7,7 @@ import FastapiLogin from "./auth/pages/fastapi-login.vue";
 import {useAuthStore} from "./auth/myself.ts";
 import MyProfile from "./auth/pages/my-profile.vue";
 import MyRegister from "./auth/pages/my-register.vue";
+import ForgotPassword from "./auth/pages/forgot-password.vue";
 
 
 export const router = createRouter({
@@ -25,6 +26,11 @@ export const router = createRouter({
                     path: "register",
                     component: MyRegister,
                     name: "Register",
+                },
+                {
+                    path: "forgot-password",
+                    component: ForgotPassword,
+                    name: "ForgotPassword",
                 },
             ]
         },
@@ -81,7 +87,7 @@ export const router = createRouter({
     ],
 })
 
-const publicRoutes: Set<string> = new Set(["Login", "Register", "OauthCallback"])
+const publicRoutes: Set<string> = new Set(["Login", "Register", "OauthCallback", "ForgotPassword"])
 
 
 router.beforeEach(async (to,) => {
