@@ -8,7 +8,6 @@ export class ApikeyRepo {
     async getAll(): Promise<Apikey[]> {
         const url = `/apikey`
         const response = (await authRequest(axiosInstance.get, url))
-        console.log(response.data)
         return safeArrayParsing(apikeyValidator, toCamelCase(response.data))
     }
 
