@@ -1,4 +1,4 @@
-import {AuthUser, EmailUpdate, LoginData, PasswordUpdate} from "./domain.ts";
+import {AuthUser, EmailUpdate, LoginData, PasswordUpdate, RegisterData} from "./domain.ts";
 import {axiosInstance} from "../axios-instanse.ts";
 import {defineStore} from "pinia";
 import {computed, ref, Ref} from "vue";
@@ -13,6 +13,12 @@ export const useAuthStore = defineStore("useAuthStore", () => {
         const url = "/users/me"
         const response = await axiosInstance.get(url)
         myself.value = safeParsing(authUserValidator, {id: response.data.id})
+    }
+
+    async function register(data: RegisterData) {
+        const url = "/auth/register"
+        const payload = {email: data.email, password: data.password}
+        await axiosInstance.post(url, payload)
     }
 
     async function updateEmail(data: EmailUpdate) {
@@ -64,6 +70,7 @@ export const useAuthStore = defineStore("useAuthStore", () => {
     return {
         isAuthenticated: computed(() => !!myself.value),
         loadMyself,
+        register,
         updateEmail,
         updatePassword,
         verifyEmail,

@@ -7,6 +7,12 @@ export interface LoginData {
     password: string
 }
 
+export interface RegisterData {
+    email: string
+    password: string
+    repeat: string
+}
+
 export interface EmailUpdate {
     email: string
     password: string

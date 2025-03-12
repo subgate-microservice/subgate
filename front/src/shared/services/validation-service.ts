@@ -1,5 +1,4 @@
 import {reactive, Ref} from 'vue'
-import {ZodObject} from "zod";
 
 export interface ValidationService {
     isValidated: boolean
@@ -8,7 +7,7 @@ export interface ValidationService {
     getAllErrors: () => string[]
 }
 
-export function useValidatorService<T>(formData: Ref<T>, validator: ZodObject<any>): ValidationService {
+export function useValidatorService<T>(formData: Ref<T>, validator: any): ValidationService {
     const errors = reactive<Record<string, string[]>>({})
 
     function validate() {
@@ -16,7 +15,7 @@ export function useValidatorService<T>(formData: Ref<T>, validator: ZodObject<an
 
         const result = validator.safeParse(formData.value)
         if (!result.success) {
-            result.error.errors.forEach(error => {
+            result.error.errors.forEach((error: any) => {
                 const field = error.path.join(".")
                 if (!errors[field]) errors[field] = []
                 errors[field].push(error.message)

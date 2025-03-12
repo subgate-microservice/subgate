@@ -6,6 +6,7 @@ import MyApikeys from "./apikey/pages/my-apikeys.vue";
 import FastapiLogin from "./auth/pages/fastapi-login.vue";
 import {useAuthStore} from "./auth/myself.ts";
 import MyProfile from "./auth/pages/my-profile.vue";
+import MyRegister from "./auth/pages/my-register.vue";
 
 
 export const router = createRouter({
@@ -19,6 +20,11 @@ export const router = createRouter({
                     path: "login",
                     component: FastapiLogin,
                     name: "Login",
+                },
+                {
+                    path: "register",
+                    component: MyRegister,
+                    name: "Register",
                 },
             ]
         },

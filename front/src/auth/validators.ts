@@ -5,7 +5,7 @@ export const authUserValidator = z.object({
 }).strict()
 
 export const emailUpdateValidator = z.object({
-    email: z.string().email({ message: "Invalid email format" }),
+    email: z.string().email({message: "Invalid email format"}),
     password: z.string(),
 }).strict()
 
@@ -19,5 +19,15 @@ export const passwordUpdateValidator = z.object({
         message: "Passwords do not match",
         path: ["repeatPassword"], // Ошибка будет привязана к этому полю
     })
-    .innerType()
 
+
+export const registerDataValidator = z.object({
+    email: z.string().email(),
+    password: z.string().min(6),
+    repeat: z.string(),
+})
+    .strict()
+    .refine((data) => data.password === data.repeat, {
+        message: "Passwords do not match",
+        path: ["repeat"], // Ошибка будет привязана к этому полю
+    })
