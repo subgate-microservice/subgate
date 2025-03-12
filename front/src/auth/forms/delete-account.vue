@@ -48,10 +48,10 @@ const clickOnDelete = () => {
 
 <template>
   <div>
-    <Panel header="Delete account" toggleable collapsed>
+    <Panel header="Delete profile" toggleable collapsed>
       <div class="flex flex-col gap-2">
         <div>
-          Permanently deleting your account
+          Permanently deleting your profile
         </div>
         <InputText
             v-model="password"

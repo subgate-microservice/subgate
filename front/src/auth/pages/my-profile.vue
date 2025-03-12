@@ -6,7 +6,7 @@ import UpdateEmail from "../forms/update-email.vue";
 import {useTopMenu} from "../../shared/components/top-menu";
 
 const topStore = useTopMenu()
-topStore.headerTitle = "Account"
+topStore.headerTitle = "Profile"
 </script>
 
 <template>
