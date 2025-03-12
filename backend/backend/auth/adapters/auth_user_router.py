@@ -1,6 +1,6 @@
 from fastapi import FastAPI, APIRouter, Depends
 
-from backend.auth.adapters.schemas import PasswordUpdateSchema, EmailUpdateSchema
+from backend.auth.adapters.schemas import PasswordUpdateSchema, EmailUpdateSchema, ProfileDeleteSchema
 from backend.auth.application.auth_usecases import AuthUserPasswordUpdate, AuthUserEmailUpdate, AuthUserDelete
 from backend.auth.domain.auth_user import AuthUser
 from backend.auth.infra.fastapi_users.manager import auth_backend
@@ -32,8 +32,8 @@ async def update_password(data: PasswordUpdateSchema, auth_user: UserRead = Depe
 
 
 @current_user_router.delete("/me")
-async def delete_profile(data: AuthUserDelete, auth_user: UserRead = Depends(auth_closure)):
-    data = data.model_copy(update={"id": auth_user.id})
+async def delete_profile(data: ProfileDeleteSchema, auth_user: UserRead = Depends(auth_closure)):
+    data = AuthUserDelete(id=auth_user.id, password=data.password)
     await container.auth_usecase().delete_auth_user(data)
     return "Ok"
 

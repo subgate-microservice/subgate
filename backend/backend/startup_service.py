@@ -194,7 +194,7 @@ class StartupShutdownManager:
             db_port=config.DB_PORT,
             db_username=config.DB_USER,
             db_pass=config.DB_PASSWORD,
-            db_recreate=False,
+            db_recreate=True,
             user_email=config.USER_EMAIL,
             user_password=config.USER_PASSWORD,
             user_apikey_title=config.USER_APIKEY_TITLE,

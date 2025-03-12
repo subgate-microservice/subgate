@@ -13,3 +13,7 @@ class PasswordUpdateSchema(MyBase):
 class EmailUpdateSchema(MyBase):
     new_email: str
     password: str
+
+
+class ProfileDeleteSchema(MyBase):
+    password: str
