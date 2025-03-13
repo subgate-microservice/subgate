@@ -9,6 +9,10 @@ export const emailUpdateValidator = z.object({
     password: z.string(),
 }).strict()
 
+export const emailValidator = z.object({
+    email: z.string().email({message: "Invalid email format"})
+}).strict()
+
 export const passwordUpdateValidator = z.object({
     oldPassword: z.string(),
     newPassword: z.string().min(6),

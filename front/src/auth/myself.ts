@@ -38,6 +38,12 @@ export const useAuthStore = defineStore("useAuthStore", () => {
         await axiosInstance.patch(url, payload, {})
     }
 
+    async function forgotPassword(email: string) {
+        const url = "/auth/forgot-password"
+        const payload = {email}
+        await axiosInstance.post(url, payload, {})
+    }
+
     async function login(loginData: LoginData) {
         const url = `/auth/jwt/login`
         const headers = {
@@ -73,6 +79,7 @@ export const useAuthStore = defineStore("useAuthStore", () => {
         register,
         updateEmail,
         updatePassword,
+        forgotPassword,
         verifyEmail,
         login,
         logout,
