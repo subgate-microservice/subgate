@@ -49,11 +49,11 @@ def include_fastapi_users_routers(app: FastAPI, prefix="/api/v1"):
         prefix=f"{prefix}/auth",
         tags=["auth"],
     )
-    app.include_router(
-        container.fastapi_users().get_reset_password_router(),
-        prefix=f"{prefix}/auth",
-        tags=["auth"],
-    )
+    # app.include_router(
+    #     container.fastapi_users().get_reset_password_router(),
+    #     prefix=f"{prefix}/auth",
+    #     tags=["auth"],
+    # )
     app.include_router(
         container.fastapi_users().get_verify_router(UserRead),
         prefix=f"{prefix}/auth",
