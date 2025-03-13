@@ -2,8 +2,9 @@ import pytest
 import pytest_asyncio
 from fastapi_users.exceptions import UserNotExists
 
+from backend.auth.adapters.schemas import PasswordUpdateSchema, EmailUpdateSchema
 from backend.auth.application.auth_usecases import (
-    AuthUserPasswordUpdate, AuthUserEmailUpdate, AuthUserCreate, AuthUserDelete)
+    AuthUserCreate, AuthUserDelete)
 from backend.bootstrap import get_container
 
 container = get_container()
@@ -57,7 +58,7 @@ class TestUpdatePassword:
 
         # Update password
         url = "/users/me/update-password"
-        data = AuthUserPasswordUpdate(id=user.id, old_password=old_pass, new_password=new_pass).model_dump(mode="json")
+        data = PasswordUpdateSchema(old_password=old_pass, new_password=new_pass).model_dump(mode="json")
         response = await client.patch(url, json=data)
         response.raise_for_status()
 
@@ -71,7 +72,7 @@ class TestUpdatePassword:
 
         # Rollback password for correct teardown login
         url = "/users/me/update-password"
-        data = AuthUserPasswordUpdate(id=user.id, old_password=new_pass, new_password=old_pass).model_dump(mode="json")
+        data = PasswordUpdateSchema(old_password=new_pass, new_password=old_pass).model_dump(mode="json")
         await client.patch(url, json=data)
 
     @pytest.mark.asyncio
@@ -81,9 +82,7 @@ class TestUpdatePassword:
 
         # Update password
         url = "/users/me/update-password"
-        data = AuthUserPasswordUpdate(
-            id=user.id, old_password=old_password, new_password=new_password
-        ).model_dump(mode="json")
+        data = PasswordUpdateSchema(old_password=old_password, new_password=new_password).model_dump(mode="json")
         response = await client.patch(url, json=data)
         assert response.status_code == 400
 
@@ -96,7 +95,7 @@ class TestUpdateUsername:
 
         # Update
         url = "/users/me/update-email"
-        data = AuthUserEmailUpdate(id=user.id, new_email=new_email, password=password).model_dump(mode="json")
+        data = EmailUpdateSchema(new_email=new_email, password=password).model_dump(mode="json")
         response = await client.patch(url, json=data)
         response.raise_for_status()
 
@@ -111,7 +110,7 @@ class TestDeleteProfile:
         password = "any_password"
 
         url = "/users/me"
-        json_data = {"id": str(user.id), "password": password}
+        json_data = {"password": password}
         headers = {"Content-Type": "application/json"}
 
         response = await client.request("DELETE", url, json=json_data, headers=headers)
