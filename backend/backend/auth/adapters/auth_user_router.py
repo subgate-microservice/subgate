@@ -64,3 +64,4 @@ def include_fastapi_users_routers(app: FastAPI, prefix="/api/v1"):
         prefix=f"{prefix}/users",
         tags=["users"],
     )
+
