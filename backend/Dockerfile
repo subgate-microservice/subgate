@@ -12,7 +12,7 @@ WORKDIR /app
 
 # Копируем файлы проекта
 COPY pyproject.toml poetry.lock /app/
-RUN poetry install --no-root --no-dev
+RUN poetry install --only main
 COPY backend /app/backend/
 
 EXPOSE 3000
