@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {capitalize, ModelRef, ref, watch} from "vue";
+import {capitalize, ref, watch} from "vue";
 import {SubscriptionStatus,} from "../../domain.ts";
 
 
@@ -8,7 +8,7 @@ const allStatuses = ref([SubscriptionStatus.Active, SubscriptionStatus.Paused, S
 
 const statusValue = defineModel("status", {default: SubscriptionStatus.Active})
 
-const pausedFromValue: ModelRef<Date | null> = defineModel("pausedFrom", {default: null})
+const pausedFromValue = defineModel<Date | null>("pausedFrom", {default: null})
 
 watch(statusValue, () => {
   if (statusValue.value === SubscriptionStatus.Paused) {

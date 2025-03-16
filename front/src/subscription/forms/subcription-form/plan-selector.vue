@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {ModelRef, onMounted, ref, Ref, watch} from "vue";
+import {onMounted, ref, Ref, watch} from "vue";
 import {
   BillingInfo,
   Discount,
@@ -15,10 +15,10 @@ const p = defineProps<{
 
 
 const selectedPlan: Ref<Plan | null> = ref(null)
-const usageRateModel: ModelRef<UsageRate[]> = defineModel("usageRates", {default: () => []})
-const discountModel: ModelRef<Discount[]> = defineModel("discounts", {default: () => []})
-const billingInfoModel: ModelRef<BillingInfo> = defineModel("billingInfo", {default: () => blankBillingInfo()})
-const planInfoModel: ModelRef<PlanInfo> = defineModel("planInfo", {default: () => blankPlanInfo()})
+const usageRateModel = defineModel<UsageRate[]>("usageRates", {default: () => []})
+const discountModel = defineModel<Discount[]>("discounts", {default: () => []})
+const billingInfoModel = defineModel<BillingInfo>("billingInfo", {default: () => blankBillingInfo()})
+const planInfoModel = defineModel<PlanInfo>("planInfo", {default: () => blankPlanInfo()})
 
 watch(selectedPlan, () => {
   if (selectedPlan.value) {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, ModelRef} from "vue";
+import {computed} from "vue";
 import {InputGroup, InputText, InputNumber, Button, Message} from "primevue";
 import {Discount} from "../domain.ts";
 import {ValidationService} from "../../shared/services/validation-service.ts";
@@ -12,7 +12,7 @@ interface Props {
 
 const p = defineProps<Props>();
 
-const discountsModel: ModelRef<Discount[]> = defineModel("discounts", {default: () => []})
+const discountsModel = defineModel<Discount[]>("discounts", {default: () => []})
 
 const addDiscount = () => {
   discountsModel.value.push(blankDiscount())

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, ModelRef} from "vue";
+import {computed} from "vue";
 import {InputGroup, InputText, InputNumber, Button, Message} from "primevue";
 import PeriodSelector from "./period-selector.vue";
 import {Period, UsageRate} from "../domain.ts";
@@ -15,7 +15,7 @@ interface Props {
 
 const p = defineProps<Props>()
 
-const items: ModelRef<UsageRate[]> = defineModel("usageRates", {default: () => []})
+const items = defineModel<UsageRate[]>("usageRates", {default: () => []})
 
 const addItem = () => {
   const item = p.itemType === "usageRate"

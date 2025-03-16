@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {EVENT_CODES} from "../../enums.ts";
 
-const modelValue = defineModel({default: null})
+const modelValue = defineModel<string | null>({default: null})
 </script>
 
 <template>
