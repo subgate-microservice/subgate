@@ -15,7 +15,7 @@ services:
     depends_on:
       - backend-server
     ports:
-      - "80:5173"
+      - "80:5000"
 
   postgres:
     image: postgres:alpine
