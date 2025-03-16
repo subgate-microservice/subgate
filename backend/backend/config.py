@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Настройки базы данных
+# Database
 DB_NAME = os.getenv("DB_NAME", "subgate")
 DB_USER = os.getenv("DB_USER", "postgres")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "qwerty")
