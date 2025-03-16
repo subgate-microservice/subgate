@@ -3,8 +3,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    env_file:
-      - .env
     depends_on:
       - postgres
     ports:
@@ -14,8 +12,6 @@ services:
     build:
       context: ./front
       dockerfile: Dockerfile
-    env_file:
-      - .env
     depends_on:
       - backend-server
     ports:
@@ -23,8 +19,6 @@ services:
 
   postgres:
     image: postgres:alpine
-    env_file:
-      - .env
     volumes:
       - postgres-data:/var/lib/postgresql/data
 
