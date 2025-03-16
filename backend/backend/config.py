@@ -8,7 +8,7 @@ load_dotenv()
 DB_NAME = os.getenv("DB_NAME", "subgate")
 DB_USER = os.getenv("DB_USER", "postgres")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "qwerty")
-DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_HOST = os.getenv("DB_HOST", "postgres")
 DB_PORT = int(os.getenv("DB_PORT", 5432))
 
 # Server settings
@@ -19,8 +19,8 @@ PORT = int(os.getenv("PORT", 3000))
 USER_EMAIL = os.getenv("USER_EMAIL", "test@test.com")
 USER_PASSWORD = os.getenv("USER_PASSWORD", "qwerty")
 USER_APIKEY_TITLE = os.getenv("USER_APIKEY_TITLE", "Test apikey")
-USER_APIKEY_PUBLIC_ID = os.getenv("USER_APIKEY_PUBLIC_ID", "apikey_test_id")
-USER_APIKEY_SECRET = os.getenv("USER_APIKEY_SECRET", "test_secret")
+USER_APIKEY_PUBLIC_ID = os.getenv("USER_APIKEY_PUBLIC_ID", "TEST_APIKEY_PUBLIC_ID")
+USER_APIKEY_SECRET = os.getenv("USER_APIKEY_SECRET", "TEST_APIKEY_VALUE")
 
 # Authentication settings
 AUTHENTICATION_CACHE_TIME = int(os.getenv("AUTHENTICATION_CACHE_TIME", 3600))
