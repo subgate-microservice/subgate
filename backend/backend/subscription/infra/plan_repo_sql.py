@@ -6,16 +6,15 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.auth.infra.fastapi_users.sql_repo import auth_user_table
 from backend.shared.database import metadata
 from backend.shared.enums import Lock
 from backend.shared.unit_of_work.base_repo_sql import SqlBaseRepo, SQLMapper, AwareDateTime
 from backend.shared.unit_of_work.change_log import Log
 from backend.shared.utils.dt import get_current_datetime
-from backend.subscription.infra.deserializers import deserialize_plan
-from backend.subscription.infra.serializers import serialize_plan
 from backend.subscription.domain.plan import Plan, PlanId
 from backend.subscription.domain.plan_repo import PlanRepo, PlanSby
+from backend.subscription.infra.deserializers import deserialize_plan
+from backend.subscription.infra.serializers import serialize_plan
 
 plan_table = Table(
     'plan',
