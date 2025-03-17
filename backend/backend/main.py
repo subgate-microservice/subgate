@@ -131,7 +131,7 @@ if __name__ == "__main__":
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
-    startup_shutdown = StartupShutdownManager()
+    startup_shutdown = StartupShutdownManager(db_recreate=False)
 
     try:
         loop.run_until_complete(startup_shutdown.on_startup())
